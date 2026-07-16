@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chrome Bridge Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="page">
+    <main class="card wide">
+      <h1>Chrome Bridge Settings</h1>
+      <form id="settings-form">
+        <label for="browser-label">Browser label</label>
+        <input id="browser-label" name="browserLabel" type="text" minlength="1" maxlength="64" required />
+
+        <label for="browser-id">Browser ID</label>
+        <input id="browser-id" name="browserId" type="text" readonly />
+
+        <label for="server-url">Extension WebSocket URL</label>
+        <input id="server-url" name="serverUrl" type="url" required />
+
+        <button type="submit">Save and reconnect</button>
+        <p id="message" role="status"></p>
+      </form>
+    </main>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

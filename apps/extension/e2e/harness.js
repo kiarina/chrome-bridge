@@ -1,0 +1,317 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { chromium } from "@playwright/test";
+import { spawn } from "node:child_process";
+import { createServer } from "node:http";
+import { mkdtemp, mkdir, cp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
+
+const extensionDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoDir = path.resolve(extensionDir, "../..");
+const extensionFiles = JSON.parse(await readFile(path.join(extensionDir, "extension-files.json"), "utf8"));
+const runtimeFiles = extensionFiles.runtime;
+const runtimeSourceDir = process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR
+  ? path.resolve(process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR)
+  : extensionDir;
+
+function withTimeout(promise, timeoutMs, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+function childExit(child) {
+  if (child.exitCode !== null) return Promise.resolve(child.exitCode);
+  return new Promise((resolve) => child.once("exit", resolve));
+}
+
+export async function startServer() {
+  const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
+  const command = installedPython || "uv";
+  const args = installedPython
+    ? ["-u", path.join(repoDir, "apps/server/tests/e2e_server.py")]
+    : ["run", "python", "-u", "apps/server/tests/e2e_server.py"];
+  const child = spawn(command, args, {
+    cwd: repoDir,
+    env: { ...process.env, PYTHONNOUSERSITE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => stderr.push(chunk));
+  const lines = createInterface({ input: child.stdout });
+  let ready;
+  const readiness = new Promise((resolve, reject) => {
+    const onExit = (code) => reject(new Error(`E2E server exited before readiness (code ${code})`));
+    child.once("exit", onExit);
+    lines.on("line", (line) => {
+      stdout.push(`${line}\n`);
+      if (ready) return;
+      try {
+        const message = JSON.parse(line);
+        if (message.event === "ready") {
+          ready = message;
+          child.off("exit", onExit);
+          resolve(message);
+        }
+      } catch {
+        // Only the readiness record is control data; all other lines are diagnostics.
+      }
+    });
+  });
+  let endpoints;
+  try {
+    endpoints = await withTimeout(readiness, 15_000, "E2E server readiness");
+  } catch (error) {
+    lines.close();
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      try {
+        await withTimeout(childExit(child), 3_000, "failed E2E server shutdown");
+      } catch {
+        child.kill("SIGKILL");
+        await childExit(child);
+      }
+    }
+    throw new Error(`${error.message}\nstdout:\n${stdout.join("")}\nstderr:\n${stderr.join("")}`, {
+      cause: error,
+    });
+  }
+  let closed = false;
+  return {
+    ...endpoints,
+    logs: () => `stdout:\n${stdout.join("")}\nstderr:\n${stderr.join("")}`,
+    async close() {
+      if (closed) return;
+      closed = true;
+      lines.close();
+      if (child.exitCode !== null) return;
+      child.kill("SIGTERM");
+      try {
+        await withTimeout(childExit(child), 3_000, "E2E server shutdown");
+      } catch {
+        child.kill("SIGKILL");
+        await childExit(child);
+      }
+    },
+  };
+}
+
+export async function startFixtureServer() {
+  const server = createServer((request, response) => {
+    if (request.url === "/favicon.ico") {
+      response.writeHead(204).end();
+      return;
+    }
+    if (request.url !== "/a" && request.url !== "/b") {
+      response.writeHead(404).end("Not found");
+      return;
+    }
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(`<!doctype html>
+<html><head><title>Chrome Bridge E2E</title></head>
+<body><main>
+<h1>Isolated fixture</h1>
+<button id="update">Update</button>
+<button id="upload">Choose files</button>
+<input id="files" type="file" multiple hidden>
+<button id="upload-one">Choose one file</button>
+<input id="one-file" type="file" hidden>
+<label>Name <input aria-label="Name"></label>
+<div role="button" tabindex="0" draggable="true" id="card">Movable card</div>
+<section role="region" aria-label="Drop zone" id="dropzone">Drop here</section>
+<p id="drop-status">Drop: ready</p>
+<p id="upload-status">Files: none</p>
+<p id="upload-processing">Processing: idle</p>
+<p role="status">Ready</p>
+</main>
+<script>
+const label = location.pathname.slice(1).toUpperCase();
+document.querySelector("button").addEventListener("click", () => {
+  document.querySelector("[role=status]").textContent = "Updated " + label;
+});
+const fileInput = document.querySelector("#files");
+document.querySelector("#upload").addEventListener("click", () => fileInput.click());
+document.querySelector("#upload-one").addEventListener("click", () =>
+  document.querySelector("#one-file").click());
+fileInput.addEventListener("change", () => {
+  document.querySelector("#upload-status").textContent =
+    "Files: " + [...fileInput.files].map((file) => file.name).join(", ");
+  const processing = document.querySelector("#upload-processing");
+  processing.textContent = "Processing: pending";
+  setTimeout(() => {
+    processing.textContent = "Processing: complete";
+  }, 1_500);
+});
+const card = document.querySelector("#card");
+const dropzone = document.querySelector("#dropzone");
+dropzone.addEventListener("dragover", (event) => event.preventDefault());
+dropzone.addEventListener("drop", (event) => {
+  event.preventDefault();
+  document.querySelector("#drop-status").textContent = "Drop: completed " + label;
+});
+</script></body></html>`);
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  let closed = false;
+  return {
+    baseUrl: `http://127.0.0.1:${address.port}`,
+    async close() {
+      if (closed) return;
+      closed = true;
+      await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    },
+  };
+}
+
+export async function prepareExtensionArtifact(serverUrl) {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "chrome-bridge-e2e-"));
+  const artifactDir = path.join(rootDir, "extension");
+  try {
+    await mkdir(artifactDir);
+    for (const relative of runtimeFiles) {
+      const destination = path.join(artifactDir, relative);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await cp(path.join(runtimeSourceDir, relative), destination);
+    }
+    await writeFile(
+      path.join(artifactDir, "runtime-config.js"),
+      `export const DEFAULT_SERVER_URL = ${JSON.stringify(serverUrl)};\n`,
+    );
+    const config = await readFile(path.join(artifactDir, "runtime-config.js"), "utf8");
+    if (config.includes(":8765/")) throw new Error("Temporary extension artifact points to production port 8765");
+  } catch (error) {
+    await rm(rootDir, { recursive: true, force: true });
+    throw error;
+  }
+  let closed = false;
+  return {
+    artifactDir,
+    rootDir,
+    profileDir(name) {
+      return path.join(rootDir, `profile-${name}`);
+    },
+    async close() {
+      if (closed) return;
+      closed = true;
+      await rm(rootDir, { recursive: true, force: true });
+    },
+  };
+}
+
+export async function launchProfile({ artifactDir, userDataDir, name }) {
+  const logs = [];
+  let worker;
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    channel: "chromium",
+    headless: process.env.CHROME_BRIDGE_E2E_HEADED !== "1",
+    args: [
+      `--disable-extensions-except=${artifactDir}`,
+      `--load-extension=${artifactDir}`,
+    ],
+  });
+  try {
+    await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+    const observePage = (page) => {
+      page.on("pageerror", (error) => logs.push(`[pageerror] ${error.stack ?? error.message}`));
+      page.on("console", (message) => {
+        if (message.type() === "error") logs.push(`[page console] ${message.text()}`);
+      });
+    };
+    context.pages().forEach(observePage);
+    context.on("page", observePage);
+    worker = context.serviceWorkers()[0] ?? await withTimeout(
+      context.waitForEvent("serviceworker"),
+      15_000,
+      `${name} service worker`,
+    );
+    if (!worker.url().startsWith("chrome-extension://") || !worker.url().endsWith("/background.js")) {
+      throw new Error(`Unexpected ${name} service worker URL: ${worker.url()}`);
+    }
+    worker.on("console", (message) => logs.push(`[worker ${message.type()}] ${message.text()}`));
+  } catch (error) {
+    await context.close();
+    throw error;
+  }
+  let closed = false;
+  return {
+    context,
+    logs,
+    name,
+    userDataDir,
+    worker,
+    async close(tracePath) {
+      if (closed) return;
+      closed = true;
+      try {
+        await context.tracing.stop(tracePath ? { path: tracePath } : undefined);
+      } finally {
+        await context.close();
+      }
+    },
+  };
+}
+
+export async function connectMcp(mcpUrl) {
+  const client = new Client({ name: "chrome-bridge-e2e", version: "0.1.0" }, { capabilities: {} });
+  const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
+  await client.connect(transport);
+  return client;
+}
+
+export function toolCaller(client, transcript) {
+  return async (name, args = {}) => {
+    const started = Date.now();
+    const result = await client.callTool({ name, arguments: args });
+    transcript.push({
+      tool: name,
+      browserId: args.browser_id,
+      fixtureUrl: args.url?.startsWith("http://127.0.0.1:") ? args.url : undefined,
+      durationMs: Date.now() - started,
+      isError: result.isError === true,
+    });
+    if (transcript.length > 100) transcript.shift();
+    return result;
+  };
+}
+
+export function toolValue(result) {
+  if (result.structuredContent && "result" in result.structuredContent) {
+    return result.structuredContent.result;
+  }
+  if (result.structuredContent !== undefined) return result.structuredContent;
+  const text = result.content?.find((item) => item.type === "text")?.text;
+  if (text === undefined) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+export function toolText(result) {
+  return result.content?.filter((item) => item.type === "text").map((item) => item.text).join("\n") ?? "";
+}
+
+export async function waitFor(getValue, predicate, label, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastValue;
+  while (Date.now() < deadline) {
+    lastValue = await getValue();
+    if (predicate(lastValue)) return lastValue;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`${label} timed out; last value: ${JSON.stringify(lastValue)}`);
+}

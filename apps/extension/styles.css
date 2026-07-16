@@ -1,0 +1,97 @@
+:root {
+  color-scheme: light dark;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #fff4f9;
+  color: #241019;
+}
+
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: start center;
+}
+
+.popup {
+  width: 320px;
+}
+
+.card {
+  padding: 20px;
+}
+
+.wide {
+  width: min(640px, calc(100% - 48px));
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 1.25rem;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+input,
+button {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d7a0ba;
+  border-radius: 6px;
+  padding: 10px;
+  font: inherit;
+}
+
+button {
+  margin-top: 10px;
+  border-color: #97084d;
+  background: #b80f62;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #97084d;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(242, 27, 134, 0.32);
+  outline-offset: 2px;
+}
+
+.status {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.detail {
+  overflow-wrap: anywhere;
+  color: #6f4358;
+}
+
+#target[data-state="operating"] {
+  color: #b80f62;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #241019;
+    color: #fff4f9;
+  }
+
+  .detail {
+    color: #e4b7cc;
+  }
+}

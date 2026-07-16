@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiarina.github.io/chrome-bridge/protocol/v1.schema.json",
+  "title": "Chrome Bridge extension protocol v1",
+  "$ref": "#/$defs/protocolMessage",
+  "$defs": {
+    "requestId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "emptyParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "tabIdParams": {
+      "type": "object",
+      "properties": { "tabId": { "type": "integer", "minimum": 0 } },
+      "required": ["tabId"],
+      "additionalProperties": false
+    },
+    "elementParams": {
+      "type": "object",
+      "properties": {
+        "element": { "type": "string", "minLength": 1 },
+        "ref": { "type": "string", "pattern": "^s[0-9]+e[0-9]+$" }
+      },
+      "required": ["element", "ref"],
+      "additionalProperties": false
+    },
+    "uploadParams": {
+      "type": "object",
+      "properties": {
+        "element": { "type": "string", "minLength": 1 },
+        "ref": { "type": "string", "pattern": "^s[0-9]+e[0-9]+$" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": ["element", "ref", "paths"],
+      "additionalProperties": false
+    },
+    "commandRequest": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/requestId" },
+        "type": {
+          "enum": [
+            "tabs.list",
+            "tabs.open",
+            "tabs.close",
+            "tabs.select",
+            "tabs.activate",
+            "page.snapshot",
+            "page.click",
+            "page.drag",
+            "page.hover",
+            "page.uploadFile",
+            "page.type",
+            "page.selectOption",
+            "page.pressKey",
+            "page.navigate",
+            "page.goBack",
+            "page.goForward",
+            "page.wait",
+            "page.screenshot",
+            "page.getConsoleLogs"
+          ]
+        },
+        "params": { "type": "object" }
+      },
+      "required": ["id", "type", "params"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "tabs.list" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/emptyParams" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "tabs.open" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string", "minLength": 1 },
+                  "active": { "type": "boolean" }
+                },
+                "required": ["url", "active"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": { "enum": ["tabs.close", "tabs.select", "tabs.activate"] }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/tabIdParams" } }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "page.snapshot",
+                  "page.goBack",
+                  "page.goForward",
+                  "page.screenshot",
+                  "page.getConsoleLogs"
+                ]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/emptyParams" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["page.click", "page.hover"] } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/elementParams" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.uploadFile" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "params": { "$ref": "#/$defs/uploadParams" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.drag" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": {
+                  "startElement": { "type": "string", "minLength": 1 },
+                  "startRef": {
+                    "type": "string",
+                    "pattern": "^s[0-9]+e[0-9]+$"
+                  },
+                  "endElement": { "type": "string", "minLength": 1 },
+                  "endRef": { "type": "string", "pattern": "^s[0-9]+e[0-9]+$" }
+                },
+                "required": [
+                  "startElement",
+                  "startRef",
+                  "endElement",
+                  "endRef"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.type" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": {
+                  "element": { "type": "string", "minLength": 1 },
+                  "ref": { "type": "string", "pattern": "^s[0-9]+e[0-9]+$" },
+                  "text": { "type": "string" },
+                  "submit": { "type": "boolean" }
+                },
+                "required": ["element", "ref", "text", "submit"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.selectOption" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": {
+                  "element": { "type": "string", "minLength": 1 },
+                  "ref": { "type": "string", "pattern": "^s[0-9]+e[0-9]+$" },
+                  "values": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
+                  }
+                },
+                "required": ["element", "ref", "values"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.pressKey" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": { "key": { "type": "string", "minLength": 1 } },
+                "required": ["key"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.navigate" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": { "url": { "type": "string", "minLength": 1 } },
+                "required": ["url"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "page.wait" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "type": "object",
+                "properties": {
+                  "time": { "type": "number", "minimum": 0, "maximum": 10 }
+                },
+                "required": ["time"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "hello": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "hello" },
+        "protocolVersion": { "const": 1 },
+        "extensionVersion": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type", "protocolVersion", "extensionVersion"],
+      "additionalProperties": false
+    },
+    "ping": {
+      "type": "object",
+      "properties": { "type": { "const": "ping" } },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "pong": {
+      "type": "object",
+      "properties": { "type": { "const": "pong" } },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "successResponse": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/requestId" },
+        "ok": { "const": true },
+        "result": {}
+      },
+      "required": ["id", "ok", "result"],
+      "additionalProperties": false
+    },
+    "errorResponse": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/requestId" },
+        "ok": { "const": false },
+        "error": { "type": "string", "minLength": 1 }
+      },
+      "required": ["id", "ok", "error"],
+      "additionalProperties": false
+    },
+    "serverMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/pong" },
+        { "$ref": "#/$defs/commandRequest" }
+      ]
+    },
+    "extensionInitialMessage": { "$ref": "#/$defs/hello" },
+    "extensionRuntimeMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/ping" },
+        { "$ref": "#/$defs/successResponse" },
+        { "$ref": "#/$defs/errorResponse" }
+      ]
+    },
+    "extensionMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/extensionInitialMessage" },
+        { "$ref": "#/$defs/extensionRuntimeMessage" }
+      ]
+    },
+    "protocolMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/serverMessage" },
+        { "$ref": "#/$defs/extensionMessage" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chrome Bridge multi-profile fixture</title>
+  </head>
+  <body>
+    <main>
+      <h1 id="profile">Chrome Bridge profile</h1>
+      <button id="update" type="button">Update this profile</button>
+      <p id="status" role="status">Ready</p>
+    </main>
+    <script>
+      const profile = new URL(location.href).searchParams.get("profile") || "unknown";
+      document.title = `Chrome Bridge ${profile}`;
+      document.querySelector("#profile").textContent = `Profile ${profile}`;
+      document.querySelector("#update").addEventListener("click", () => {
+        document.querySelector("#status").textContent = `Updated ${profile}`;
+      });
+    </script>
+  </body>
+</html>

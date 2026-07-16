@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --all-groups --locked
+      - run: uv run pytest
+      - run: uv run ruff check apps/server scripts
+      - run: uv run ruff format --check apps/server scripts
+      - run: uv run python -m compileall -q apps/server/src scripts
+      - run: uv run python scripts/validate_static.py
+
+  extension:
+    name: Extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/extension/package-lock.json
+      - run: npm ci
+        working-directory: apps/extension
+      - run: npm run lint
+        working-directory: apps/extension
+      - run: npm test
+        working-directory: apps/extension
+      - run: npm audit --audit-level=high
+        working-directory: apps/extension
+      - name: Check generated protocol bundle
+        run: git diff --exit-code -- apps/extension/dist/protocol.js
+
+  isolated-e2e:
+    name: Isolated Chrome E2E
+    needs: [python, extension]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/extension/package-lock.json
+      - run: uv sync --all-groups --locked
+      - run: npm ci
+        working-directory: apps/extension
+      - run: npx playwright install --with-deps --no-shell chromium
+        working-directory: apps/extension
+      - run: npm run test:e2e
+        working-directory: apps/extension
+      - run: uv run python scripts/build_release.py
+      - run: uv run python scripts/validate_release.py
+      - run: uv run python scripts/check_release_reproducible.py
+      - name: Upload E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-chrome-e2e
+          path: apps/extension/test-results/e2e
+          if-no-files-found: ignore

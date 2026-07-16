@@ -1,0 +1,26 @@
+[project]
+name = "chrome-bridge-workspace"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["chrome-bridge-server"]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2,<3",
+    "pytest>=8.4,<9",
+    "pytest-asyncio>=1.1,<2",
+    "ruff>=0.12,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+chrome-bridge-server = { workspace = true }
+
+[tool.uv.workspace]
+members = ["apps/server"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["apps/server/tests"]

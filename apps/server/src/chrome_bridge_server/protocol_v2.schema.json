@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kiarina.github.io/chrome-bridge/protocol/v2.schema.json",
+  "title": "Chrome Bridge extension protocol v2 hello",
+  "$ref": "#/$defs/extensionInitialMessage",
+  "$defs": {
+    "browserId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "hello": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "hello" },
+        "protocolVersion": { "const": 2 },
+        "extensionVersion": { "type": "string", "minLength": 1 },
+        "browserId": { "$ref": "#/$defs/browserId" },
+        "browserLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "extensionVersion",
+        "browserId",
+        "browserLabel"
+      ],
+      "additionalProperties": false
+    },
+    "extensionInitialMessage": { "$ref": "#/$defs/hello" }
+  }
+}

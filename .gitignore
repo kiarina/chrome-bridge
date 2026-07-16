@@ -1,0 +1,14 @@
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+!apps/extension/dist/
+!apps/extension/dist/content-runtime.js
+node_modules/
+test-results/
+release/
+apps/extension/tests/.generated/

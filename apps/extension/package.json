@@ -1,0 +1,20 @@
+{
+  "name": "chrome-bridge-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:test": "node build.mjs --test",
+    "lint": "eslint .",
+    "test": "npm run build && npm run build:test && playwright test",
+    "test:e2e": "npm run build && playwright test --config=playwright.e2e.config.js",
+    "test:e2e:release": "playwright test --config=playwright.e2e.config.js"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@playwright/test": "1.61.1",
+    "esbuild": "0.25.5",
+    "eslint": "10.4.0"
+  }
+}

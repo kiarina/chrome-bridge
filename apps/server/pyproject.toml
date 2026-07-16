@@ -1,0 +1,36 @@
+[project]
+name = "chrome-bridge-server"
+version = "0.1.0"
+description = "HTTP MCP server that bridges LLM agents to a Chrome extension"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "jsonschema>=4.23,<5",
+    "mcp[cli]>=1.27,<2",
+    "uvicorn>=0.35,<1",
+    "websockets>=15,<17",
+]
+
+[project.scripts]
+chrome-bridge-server = "chrome_bridge_server.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2,<3",
+    "pytest>=8.4,<9",
+    "pytest-asyncio>=1.1,<2",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chrome_bridge_server"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/tests"]
