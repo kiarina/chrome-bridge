@@ -97,7 +97,15 @@ Navigate accepts only HTTP(S) URLs, using `chrome.tabs.reload` for the current U
 
 If the Chrome tabs API reports no history, return a clear error without entering the navigation wait. If the history destination is restricted, such as `about:blank`, retain the target and return content-unavailable; later back/forward or HTTP(S) navigation can recover. Wait sleeps for 0–10 seconds inside the page-operation queue and clears the latest snapshot at start. It waits for elapsed time, not DOM stability; call `browser_snapshot` to inspect the current DOM afterward.
 
-Screenshot does not branch on foreground/background. It temporarily attaches to page `targetId` without focus emulation, captures the CSS visual viewport from `Page.getLayoutMetrics` through `Page.captureScreenshot`, then uses a content-runtime canvas to downscale the actual image to at most 1024×768 while preserving aspect ratio. Because CDP `clip.scale` does not limit actual pixels on high-DPI displays, metadata width/height alone are not treated as proof of downscaling. The server validates base64 and the PNG signature, then converts it to MCP image content.
+Screenshot does not branch on foreground/background. It temporarily attaches to page
+`targetId` without focus emulation, captures the CSS visual viewport from
+`Page.getLayoutMetrics` through `Page.captureScreenshot`, and selects its bounds with the
+same orientation-aware Full HD helper as video. A content-runtime canvas downsizes the
+actual image to fit 1920×1080 for landscape/square sources or 1080×1920 for portrait
+sources without crop, stretch, or upscale. Because CDP `clip.scale` does not reliably
+limit actual pixels on high-DPI displays, metadata width/height alone are not treated as
+proof of downscaling. The server validates base64 and the PNG signature, then converts it
+to MCP image content.
 
 Console logs have no persistent global collector. Only during a tool call, attach to the same page `targetId` and call `Runtime.enable`; receive for 100 ms the buffered `Runtime.consoleAPICalled` and `Runtime.exceptionThrown` events Chrome replays for the current document, strictly filter by source target ID, and cap at 100. This contract returns current-document entries retained by Chrome Runtime and does not guarantee independent history across calls. Screenshot and console both detach in `finally` and never auto-activate the target.
 
@@ -128,9 +136,8 @@ sequenceDiagram
 
 ## Target video recording
 
-Bounded standalone target-tab recording, operation-scoped `browser_wait` recording, and
-their production encoder are implemented; remaining operation `video_filename` options
-are planned. The shared debugger-session module is used by existing debugger operations
+Bounded standalone target-tab recording, the planned operation-scoped recording options,
+and their production encoder are implemented. The shared debugger-session module is used by existing debugger operations
 and recording while retaining attach/use/detach behavior. It serializes
 critical work, can skip opportunistic capture under contention, observes external
 detach, and owns an attachment only within one command. There is no global
@@ -138,14 +145,13 @@ reference-counted attachment or retained session across MCP commands.
 
 The production pipeline repeatedly captures the exact background target, sends frames to a
 single offscreen document for canvas/MediaRecorder encoding, and downloads a silent WebM
-below the Chrome profile's Downloads directory. Screenshot and video will eventually share
-orientation-aware Full HD bounds without cropping or upscaling. Navigation and upload
-recording remain gated on lifecycle and cleanup measurements. Production permissions are
+below the Chrome profile's Downloads directory. Screenshot and video share
+orientation-aware Full HD bounds without cropping or upscaling. Production permissions are
 limited to `offscreen` for encoding and `downloads` for explicit requested output. The
 public tool's Full HD landscape and portrait E2E recordings dropped no frames, and a
 capture already in flight added 18 ms mean and at most 30 ms queue delay to a real CDP
 mouse-move input in the final cold-path run. See
-[Video recording design](video-recording.md) for the canonical planned API, ownership,
+[Video recording design](video-recording.md) for the canonical API, ownership,
 dimensions, and validation order.
 
 Recorded wait starts a capture loop before clearing refs and waiting, continues through

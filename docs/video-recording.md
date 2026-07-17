@@ -5,9 +5,8 @@
 This document is the canonical design and rollout record for target-tab video recording.
 The production offscreen/download pipeline and bounded standalone tool are implemented.
 Operation-scoped wait, click, hover, type, select, key, drag, upload, navigation, and
-history recording are also implemented. Full HD screenshot output remains planned. The
-current 21-tool API includes these recording modes, while screenshot remains limited to
-1024×768 until its production tests and documentation land together.
+history recording are also implemented. Screenshot and video now share the same
+orientation-aware Full HD sizing helper and complete-viewport contract.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -167,8 +166,7 @@ before fixing the production frame-rate contract.
 
 ## Shared screenshot and video dimensions
 
-When the recording feature is implemented, update `browser_screenshot` to the same
-orientation-aware Full HD bounds. Both still images and video use the target tab's CSS
+Both still images and video use the target tab's CSS
 visual viewport, preserve its aspect ratio, include the complete viewport, and never
 crop, stretch, or upscale it.
 
@@ -204,9 +202,25 @@ recording, contain the new viewport within that canvas with aspect ratio preserv
 add padding only as needed; do not change encoded dimensions mid-stream.
 
 Full HD PNG responses can be several megabytes and base64 transport adds overhead.
-Retain PNG for the screenshot contract, then measure image size, resize time, and MCP
-transfer time with complex pages and high-DPI displays before declaring the new limit
-implemented.
+Retain PNG for the screenshot contract and measure image size, resize time, and MCP
+transfer time with controlled complex pages and high-DPI displays as rollout evidence.
+
+The isolated two-profile production path returned a 1920×1080 PNG as 92,259 bytes
+(123,012 base64 characters) in 108 ms and a 1080×1920 PNG as 87,221 bytes (116,296
+base64 characters) in 125 ms. These controlled fixtures establish exact dimensions and
+bounded local transfer behavior; branded landscape/high-DPI evidence follows, while the
+branded portrait window remains a manual boundary.
+
+After extension reload, branded Chrome at DPR 2 returned its 1365×817 CSS viewport as an
+exact 1365×817 PNG, confirming the content canvas bounds the physical-pixel capture and
+does not upscale. On a controlled high-entropy landscape fixture, five identical
+1,097,472-byte PNGs completed in 1,952–2,137 ms, included the bottom-right edge marker,
+preserved the active tab, and reattached successfully on every call. Three additional
+calls produced a coarse aggregate Chrome RSS peak about 132 MiB over the open-tab
+baseline and a server peak about 3.7 MiB over baseline; the Chrome figure includes all
+existing processes and is not per-command retained-memory attribution. Branded portrait
+window validation remains because the available user window was landscape; isolated
+Chrome already enforces the 1080×1920 path.
 
 ## Technical probe evidence
 
@@ -329,11 +343,9 @@ lead-in and visibly confirmed `Files: none → README.md`, `/a → /b`, `/b → 
 priority; navigation dropped none. The active tab remained unchanged, the diagnostic
 fixture tab was closed, and an immediate screenshot reattached successfully.
 
-Continue in this order:
-
-1. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
-   release allowlists, and all user-facing documentation in the same implementation
-   milestone.
+The shared Full HD screenshot implementation changes no input schema, response media
+type, permission, runtime file, or retained-data category. Protocol schemas, release
+allowlists, and Chrome Web Store disclosures therefore require no structural change.
 
 Acceptance requires unit tests, isolated two-profile Chromium E2E, and branded-Chrome
 manual measurements on background targets. Recording must never foreground the target,

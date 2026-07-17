@@ -205,6 +205,12 @@ mean and 30 ms maximum. Input commands took at most 7 ms. This isolates recordin
 delay from the production focus-emulation settle. Branded Chrome and heavier pages remain
 manual validation boundaries.
 
+The production screenshot path now uses the same sizing helper. The isolated landscape
+profile returned a 1920×1080 PNG as 92,259 bytes in 108 ms end to end through MCP; the
+portrait profile returned 1080×1920 as 87,221 bytes in 125 ms. The test decodes each PNG
+IHDR rather than trusting extension metadata and continues through the existing
+two-profile lifecycle matrix.
+
 ## Failure artifacts and diagnostics
 
 Diagnostics must explain failures without retaining entire browser profiles:

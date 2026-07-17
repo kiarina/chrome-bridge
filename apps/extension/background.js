@@ -10,6 +10,7 @@ import {
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
 import { withDebuggerSession } from "./debugger-session.js";
+import { fitWithinMediaBounds } from "./media-sizing.js";
 import {
   OperationOutcomeUnknownError,
   recordTargetOperation,
@@ -30,8 +31,6 @@ const NAVIGATION_TIMEOUT_MS = 10_000;
 const FILE_CHOOSER_TIMEOUT_MS = 3_000;
 const FILE_INPUT_CHANGE_TIMEOUT_MS = 2_000;
 const MAX_WAIT_SECONDS = 10;
-const MAX_SCREENSHOT_WIDTH = 1_024;
-const MAX_SCREENSHOT_HEIGHT = 768;
 const MAX_CONSOLE_ENTRIES = 100;
 const CONSOLE_REPLAY_WAIT_MS = 100;
 const ARIA_REF_PATTERN = /^s(\d+)e(\d+)$/;
@@ -1324,6 +1323,7 @@ async function screenshotTarget() {
         if (width <= 0 || height <= 0) {
           throw new Error("Chrome returned invalid viewport metrics");
         }
+        const output = fitWithinMediaBounds(width, height);
         const result = await chrome.debugger.sendCommand(
           debuggee,
           "Page.captureScreenshot",
@@ -1337,7 +1337,7 @@ async function screenshotTarget() {
         if (typeof result?.data !== "string" || !result.data) {
           throw new Error("Chrome returned an invalid PNG screenshot");
         }
-        return result.data;
+        return { data: result.data, output };
       },
       false,
     );
@@ -1353,9 +1353,9 @@ async function screenshotTarget() {
   }
   const response = await sendContentMessage(tab.id, {
     type: "chrome-bridge.image.resize",
-    data: captured,
-    maxWidth: MAX_SCREENSHOT_WIDTH,
-    maxHeight: MAX_SCREENSHOT_HEIGHT,
+    data: captured.data,
+    maxWidth: captured.output.width,
+    maxHeight: captured.output.height,
   });
   const resized = response.result;
   if (
@@ -1363,10 +1363,10 @@ async function screenshotTarget() {
     !resized.data ||
     !Number.isInteger(resized.width) ||
     resized.width <= 0 ||
-    resized.width > MAX_SCREENSHOT_WIDTH ||
+    resized.width > captured.output.width ||
     !Number.isInteger(resized.height) ||
     resized.height <= 0 ||
-    resized.height > MAX_SCREENSHOT_HEIGHT
+    resized.height > captured.output.height
   ) {
     throw new Error("Content runtime returned an invalid resized screenshot");
   }

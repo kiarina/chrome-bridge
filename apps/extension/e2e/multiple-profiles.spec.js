@@ -26,6 +26,22 @@ function successful(result) {
   return toolValue(result);
 }
 
+function pngMetrics(result) {
+  expect(result.isError, toolText(result)).not.toBe(true);
+  const image = result.content.find((item) => item.type === "image");
+  expect(image).toMatchObject({ mimeType: "image/png" });
+  const png = Buffer.from(image.data, "base64");
+  expect([...png.subarray(0, 8)]).toEqual([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]);
+  return {
+    base64Length: image.data.length,
+    height: png.readUInt32BE(20),
+    sizeBytes: png.byteLength,
+    width: png.readUInt32BE(16),
+  };
+}
+
 function buttonRef(snapshot) {
   const match = snapshot.snapshot.match(/button "Update"[^\n]*\[ref=([^\]]+)\]/);
   expect(match, snapshot.snapshot).not.toBeNull();
@@ -918,11 +934,24 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       tab_id: uploadTargetChangeTab.id,
     }))).toMatchObject({ closed: true, tabId: uploadTargetChangeTab.id });
 
+    const screenshotAStartedAt = performance.now();
     const screenshotA = await call("browser_screenshot", { browser_id: browserA });
-    expect(screenshotA.isError, toolText(screenshotA)).not.toBe(true);
-    expect(screenshotA.content).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "image", mimeType: "image/png" }),
-    ]));
+    const landscapeScreenshot = {
+      ...pngMetrics(screenshotA),
+      elapsedMs: Math.round(performance.now() - screenshotAStartedAt),
+    };
+    expect([landscapeScreenshot.width, landscapeScreenshot.height])
+      .toEqual([1_920, 1_080]);
+    const screenshotBStartedAt = performance.now();
+    const screenshotB = await call("browser_screenshot", { browser_id: browserB });
+    const portraitScreenshot = {
+      ...pngMetrics(screenshotB),
+      elapsedMs: Math.round(performance.now() - screenshotBStartedAt),
+    };
+    expect([portraitScreenshot.width, portraitScreenshot.height])
+      .toEqual([1_080, 1_920]);
+    console.info("landscape screenshot metrics", landscapeScreenshot);
+    console.info("portrait screenshot metrics", portraitScreenshot);
     await expect.poll(() => pageA.evaluate(() =>
       document.querySelector("#chrome-bridge-agent-indicator")?.style.visibility,
     )).toBe("visible");

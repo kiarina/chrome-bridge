@@ -347,13 +347,11 @@ Captures the target's CSS visual viewport without foregrounding it.
 | --- | --- | --- | --- |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** MCP image content in PNG format. The actual image is downscaled to at most 1024×768 pixels while preserving its aspect ratio. The agent's virtual cursor is included; the top-right target/operating status is hidden only during capture.
-
-The implemented limit remains 1024×768. A planned recording milestone will change
-screenshots and video to shared orientation-aware Full HD bounds: landscape or square
-content fits within 1920×1080, portrait content fits within 1080×1920, with no cropping,
-stretching, or upscaling. See [Video recording design](video-recording.md); that planned
-screenshot contract is not exposed by the current tool yet.
+**Returns:** MCP image content in PNG format. Screenshots and video use the same
+orientation-aware Full HD bounds: landscape or square content fits within 1920×1080 and
+portrait content fits within 1080×1920. The complete CSS visual viewport is preserved
+without cropping, stretching, or upscaling. The agent's virtual cursor is included; the
+top-right target/operating status is hidden only during capture.
 
 ### `browser_get_console_logs`
 

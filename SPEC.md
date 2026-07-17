@@ -136,7 +136,12 @@ Each tab result from `tabs.list` includes the additive field `targeted: boolean`
 
 New commands and result fields are backward-compatible protocol v1 extensions and do not change the meaning of existing commands.
 
-`page.screenshot` captures the target's CSS visual viewport as PNG, downsizes the actual image to at most 1024×768 pixels, and returns `{data: base64, mimeType: "image/png", width, height}`. It temporarily attaches the debugger to the page `targetId` without branching on foreground/background and does not alter Chrome UI's active state. MCP returns image content rather than base64 JSON.
+`page.screenshot` captures the target's CSS visual viewport as PNG and uses the shared
+media sizing helper: landscape or square output fits within 1920×1080 and portrait output
+fits within 1080×1920, preserving the complete viewport without crop, stretch, or upscale.
+It returns `{data: base64, mimeType: "image/png", width, height}`. It temporarily attaches
+the debugger to the page `targetId` without branching on foreground/background and does
+not alter Chrome UI's active state. MCP returns image content rather than base64 JSON.
 
 `page.getConsoleLogs` enables the target's Runtime domain only for the call and returns up to 100 `Runtime.consoleAPICalled` and `Runtime.exceptionThrown` events replayed by Chrome for the current document. Each entry has `type`, `timestamp`, and `message`, and is strictly filtered by page `targetId`. Entries from other tabs are never mixed in; MCP returns one JSON text entry per line.
 
@@ -187,7 +192,8 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Type accepts only editable refs; select strictly resolves `option.value`.
 - Navigate/back/forward return post-operation snapshots on a background target and distinguish no-history from restricted destinations.
 - Wait accepts 0–10 seconds and invalidates the latest snapshot when waiting begins.
-- Screenshot returns the background target viewport as PNG image content up to 1024×768 without changing the active tab.
+- Screenshot returns the background target viewport as orientation-aware Full HD PNG
+  image content without changing the active tab.
 - Console logs return at most 100 JSON lines containing only console entries/exceptions from the current target.
 - Drag strictly resolves start/end refs from the same latest snapshot and returns a post-operation snapshot without foregrounding the background target.
 - Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input. Recorded upload borrows the recorder session for interception and takes at most one explicit click milestone frame; every outcome disables interception and releases its change barrier in `finally`.
@@ -271,9 +277,8 @@ New commands and result fields are backward-compatible protocol v1 extensions an
   two-profile Chromium E2E, and branded-Chrome background-target measurements before
   exposing each stage.
 
-[Video recording design](docs/video-recording.md) is canonical for the planned API,
-debugger ownership, capture pipeline, dimensions, result/error contract, and
-implementation order.
+[Video recording design](docs/video-recording.md) is canonical for the API, debugger
+ownership, capture pipeline, dimensions, result/error contract, and rollout record.
 
 ## 8. Versioning
 

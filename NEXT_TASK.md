@@ -16,8 +16,8 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 
 ## P2: target-tab video recording and Full HD media sizing
 
-Standalone, wait, and trusted/DOM action recording are implemented; remaining
-operation-scoped recording and Full HD screenshots remain. Follow
+Standalone and all planned operation-scoped recording are implemented. Screenshot and
+video now share the orientation-aware Full HD sizing helper. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
 - The orientation-aware sizing helper and command-scoped debugger session are complete.
@@ -86,9 +86,16 @@ operation-scoped recording and Full HD screenshots remain. Follow
   11–23-frame 1365×817 WebMs ran for 1,073–2,570 ms, began on real page frames, showed
   `Files: none → README.md`, `/a → /b`, `/b → /a`, and `/a → /b`, and retained the
   inactive target, original active tab, and immediate screenshot reuse.
-- Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
-  Full HD policy in the same milestone as tests and documentation; measure PNG size,
-  resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,
-  and command duration.
-- Update manifest permissions, runtime/release allowlists, privacy and Chrome Web Store
-  declarations, protocol schemas, API docs, and isolated/branded-Chrome validation.
+- Isolated Chrome confirms exact 1920×1080 and 1080×1920 PNG IHDR dimensions, 87–92 KB
+  binary size, 116–123 K base64 characters, and 108–125 ms end-to-end MCP duration on
+  controlled fixtures. Public arguments, PNG response type, permissions, runtime files,
+  release allowlists, and retained-data disclosures did not change.
+- Branded Chrome at DPR 2 now confirms the landscape/no-upscale path: the 1365×817 CSS
+  viewport decoded as 1365×817, and five heavy controlled screenshots were identical
+  1,097,472-byte PNGs over 1,952–2,137 ms with complete framing, active-tab preservation,
+  and repeated debugger reuse. Coarse aggregate RSS peaked about 132 MiB above the
+  open-tab baseline for Chrome and 3.7 MiB above baseline for the server; this includes
+  unrelated existing Chrome processes and is not a retained-memory attribution.
+- Validate the branded portrait-window path when a controlled portrait Chrome window is
+  available. Confirm decoded dimensions, full framing, no upscale, active-tab
+  preservation, and repeated debugger reuse; isolated Chrome already covers 1080×1920.

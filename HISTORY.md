@@ -2,6 +2,31 @@
 
 ## 2026-07-17
 
+### Shared Full HD screenshot sizing
+
+- Replaced the screenshot-only 1024×768 constants with the same orientation-aware sizing
+  helper used by recording. Landscape/square viewports fit within 1920×1080 and portrait
+  viewports within 1080×1920, preserving the full viewport without crop, stretch, or
+  upscale; the content canvas still enforces the actual PNG pixel bound for high-DPI
+  captures.
+- Added E2E PNG signature and IHDR decoding rather than trusting extension metadata. The
+  isolated landscape path returned 1920×1080 at 92,259 bytes / 123,012 base64 characters
+  in 108 ms, while portrait returned 1080×1920 at 87,221 bytes / 116,296 characters in
+  125 ms. The complete two-profile E2E passed in 1.2 minutes.
+- All 43 extension tests and lint passed. No public argument, PNG response type,
+  permission, runtime file, release allowlist, or retained-data disclosure changed;
+  branded portrait-window validation remains.
+- After extension reload, branded Chrome at DPR 2 returned the 1365×817 CSS viewport as
+  an exact 1365×817 PNG rather than a 2× physical-pixel image, confirming the canvas
+  enforces the no-upscale contract on high-DPI output. A controlled high-entropy page
+  produced identical 1,097,472-byte PNGs across five calls in 1,952–2,137 ms, preserved
+  the complete frame and bottom-right marker, kept the active tab unchanged, and released
+  each debugger session for immediate reuse.
+- During three more heavy-page calls, coarse process sampling observed aggregate Chrome
+  RSS rise from 1,948,960 to 2,083,760 KiB and server RSS from 110,560 to 114,368 KiB.
+  These totals include all existing Chrome processes and are a conservative observation,
+  not per-command retained-memory attribution.
+
 ### Branded upload and navigation timeline acceptance
 
 - Reloaded the unpacked extension and restarted the local server so branded Chrome used

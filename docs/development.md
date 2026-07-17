@@ -141,7 +141,13 @@ For real-Chrome navigate/back/forward/wait validation, provide two history pages
 
 For real-Chrome screenshot/console validation, create two inactive loopback tabs with distinct console output.
 
-1. Target one tab and call `browser_screenshot` twice. Confirm both are `image/png`, have a PNG signature, and are at most 1024×768 pixels. Consecutive success also demonstrates debugger detach after each call.
+1. Target landscape and portrait tabs and call `browser_screenshot`. Confirm both are
+   `image/png`, have a PNG signature, and fit the shared Full HD policy: landscape/square
+   within 1920×1080 and portrait within 1080×1920. Confirm the image is not cropped,
+   stretched, or upscaled. Consecutive success also demonstrates debugger detach.
+   On high-DPI Chrome, record `devicePixelRatio` and CSS viewport dimensions in the
+   controlled fixture and confirm the decoded PNG follows the CSS sizing contract rather
+   than returning an unbounded physical-pixel image.
 2. Use `browser_get_console_logs` to confirm normal logs, warnings, delayed errors, and uncaught exceptions. Wait at least one second for delayed entries because background-tab timers are throttled.
 3. Confirm the target result lacks the other tab's identifying log and, after switching targets, no data leaks in the opposite direction.
 4. The original active tab ID remains unchanged across select, screenshot, console, and target changes.

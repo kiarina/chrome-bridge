@@ -48,7 +48,7 @@ This feature comparison is based on public documentation available as of 2026-07
 | Simultaneous routing to multiple Chrome profiles | Stable ID per installation | Not mentioned in public setup documentation | Not mentioned in public README |
 | Element discovery and operation | Accessibility YAML and generation-scoped strict refs | Accessibility snapshot and element specification | Accessibility-like tree, refs, selectors, and coordinates |
 | Local file upload | 1–20 files to the chooser opened by a strict ref | Not mentioned in public tool documentation | Not mentioned in public tool documentation |
-| Screenshot | Target viewport, up to 1024×768 | Connected tab | Viewport/full page/element, configurable size |
+| Screenshot | Target viewport, orientation-aware Full HD bound | Connected tab | Viewport/full page/element, configurable size |
 | Console logs | Up to 100 console entries/exceptions from the target | Supported | Supported |
 | Network monitoring/arbitrary requests | Out of scope | Not mentioned in public tool documentation | Supported |
 | History/bookmark management | Out of scope | Not mentioned in public tool documentation | Supported |
