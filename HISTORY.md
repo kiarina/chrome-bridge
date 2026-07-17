@@ -2,6 +2,30 @@
 
 ## 2026-07-17
 
+### Kiteframe operation-recording showcase foundation
+
+- Added a self-contained fictional SaaS journey under `examples/recording-demo`: a
+  polished long-form LP, vertically scrolling signup form, and deterministic completion
+  page. All names, claims, testimonials, and form values are synthetic, and the fixture
+  makes no runtime network requests.
+- Added a reusable MCP client that opens an inactive controlled tab and records twelve
+  ordered clips covering the LP, signup arrival, typing, select controls, PageDown,
+  checkbox clicks, and completion. Failed runs close only the tab they created; successful
+  runs leave the completed fixture available for review and write actual uniquified
+  download names to a temporary manifest.
+- Added `ffprobe` validation and `ffmpeg` concatenation with compatible-stream copy or a
+  normalized VP9 fallback, plus optional H.264 MP4 generation. Odd 1365×817 source frames
+  are reduced by at most one pixel and padded to an encoder-safe 1366×818 canvas without
+  stretching or cropping.
+- A branded-Chrome run produced and visually reviewed all twelve clips and a 25.6-second
+  combined showcase. The virtual cursor, synthetic input, current scrolled viewport,
+  intended goal/acknowledgement selections, and final completion screen were present;
+  raw and joined media remain ignored from Git.
+- Python tests (127), static validation, JavaScript syntax, extension lint, and formatting
+  for the new scripts passed. Two early-run observations remain explicitly open in
+  `NEXT_TASK.md`: the operating badge can cover a top-right control, and one recorded
+  navigation timeout affected the following recording until controlled tabs were closed.
+
 ### Fix document-top capture on scrolled pages
 
 - A user report exposed that recording a vertically scrolled page repeatedly jumped to

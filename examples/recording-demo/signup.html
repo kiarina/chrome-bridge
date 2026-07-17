@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Create a fictional Kiteframe workspace." />
+    <title>Create your workspace — Kiteframe</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="demo.js" defer></script>
+  </head>
+  <body class="signup-page">
+    <header class="signup-header">
+      <a class="brand" href="index.html" aria-label="Back to Kiteframe home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Kiteframe</span>
+      </a>
+      <p>Already have a workspace? <a href="index.html">Sign in</a></p>
+    </header>
+
+    <main class="signup-shell">
+      <aside class="signup-aside">
+        <p class="eyebrow light"><span></span> Your 14-day trial</p>
+        <h1>A clearer week starts here.</h1>
+        <p>Bring one real project. Invite the people who make it happen. We’ll help you shape the rest.</p>
+        <div class="aside-proof">
+          <div class="avatar-stack" aria-hidden="true"><i>AM</i><i>JL</i><i>SK</i></div>
+          <p><strong>4,200+ focused teams</strong><span>already finding their rhythm</span></p>
+        </div>
+        <blockquote>“We felt the difference before lunch.”</blockquote>
+        <small>Jordan Lee · North &amp; Pine · fictional customer</small>
+        <div class="aside-ribbon" aria-hidden="true"><i></i><i></i><i></i></div>
+      </aside>
+
+      <section class="signup-form-wrap">
+        <div class="step-row" aria-label="Signup progress">
+          <span class="active"><i>1</i> You</span><b></b><span><i>2</i> Workspace</span><b></b><span><i>3</i> Ready</span>
+        </div>
+        <div class="form-heading">
+          <p class="eyebrow"><span></span> Let’s get acquainted</p>
+          <h2>Create your workspace</h2>
+          <p>This is a controlled demo. Please use only the synthetic values shown below.</p>
+        </div>
+
+        <form id="signup-form" action="complete.html" method="get" novalidate>
+          <fieldset>
+            <legend>About you</legend>
+            <div class="field-grid">
+              <label>
+                <span>Full name</span>
+                <input name="name" autocomplete="name" required placeholder="Morgan Rivera" />
+                <small>Demo value: Morgan Rivera</small>
+              </label>
+              <label>
+                <span>Work email</span>
+                <input name="email" type="email" autocomplete="email" required placeholder="morgan@example.test" />
+                <small>Use the reserved .test domain</small>
+              </label>
+            </div>
+            <label>
+              <span>Create a password</span>
+              <input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" />
+              <small>Demo value: frame-demo-2026</small>
+            </label>
+          </fieldset>
+
+          <div class="form-break">
+            <span>Next, shape your space</span>
+            <i aria-hidden="true">↓</i>
+          </div>
+
+          <fieldset>
+            <legend>Your workspace</legend>
+            <label>
+              <span>Workspace name</span>
+              <input name="workspace" required placeholder="Northstar Studio" />
+              <small>You can change this later</small>
+            </label>
+            <div class="field-grid">
+              <label>
+                <span>Team size</span>
+                <select name="team-size" required>
+                  <option value="">Choose a range</option>
+                  <option value="1-10">1–10 people</option>
+                  <option value="11-50">11–50 people</option>
+                  <option value="51-200">51–200 people</option>
+                  <option value="201+">201+ people</option>
+                </select>
+              </label>
+              <label>
+                <span>Your role</span>
+                <select name="role" required>
+                  <option value="">Choose your role</option>
+                  <option value="founder">Founder</option>
+                  <option value="operations">Operations</option>
+                  <option value="product">Product</option>
+                  <option value="design">Design</option>
+                  <option value="other">Something else</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>What should feel easier?</legend>
+            <p class="fieldset-help">Choose any that fit. This only personalizes the fictional welcome screen.</p>
+            <div class="choice-grid">
+              <label class="choice"><input type="checkbox" name="goal" value="priorities" /><span><i>01</i><strong>Clear priorities</strong><small>Know what matters now</small></span></label>
+              <label class="choice"><input type="checkbox" name="goal" value="updates" /><span><i>02</i><strong>Fewer status meetings</strong><small>Share progress calmly</small></span></label>
+              <label class="choice"><input type="checkbox" name="goal" value="launches" /><span><i>03</i><strong>Smoother launches</strong><small>Connect every moving part</small></span></label>
+              <label class="choice"><input type="checkbox" name="goal" value="focus" /><span><i>04</i><strong>More focus time</strong><small>Protect the workday</small></span></label>
+            </div>
+          </fieldset>
+
+          <label class="terms">
+            <input type="checkbox" name="terms" required />
+            <span>I understand this is a fictional, local-only demo and no account will actually be created.</span>
+          </label>
+
+          <div class="submit-row">
+            <div><strong>No card required</strong><small>Nothing leaves this browser tab.</small></div>
+            <button class="button button-coral" type="submit">Create my workspace <span>→</span></button>
+          </div>
+          <p class="form-error" id="form-error" role="alert" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
