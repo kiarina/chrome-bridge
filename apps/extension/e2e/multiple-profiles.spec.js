@@ -590,6 +590,70 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       const host = document.querySelector("#chrome-bridge-virtual-cursor");
       return Boolean(host?.shadowRoot?.querySelector("svg.cursor"));
     })).toBe(true);
+
+    const uploadTargetChangeTab = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/b`,
+      active: false,
+    }));
+    const downloadsBeforeUploadTargetChange = await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    );
+    const targetChangedUpload = call("browser_upload_file", {
+      browser_id: browserA,
+      element: "Hover target button",
+      ref: refFor(
+        processedUploadA,
+        /button "Hover target"[^\n]*\[ref=([^\]]+)\]/,
+      ),
+      paths: [uploadPaths[0]],
+      video_filename: "target-changed-upload.webm",
+    });
+    await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: openedA.id })).toBe(true);
+    // Cross first-frame startup and pre-roll so interception and the chooser listener are
+    // active before routing changes to another tab in the same Chrome profile.
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: uploadTargetChangeTab.id,
+    }));
+    const targetChangedUploadResult = await targetChangedUpload;
+    expect(targetChangedUploadResult.isError).toBe(true);
+    expect(toolText(targetChangedUploadResult)).toContain(
+      "Operation outcome unknown:",
+    );
+    expect(toolText(targetChangedUploadResult)).toContain("Recording saved:");
+    const uploadTargetChangeDownloads = await profileA.worker.evaluate(async () => ({
+      count: (await chrome.downloads.search({})).length,
+      latest: (await chrome.downloads.search({
+        state: "complete",
+        orderBy: ["-startTime"],
+        limit: 1,
+      })).map((item) => ({ filename: item.filename, id: item.id }))[0],
+    }));
+    expect(uploadTargetChangeDownloads.count)
+      .toBe(downloadsBeforeUploadTargetChange + 1);
+    const targetChangedUploadWebm = await readFile(
+      uploadTargetChangeDownloads.latest.filename,
+    );
+    expect([...targetChangedUploadWebm.subarray(0, 4)])
+      .toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    await removeProbeDownload(profileA, uploadTargetChangeDownloads.latest.id);
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: openedA.id,
+    }));
+    expect(successful(await call("browser_tab_close", {
+      browser_id: browserA,
+      tab_id: uploadTargetChangeTab.id,
+    }))).toMatchObject({ closed: true, tabId: uploadTargetChangeTab.id });
+
     const screenshotA = await call("browser_screenshot", { browser_id: browserA });
     expect(screenshotA.isError, toolText(screenshotA)).not.toBe(true);
     expect(screenshotA.content).toEqual(expect.arrayContaining([
@@ -660,21 +724,30 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       browser_id: browserA,
       tab_id: closingRecordedTab.id,
     }));
+    const closingUploadSnapshot = successful(await call("browser_snapshot", {
+      browser_id: browserA,
+    }));
     const downloadsBeforeTabClose = await profileA.worker.evaluate(async () =>
       (await chrome.downloads.search({})).length,
     );
-    const tabClosingWait = call("browser_wait", {
+    const tabClosingUpload = call("browser_upload_file", {
       browser_id: browserA,
-      time: 1,
-      video_filename: "tab-closed-wait.webm",
+      element: "Hover target button",
+      ref: refFor(
+        closingUploadSnapshot,
+        /button "Hover target"[^\n]*\[ref=([^\]]+)\]/,
+      ),
+      paths: [uploadPaths[0]],
+      video_filename: "tab-closed-upload.webm",
     });
     await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
       (await chrome.debugger.getTargets()).some(
         (target) => target.tabId === tabId && target.attached,
       ),
     { tabId: closingRecordedTab.id })).toBe(true);
-    // Cross the guaranteed first frame and pre-roll so the target-independent wait has
-    // a known successful outcome even though capture is interrupted by tab closure.
+    // Cross first-frame startup and pre-roll so file-chooser interception is active when
+    // the target closes. Cleanup may save a diagnostic or report a secondary capture
+    // failure, but it must never leave a partial download or a selected dead target.
     await new Promise((resolve) => setTimeout(resolve, 750));
     expect(successful(await call("browser_tab_close", {
       browser_id: browserA,
@@ -684,7 +757,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       tabId: closingRecordedTab.id,
       browserId: browserA,
     });
-    const tabClosedResult = await tabClosingWait;
+    const tabClosedResult = await tabClosingUpload;
     expect(tabClosedResult.isError).toBe(true);
     expect(toolText(tabClosedResult)).toContain(
       "Operation outcome unknown:",
@@ -700,12 +773,17 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
         limit: 1,
       })).map((item) => ({ filename: item.filename, id: item.id }))[0],
     }));
-    expect(tabCloseDownloads.count).toBe(downloadsBeforeTabClose + 1);
-    expect(toolText(tabClosedResult)).toContain("Recording saved:");
-    const tabCloseDiagnostic = tabCloseDownloads.latest;
-    const tabCloseWebm = await readFile(tabCloseDiagnostic.filename);
-    expect([...tabCloseWebm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
-    await removeProbeDownload(profileA, tabCloseDiagnostic.id);
+    if (toolText(tabClosedResult).includes("Recording saved:")) {
+      expect(tabCloseDownloads.count).toBe(downloadsBeforeTabClose + 1);
+      const tabCloseDiagnostic = tabCloseDownloads.latest;
+      const tabCloseWebm = await readFile(tabCloseDiagnostic.filename);
+      expect([...tabCloseWebm.subarray(0, 4)])
+        .toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+      await removeProbeDownload(profileA, tabCloseDiagnostic.id);
+    } else {
+      expect(toolText(tabClosedResult)).toContain("Recording also failed:");
+      expect(tabCloseDownloads.count).toBe(downloadsBeforeTabClose);
+    }
     expect(successful(await call("browser_tabs", { browser_id: browserA })))
       .not.toEqual(expect.arrayContaining([expect.objectContaining({ targeted: true })]));
     expect(successful(await call("browser_tabs", { browser_id: browserB })))
@@ -736,33 +814,44 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       browser_id: browserB,
       tab_id: interruptedTab.id,
     }));
-    const interruptedPage = await fixturePage(profileB, `${fixture.baseUrl}/a`);
+    const interruptedUploadSnapshot = successful(await call("browser_snapshot", {
+      browser_id: browserB,
+    }));
     const downloadsBeforeInterruption = await profileB.worker.evaluate(async () =>
       (await chrome.downloads.search({})).length,
     );
-    const interruptedWait = call("browser_wait", {
+    const interruptedUpload = call("browser_upload_file", {
       browser_id: browserB,
-      time: 1,
-      video_filename: "interrupted-wait.webm",
+      element: "Hover target button",
+      ref: refFor(
+        interruptedUploadSnapshot,
+        /button "Hover target"[^\n]*\[ref=([^\]]+)\]/,
+      ),
+      paths: [uploadPaths[0]],
+      video_filename: "externally-detached-upload.webm",
     });
-    await expect.poll(() => interruptedPage.title()).toBe("● Chrome Bridge E2E");
-    // Detach after the guaranteed first frame and 500 ms operation pre-roll so
-    // this remains an operation-completed/recording-failed contract test.
+    await expect.poll(() => profileB.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: interruptedTab.id })).toBe(true);
+    // Detach after first-frame startup and pre-roll while the chooser listener and
+    // interception are active. Detach itself clears Chrome's interception state.
     await new Promise((resolve) => setTimeout(resolve, 750));
     await profileB.worker.evaluate(async ({ tabId }) => {
       const target = (await chrome.debugger.getTargets()).find(
         (candidate) => candidate.tabId === tabId && candidate.attached,
       );
-      if (!target) throw new Error("Recorded wait debugger target is not attached");
+      if (!target) throw new Error("Recorded upload debugger target is not attached");
       await chrome.debugger.detach({ targetId: target.id });
     }, { tabId: interruptedTab.id });
-    const interruptedResult = await interruptedWait;
+    const interruptedResult = await interruptedUpload;
     expect(interruptedResult.isError).toBe(true);
     expect(toolText(interruptedResult)).toContain(
-      "Operation completed, but recording failed:",
+      "Debugger is not attached to the target",
     );
     expect(toolText(interruptedResult)).toContain(
-      "Do not retry the operation automatically.",
+      "Recording also failed:",
     );
     expect(await profileB.worker.evaluate(async () =>
       (await chrome.downloads.search({})).length,

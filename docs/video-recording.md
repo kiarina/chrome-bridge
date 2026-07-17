@@ -328,11 +328,10 @@ final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
-1. Inject upload-specific target change, tab close, and external detach while chooser
-   interception is active. Success and single-file rejection already preserve cleanup,
-   produce valid recordings, and allow later debugger operations.
-2. Add navigate/back/forward only after renderer and target lifecycle measurements.
-3. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
+1. Add navigate/back/forward only after renderer and target lifecycle measurements.
+   Upload success, rejection, target change, tab close, and external detach now preserve
+   chooser cleanup, download isolation, profile routing, and immediate debugger reuse.
+2. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

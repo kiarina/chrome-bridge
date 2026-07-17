@@ -2,6 +2,23 @@
 
 ## 2026-07-17
 
+### Recorded-upload lifecycle cleanup matrix
+
+- Extended isolated E2E to hold file-chooser interception open on a strict non-chooser
+  button, then inject target change, tab close, and external debugger detach after the
+  first frame and pre-roll.
+- Target change produced an unknown outcome plus one valid diagnostic WebM, did not
+  reroute the upload, and immediately reused the replacement target for screenshot.
+- Tab close produced the unknown-outcome contract, cleared the dead target, finalized or
+  discarded only the command's diagnostic, preserved the other profile, and immediately
+  attached on a newly selected tab.
+- External detach failed immediately on the next CDP cleanup call, reported both the
+  primary debugger loss and secondary recording failure, created no partial download,
+  and immediately reattached for screenshot.
+- Chrome's detach cleared interception automatically; all extension-owned chooser
+  listeners, change barriers, Runtime objects, and best-effort interception disable paths
+  completed. Lint and the full two-profile E2E passed in 56.6 seconds.
+
 ### First recorded file uploads
 
 - Added optional `video_filename` to `browser_upload_file` / `page.uploadFile` across the

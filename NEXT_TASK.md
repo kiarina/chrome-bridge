@@ -67,9 +67,12 @@ operation-scoped recording and Full HD screenshots remain. Follow
 - Upload recording now shares the command-scoped debugger session and preserves chooser
   cleanup. Isolated E2E captured success as 22 frames over 2,372 ms and verified a
   single-file rejection saves one valid diagnostic WebM without blocking later tools.
-  Next inject upload-specific target change, tab close, and external detach while the
-  chooser is intercepted; confirm no partial download and immediate debugger reuse.
-- Add navigate/back/forward only after renderer and target lifecycle measurements.
+  Upload-specific target change, tab close, and external detach are now injected while
+  interception is active. They cover diagnostic finalization/discard, no partial download,
+  target/profile isolation, and immediate debugger reuse; the full E2E passes in 56.6 s.
+- Add navigate/back/forward recording next. Measure renderer/target identity across same-
+  document history, cross-document navigation, back/forward, load failure, target change,
+  tab close, and external detach before enabling the public option.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,
