@@ -138,7 +138,7 @@ def test_tools_include_non_focusing_tab_select() -> None:
         )
         assert response.status_code == 200
         tools = {tool["name"]: tool for tool in response.json()["result"]["tools"]}
-        assert len(tools) == 20
+        assert len(tools) == 21
         assert tools["browser_instances"]["inputSchema"]["properties"] == {}
         assert "browser_tab_select" in tools
         assert "without focusing" in tools["browser_tab_select"]["description"]
@@ -184,6 +184,10 @@ def test_tools_include_non_focusing_tab_select() -> None:
             "browser_id"
         }
         assert set(tools["browser_wait"]["inputSchema"]["required"]) == {"time"}
+        assert set(tools["browser_record_video"]["inputSchema"]["required"]) == {
+            "filename",
+            "duration",
+        }
         assert set(tools["browser_screenshot"]["inputSchema"]["properties"]) == {
             "browser_id"
         }

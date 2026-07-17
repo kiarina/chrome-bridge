@@ -55,9 +55,14 @@ test("accepts every protocol v1 command with exact params", () => {
     { id, type: "page.wait", params: { time: 1 } },
     { id, type: "page.screenshot", params: {} },
     { id, type: "page.getConsoleLogs", params: {} },
+    {
+      id,
+      type: "page.recordVideo",
+      params: { filename: "fixture.webm", duration: 1.5 },
+    },
   ];
 
-  expect(messages).toHaveLength(19);
+  expect(messages).toHaveLength(20);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });
@@ -69,6 +74,11 @@ test("rejects unknown commands, missing params, wrong types, and extra fields", 
     { id, type: "tabs.close", params: { tabId: "1" } },
     { id, type: "page.click", params: { element: "Save", ref: "bad" } },
     { id, type: "page.wait", params: { time: 11 } },
+    {
+      id,
+      type: "page.recordVideo",
+      params: { filename: "fixture.webm", duration: 10.1 },
+    },
     {
       id,
       type: "page.uploadFile",

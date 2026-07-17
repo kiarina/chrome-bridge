@@ -10,6 +10,7 @@ import {
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
 import { withDebuggerSession } from "./debugger-session.js";
+import { recordTargetVideo } from "./recording.js";
 import { DEFAULT_SERVER_URL } from "./runtime-config.js";
 
 const PROTOCOL_VERSION = 2;
@@ -1498,6 +1499,22 @@ async function executeCommand(type, params) {
     }
     case "page.getConsoleLogs": {
       return runPageOperation(() => consoleLogsTarget());
+    }
+    case "page.recordVideo": {
+      return runPageOperation(async () => {
+        try {
+          const selectedTab = await getTargetTab();
+          await requireUnchangedTarget(selectedTab.id);
+          return await recordTargetVideo({
+            tabId: selectedTab.id,
+            filename: params.filename,
+            duration: params.duration,
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          throw new Error(`Recording failed: ${detail}`);
+        }
+      });
     }
     case "page.drag": {
       return runPageOperation(() => dragTarget(params));

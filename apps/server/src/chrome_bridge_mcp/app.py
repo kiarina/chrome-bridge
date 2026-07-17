@@ -162,6 +162,13 @@ def create_app(settings: Settings) -> Any:
         """Wait up to 10 seconds for the selected target page."""
         return await controller.wait(time, browser_id)
 
+    @mcp.tool(name="browser_record_video")
+    async def browser_record_video(
+        filename: str, duration: float, browser_id: str | None = None
+    ) -> dict[str, Any]:
+        """Record the current target as a silent WebM in Downloads/chrome-bridge."""
+        return await controller.record_video(filename, duration, browser_id)
+
     @mcp.tool(name="browser_screenshot")
     async def browser_screenshot(browser_id: str | None = None) -> Image:
         """Capture the target viewport as a PNG without focusing its tab."""

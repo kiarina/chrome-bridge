@@ -2,19 +2,18 @@
 
 ## Status and goal
 
-This document is the canonical design for planned target-tab video recording. The
-public feature and API described here are not implemented yet. A command-scoped
-debugger-session abstraction, orientation-aware sizing helper, and isolated recording
-probe are implemented as groundwork. The existing 20-tool API and the current 1024×768
-screenshot limit remain in effect until the production implementation, protocol, tests,
-permissions, and user documentation land together.
+This document is the canonical design and rollout record for target-tab video recording.
+The production offscreen/download pipeline and bounded standalone tool are implemented.
+Operation-scoped `video_filename` and Full HD screenshot output remain planned. The
+current 21-tool API includes standalone recording, while screenshot remains limited to
+1024×768 until its production tests and documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
 Downloads directory. Recording must not weaken the existing guarantees around target
 routing, strict refs, debugger cleanup, or operation ordering.
 
-## Planned public API
+## Public API and planned operation options
 
 Add optional `video_filename: string | null = null` to these page-operation tools:
 
@@ -40,7 +39,7 @@ tab-management tools. The source and completion boundary are ambiguous for open,
 close, select, and activate, and closing a tab can destroy the recording source before
 finalization.
 
-Add a standalone tool with the following planned shape:
+The implemented standalone tool has this shape:
 
 ```text
 browser_record_video(
@@ -215,9 +214,10 @@ implemented.
 
 ## Technical probe evidence
 
-On 2026-07-17, the isolated two-profile Chromium E2E artifact injected test-only
-`offscreen` and `downloads` permissions plus an internal recorder. The production
-manifest and public protocol remained unchanged. The probe:
+On 2026-07-17, an initial isolated two-profile Chromium probe injected test-only
+permissions and an internal recorder. The subsequent production implementation added
+the public tool, protocol, permissions, encoder, Downloads completion checks, and
+strict result validation. Together, the probe and public-tool E2E:
 
 - recorded inactive 1280×720 and 1920×1080 targets for 1.5 seconds without changing
   the active tab;
@@ -232,34 +232,44 @@ manifest and public protocol remained unchanged. The probe:
 - downloaded the Blob, verified its EBML/WebM header, and deleted only that test file;
 - immediately reused the target for a debugger-backed screenshot and continued through
   click, type, drag, upload, screenshot, profile isolation, and restart E2E checks.
+- called the public tool for a 1.5-second 1920×1080 target, producing 15 frames and a
+  58,204-byte WebM on a 1,503 ms timeline, and for the maximum 10-second 1080×1920
+  target, producing 100 frames and a 116,801-byte WebM on a 10,008 ms timeline; neither
+  dropped frames nor exceeded the server command timeout;
+- rejected an unsafe filename before creating any download and returned stable browser
+  provenance without an absolute path or Chrome download ID.
 
 The first cold 1280×720 run had a 289 ms maximum capture; later warm and deliberately
 cold contention runs stayed at or below 32 ms queue delay, and Full HD recording runs
 stayed at or below 63 ms capture time. Input priority prevents a new capture from
 starting after critical work is pending, but a capture already in flight cannot be
-cancelled. The controlled Chromium evidence supports the command-scoped design; branded
-Chrome and heavier pages still require measurement before the frame-rate contract is
-fixed. The input probe uses a non-clicking mouse-move command without focus emulation so
-that it isolates added queue delay from the existing 250 ms focus-emulation settle.
+cancelled. A later clean-release E2E run under build/validation load observed a 654 ms
+maximum already-in-flight capture wait and 144 ms maximum input command, while still
+passing the one-second guard and completing both recordings. This does not affect the
+standalone tool, whose page-operation queue admits no concurrent input, but it is a gate
+for operation-scoped recording. The controlled Chromium evidence supports the
+command-scoped design; branded Chrome and heavier pages still require measurement before
+the frame-rate contract is fixed. The input probe uses a non-clicking mouse-move command
+without focus emulation so that it isolates added queue delay from the existing 250 ms
+focus-emulation settle.
 
 ## Implementation and validation order
 
-The first two steps are complete: the shared sizing helper has landscape, portrait,
+The first three steps are complete: the shared sizing helper has landscape, portrait,
 square, unusual-aspect, small, and invalid-input coverage; the debugger session preserves
 existing attach/focus/detach semantics, serializes critical work, skips capture under
-contention, and avoids a second detach after an external detach; and the isolated
-standalone recorder probe succeeds on an inactive target.
+contention, and avoids a second detach after an external detach; the standalone recorder
+succeeds on inactive targets; and the same path is now in the production extension and
+public MCP tool.
 
 Continue in this order:
 
-1. Add the production offscreen/download pipeline and bounded standalone tool using the
-   success and mixed-failure contract above.
-2. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
-3. Verify failure cleanup, frame backpressure, extension reload, tab close, target
+1. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
+2. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
-4. Add upload recording after file-chooser cleanup is proven unchanged.
-5. Add navigate/back/forward only after renderer and target lifecycle measurements.
-6. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
+3. Add upload recording after file-chooser cleanup is proven unchanged.
+4. Add navigate/back/forward only after renderer and target lifecycle measurements.
+5. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

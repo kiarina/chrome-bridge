@@ -532,6 +532,103 @@ async def test_wait_routes_and_returns_browser_mcp_message() -> None:
     assert await task == "Waited for 0.25 seconds"
 
 
+async def test_record_video_routes_and_validates_metadata() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(controller.record_video("fixture.webm", 1.5))
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.recordVideo"
+    assert request["params"] == {"filename": "fixture.webm", "duration": 1.5}
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {
+                "requestedFilename": "fixture.webm",
+                "filename": "chrome-bridge/fixture (1).webm",
+                "mimeType": "video/webm",
+                "durationMs": 1573,
+                "width": 1920,
+                "height": 1080,
+                "frameCount": 15,
+                "droppedFrameCount": 0,
+                "sizeBytes": 56920,
+            },
+        }
+    )
+    assert await task == {
+        "requestedFilename": "fixture.webm",
+        "filename": "chrome-bridge/fixture (1).webm",
+        "mimeType": "video/webm",
+        "durationMs": 1573,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 15,
+        "droppedFrameCount": 0,
+        "sizeBytes": 56920,
+        "browserId": BROWSER_A,
+    }
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["", "video.mp4", "../escape.webm", "folder/video.webm", "bad\n.webm"],
+)
+async def test_record_video_rejects_unsafe_filename_before_sending(
+    filename: str,
+) -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    await registry.attach(socket)
+    with pytest.raises(ValueError, match="filename"):
+        await BrowserController(registry).record_video(filename, 1)
+    assert socket.sent == []
+
+
+@pytest.mark.parametrize("duration", [0.49, 10.1, float("inf"), float("nan"), True])
+async def test_record_video_rejects_invalid_duration_before_sending(
+    duration: Any,
+) -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    await registry.attach(socket)
+    with pytest.raises(ValueError, match="between 0.5 and 10"):
+        await BrowserController(registry).record_video("fixture.webm", duration)
+    assert socket.sent == []
+
+
+async def test_record_video_rejects_invalid_extension_metadata() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    task = asyncio.create_task(
+        BrowserController(registry).record_video("fixture.webm", 1)
+    )
+    await asyncio.sleep(0)
+    connection.receive(
+        {
+            "id": socket.sent[0]["id"],
+            "ok": True,
+            "result": {
+                "requestedFilename": "fixture.webm",
+                "filename": "/Users/private/Downloads/fixture.webm",
+                "mimeType": "video/webm",
+                "durationMs": 1000,
+                "width": 800,
+                "height": 600,
+                "frameCount": 10,
+                "droppedFrameCount": 0,
+                "sizeBytes": 1000,
+            },
+        }
+    )
+    with pytest.raises(ExtensionCommandError, match="recordVideo"):
+        await task
+
+
 @pytest.mark.parametrize("time", [-0.1, 10.1, float("inf"), float("nan"), True])
 async def test_wait_rejects_invalid_time(time: Any) -> None:
     with pytest.raises(ValueError, match="between 0 and 10"):

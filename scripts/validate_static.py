@@ -156,7 +156,7 @@ def validate_protocol_schemas() -> None:
     Draft202012Validator.check_schema(v2)
 
     commands = v1["$defs"]["commandRequest"]["properties"]["type"]["enum"]
-    require(len(commands) == 19, "protocol v1 must define exactly 19 commands")
+    require(len(commands) == 20, "protocol v1 must define exactly 20 commands")
     require(
         len(set(commands)) == len(commands), "protocol command names must be unique"
     )

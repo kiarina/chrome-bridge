@@ -19,10 +19,11 @@ def test_schema_lists_all_protocol_commands() -> None:
     command_types = PROTOCOL_SCHEMA["$defs"]["commandRequest"]["properties"]["type"][
         "enum"
     ]
-    assert len(command_types) == 19
-    assert len(set(command_types)) == 19
+    assert len(command_types) == 20
+    assert len(set(command_types)) == 20
     assert "page.drag" in command_types
     assert "page.uploadFile" in command_types
+    assert "page.recordVideo" in command_types
 
 
 def test_protocol_v2_requires_stable_browser_identity() -> None:
@@ -80,6 +81,11 @@ def test_protocol_v2_requires_stable_browser_identity() -> None:
                 "paths": ["/tmp/one.png", "/tmp/two.png"],
             },
         },
+        {
+            "id": ID,
+            "type": "page.recordVideo",
+            "params": {"filename": "fixture.webm", "duration": 1.5},
+        },
         {"type": "pong"},
     ],
 )
@@ -93,6 +99,11 @@ def test_server_message_validation_accepts_valid_messages(message: object) -> No
         {"id": ID, "type": "tabs.list", "params": {"extra": True}},
         {"id": ID, "type": "tabs.close", "params": {"tabId": "1"}},
         {"id": ID, "type": "page.wait", "params": {"time": 11}},
+        {
+            "id": ID,
+            "type": "page.recordVideo",
+            "params": {"filename": "fixture.webm", "duration": 10.1},
+        },
         {
             "id": ID,
             "type": "page.uploadFile",

@@ -1,6 +1,6 @@
 # MCP tool API reference
 
-This document is the user-facing reference for the 20 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
+This document is the user-facing reference for the 21 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
 
 [`apps/server/src/chrome_bridge_mcp/app.py`](../apps/server/src/chrome_bridge_mcp/app.py) is the runtime source of truth for tool names, input JSON Schemas, and tool descriptions; they are available through MCP `tools/list`. The [Specification](../SPEC.md) is canonical for detailed page-operation semantics and security boundaries, and [Multiple browser routing](multiple-browser-routing.md) is canonical for multi-browser routing rules.
 
@@ -318,7 +318,7 @@ The implemented limit remains 1024×768. A planned recording milestone will chan
 screenshots and video to shared orientation-aware Full HD bounds: landscape or square
 content fits within 1920×1080, portrait content fits within 1080×1920, with no cropping,
 stretching, or upscaling. See [Video recording design](video-recording.md); that planned
-contract is not exposed by the current tool yet.
+screenshot contract is not exposed by the current tool yet.
 
 ### `browser_get_console_logs`
 
@@ -337,16 +337,48 @@ Retrieves console calls and uncaught exceptions retained by Chrome Runtime for t
 
 Each entry contains `type: string`, `timestamp: number`, and `message: string`. This is not an extension-maintained persistent log; it is the buffer Chrome replays for the current document when `Runtime.enable` is called. The same entry may be returned again on a later call.
 
-## Planned video recording API
+### `browser_record_video`
 
-Video recording is designed but not implemented. The plan adds optional
-`video_filename` to page-action tools and adds
-`browser_record_video(filename, duration, browser_id)` for a bounded standalone capture
-of the current target. Recordings will be silent WebM files saved under the profile's
-`Downloads/chrome-bridge/` directory without overwriting existing files. Tab-management
-and information tools do not initially receive the option. The authoritative planned
-arguments, ownership constraints, dimensions, rollout order, and result/error contract
-are in [Video recording design](video-recording.md).
+Records the current target without performing another page action. The target is not
+foregrounded. The command returns only after Chrome reports that the silent WebM download
+completed.
+
+| Argument | Type | Required | Description |
+| --- | --- | --- | --- |
+| `filename` | string | yes | `.webm` basename, at most 200 UTF-8 bytes; paths, control characters, and implicit extension changes are rejected |
+| `duration` | number | yes | Recording duration from 0.5 through 10 seconds |
+| `browser_id` | string | no | Browser to route to |
+
+Chrome saves below the selected profile's `Downloads/chrome-bridge/` directory and uses
+`uniquify`, never overwrite. The result reports the requested name and the actual
+Downloads-relative name without exposing an absolute path or Chrome download ID:
+
+```json
+{
+  "requestedFilename": "checkout.webm",
+  "filename": "chrome-bridge/checkout (1).webm",
+  "mimeType": "video/webm",
+  "durationMs": 1570,
+  "width": 1920,
+  "height": 1080,
+  "frameCount": 15,
+  "droppedFrameCount": 0,
+  "sizeBytes": 58136,
+  "browserId": "b9d746c1-e245-4f2d-9e5d-65fddf63c587"
+}
+```
+
+Landscape or square recordings fit inside 1920×1080 and portrait recordings inside
+1080×1920 without crop, stretch, or upscale. The encoder canvas stays fixed during one
+recording. If encoding or download fails, the command returns an MCP error beginning
+`Recording failed:` and removes only its own partial download when known.
+
+## Planned operation-scoped recording API
+
+Adding optional `video_filename` to page-action tools remains planned. Tab-management
+and information tools do not initially receive the option. The authoritative ownership
+constraints, rollout order, and mixed operation/recording result and error contract are
+in [Video recording design](video-recording.md).
 
 The planned recorded-operation success value is `{ "operation": <existing success
 value>, "recording": <metadata> }`; omitting `video_filename` preserves the current

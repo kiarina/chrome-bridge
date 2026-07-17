@@ -16,22 +16,27 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 
 ## P2: target-tab video recording and Full HD media sizing
 
-The feature is designed but not implemented. Follow
+Standalone recording is implemented; operation-scoped recording and Full HD screenshots
+remain. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
 - The orientation-aware sizing helper and command-scoped debugger session are complete.
-  An isolated artifact recorded 1280×720 and 1920×1080 inactive targets into verified
-  WebM files and immediately reused the debugger; production permissions and public APIs
-  remain unchanged.
-- Portrait 1080×1920 also encoded 15 frames into an approximately 57 KB WebM without
-  drops. In the final five-sample cold contention runs, Full HD capture added 18 ms mean
-  input queue delay in both orientations, with 27 ms landscape and 30 ms portrait
-  maxima; branded Chrome and heavier pages remain unmeasured.
+  The public standalone tool recorded inactive 1920×1080 for 1.5 seconds and 1080×1920
+  for the 10-second maximum, producing 15 and 100 frames without drops, staying within
+  the 15-second server timeout, and immediately reusing the debugger.
+- In the final pre-production five-sample cold contention runs, Full HD capture added
+  18 ms mean input queue delay in both orientations, with 27 ms landscape and 30 ms
+  portrait maxima. A later clean-release run under validation load observed a 654 ms
+  maximum already-in-flight capture wait; branded Chrome and heavier pages remain
+  unmeasured, so operation-scoped recording must retain the one-frame-at-a-time drop
+  policy and repeat latency measurements.
 - Recording result metadata and mixed operation/recording failure semantics are fixed in
   the design. Preserve existing values when recording is omitted; implement the recorded
   `{operation, recording}` wrapper and documented retry warnings without absolute paths.
-- Implement the production offscreen canvas/MediaRecorder/download pipeline and bounded
-  standalone tool with safe `Downloads/chrome-bridge/` output and `uniquify` conflicts.
+- The production offscreen canvas/MediaRecorder/download pipeline and bounded standalone
+  tool are implemented with safe `Downloads/chrome-bridge/` output, completed-download
+  validation, partial-download cleanup, and `uniquify` conflicts. Branded Chrome still
+  needs to confirm the actual returned uniquified name and heavier-page measurements.
 - Add `video_filename` to non-navigation page actions first. Add upload only after file
   chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
   measurements.

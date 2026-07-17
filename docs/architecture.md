@@ -126,23 +126,23 @@ sequenceDiagram
     S-->>M: MCP content
 ```
 
-## Planned target video recording
+## Target video recording
 
-Target-tab video recording is designed but its public API and production encoder are not
-implemented. The shared debugger-session module is implemented and existing debugger
-operations use it while retaining their attach/use/detach behavior. It serializes
+Bounded standalone target-tab recording and its production encoder are implemented;
+operation-scoped `video_filename` remains planned. The shared debugger-session module is
+used by existing debugger operations and recording while retaining attach/use/detach
+behavior. It serializes
 critical work, can skip opportunistic capture under contention, observes external
-detach, and owns an attachment only within one command. Future recording will pass that
-session explicitly to recording and input helpers; it will not introduce a global
-reference-counted attachment or retain a session across MCP commands.
+detach, and owns an attachment only within one command. There is no global
+reference-counted attachment or retained session across MCP commands.
 
-The planned pipeline repeatedly captures the exact background target, sends frames to a
+The production pipeline repeatedly captures the exact background target, sends frames to a
 single offscreen document for canvas/MediaRecorder encoding, and downloads a silent WebM
-below the Chrome profile's Downloads directory. Screenshot and video will share
+below the Chrome profile's Downloads directory. Screenshot and video will eventually share
 orientation-aware Full HD bounds without cropping or upscaling. Navigation and upload
-recording remain gated on lifecycle and cleanup measurements. An isolated E2E-only
-offscreen/MediaRecorder/download probe has validated the pipeline without adding
-production permissions. Full HD landscape and portrait probes dropped no frames, and a
+recording remain gated on lifecycle and cleanup measurements. Production permissions are
+limited to `offscreen` for encoding and `downloads` for explicit requested output. The
+public tool's Full HD landscape and portrait E2E recordings dropped no frames, and a
 capture already in flight added 18 ms mean and at most 30 ms queue delay to a real CDP
 mouse-move input in the final cold-path run. See
 [Video recording design](video-recording.md) for the canonical planned API, ownership,

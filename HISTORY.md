@@ -2,6 +2,29 @@
 
 ## 2026-07-17
 
+### Production standalone target recording
+
+- Added public `browser_record_video(filename, duration, browser_id)` and
+  `page.recordVideo`, with 0.5–10 second bounds, strict `.webm` basename validation, and
+  stable multiple-browser provenance.
+- Moved offscreen canvas/MediaRecorder encoding and Downloads output into the production
+  extension. Each command owns one debugger session and offscreen document, waits for
+  completion, revokes its Blob URL, closes the encoder, and removes only its own known
+  partial download after failure.
+- Return only validated Downloads-relative metadata: requested and actual uniquified
+  names, fixed dimensions, elapsed recording time, submitted/dropped frame counts, and
+  encoded byte size. Absolute paths and Chrome download IDs remain internal.
+- Added production `downloads` and `offscreen` permissions, release allowlist entries,
+  privacy/Store disclosures, protocol/MCP schema validation, and filename/result tests.
+- Isolated public-tool E2E recorded inactive 1920×1080 for 1.5 seconds as 15 frames and
+  about 58 KB, then exercised the 10-second maximum at 1080×1920 as 100 frames and about
+  117 KB. Both had no drops, preserved both active tabs, rejected traversal before
+  download, remained within the server timeout, and immediately reused the debugger.
+- A clean-release run under build/validation load still completed both recordings but
+  observed a 654 ms maximum wait behind an already-started Full HD capture. Standalone
+  recording serializes other page operations, while future operation-scoped recording
+  remains gated on branded/heavy-page latency measurements and capture dropping.
+
 ### Video recording result and failure contract
 
 - Fixed the planned recorded-operation success shape as `{operation, recording}` while

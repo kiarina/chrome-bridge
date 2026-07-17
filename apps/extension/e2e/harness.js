@@ -14,15 +14,6 @@ const repoDir = path.resolve(extensionDir, "../..");
 const extensionFiles = JSON.parse(await readFile(path.join(extensionDir, "extension-files.json"), "utf8"));
 const runtimeFiles = extensionFiles.runtime;
 const recordingProbeFiles = new Map([
-  ["media-sizing.js", path.join(extensionDir, "media-sizing.js")],
-  [
-    "recording-offscreen.html",
-    path.join(extensionDir, "e2e/recording-probe/offscreen.html"),
-  ],
-  [
-    "recording-offscreen.js",
-    path.join(extensionDir, "e2e/recording-probe/recording-offscreen.js"),
-  ],
   [
     "recording-probe.js",
     path.join(extensionDir, "e2e/recording-probe/recording-probe.js"),
@@ -206,19 +197,30 @@ export async function prepareExtensionArtifact(serverUrl) {
     for (const [relative, source] of recordingProbeFiles) {
       await cp(source, path.join(artifactDir, relative));
     }
-    const manifestPath = path.join(artifactDir, "manifest.json");
-    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    manifest.permissions = [
-      ...new Set([...manifest.permissions, "downloads", "offscreen"]),
-    ].sort();
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const recordingPath = path.join(artifactDir, "recording.js");
+    const recording = await readFile(recordingPath, "utf8");
+    const productionFilenameResolution =
+      "filename: recordingFilenameFromDownload(download),";
+    if (!recording.includes(productionFilenameResolution)) {
+      throw new Error("Could not locate production recording filename resolution");
+    }
+    // Playwright's accept-downloads mode stores extension downloads under UUID names.
+    // Keep production strict and adapt only this ephemeral artifact; the conversion
+    // itself has cross-platform unit coverage.
+    await writeFile(
+      recordingPath,
+      recording.replace(
+        productionFilenameResolution,
+        "filename: `${DOWNLOAD_PREFIX}${requestedFilename}`,",
+      ),
+    );
     const backgroundPath = path.join(artifactDir, "background.js");
     const background = await readFile(backgroundPath, "utf8");
     await writeFile(
       backgroundPath,
       [
-        'import { measureInputDelayProbe, recordTargetProbe } from "./recording-probe.js";',
-        "globalThis.__chromeBridgeRecordingProbe = { measureInputDelayProbe, recordTargetProbe };",
+        'import { measureInputDelayProbe } from "./recording-probe.js";',
+        "globalThis.__chromeBridgeRecordingProbe = { measureInputDelayProbe };",
         background,
       ].join("\n"),
     );

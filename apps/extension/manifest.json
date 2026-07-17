@@ -10,7 +10,15 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["debugger", "scripting", "storage", "tabs", "webNavigation"],
+  "permissions": [
+    "debugger",
+    "downloads",
+    "offscreen",
+    "scripting",
+    "storage",
+    "tabs",
+    "webNavigation"
+  ],
   "host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js",

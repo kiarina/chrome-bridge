@@ -126,6 +126,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.wait {time: number}`
 - `page.screenshot {}`
 - `page.getConsoleLogs {}`
+- `page.recordVideo {filename: string, duration: number}`
 - `page.drag {startElement: string, startRef: string, endElement: string, endRef: string}`
 - `page.uploadFile {element: string, ref: string, paths: string[]}`
 
@@ -190,7 +191,7 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Console logs return at most 100 JSON lines containing only console entries/exceptions from the current target.
 - Drag strictly resolves start/end refs from the same latest snapshot and returns a post-operation snapshot without foregrounding the background target.
 - Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input.
-- Every protocol v1 envelope and all 19 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
+- Every protocol v1 envelope and all 20 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
 - Fixture tests for role/name/form state, Shadow DOM, slots, and `aria-owns` pass.
 
 ### Multiple-profile milestone
@@ -230,10 +231,11 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshots include only the cursor, and the status indicator is restored after capture.
 - Screenshots and console logs preserve their MCP content types.
 
-### Target video recording milestone (planned, not implemented)
+### Target video recording milestone (standalone recording implemented)
 
-- Add optional `video_filename` to page-action tools and add a bounded
-  `browser_record_video(filename, duration, browser_id)` tool for the current target.
+- The bounded `browser_record_video(filename, duration, browser_id)` tool is implemented
+  for the current target. Adding optional `video_filename` to page-action tools remains
+  planned.
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.

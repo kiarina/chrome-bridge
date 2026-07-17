@@ -15,6 +15,7 @@ Chrome Bridge can handle the following data when required by an explicit MCP ope
 - Browser and tab information, including tab IDs, window IDs, URLs, titles, active state, and navigation state.
 - Website content and accessibility information used to produce snapshots and strict element references.
 - User interactions and page state involved in clicks, pointer movement, keyboard input, form input, selection, drag operations, screenshots, and console messages.
+- Target-tab image frames and silent WebM output created only for an explicit bounded recording command. The recording is saved under the selected Chrome profile's Downloads directory; Chrome Bridge does not upload it to a developer-operated service.
 - Local file paths supplied by the MCP server for an explicit upload command. Chrome Bridge assigns those files to the file chooser opened on the target page. It does not return the paths in tool results. The target website may receive and process the selected files according to that website's own privacy practices.
 - Extension configuration and identity: a random browser ID, a user-editable browser label, the configured WebSocket endpoint, connection status, target tab state, and snapshot generation state.
 
@@ -34,11 +35,15 @@ The extension stores its random browser ID, browser label, and configured endpoi
 
 Chrome Bridge does not maintain a developer-accessible history of visited pages, snapshots, screenshots, console messages, form content, or uploaded files. Page references are invalidated after a new snapshot, target change, or navigation. Uninstalling the extension removes its Chrome-managed local and session storage according to Chrome's behavior.
 
+An explicitly requested recording remains as a WebM file in the selected profile's
+`Downloads/chrome-bridge/` directory until the user deletes it. Chrome Bridge does not
+maintain a separate recording index or upload a copy.
+
 Websites and MCP clients may retain data independently of Chrome Bridge. Users should review their policies and settings separately.
 
 ## Permissions
 
-Chrome Bridge requests access to HTTP and HTTPS pages and the `debugger`, `scripting`, `storage`, `tabs`, and `webNavigation` permissions. These permissions are used only to provide the browser-control features described above. Detailed permission reasons are maintained in the project's [Chrome Web Store submission guide](docs/chrome-web-store.md#permission-justifications).
+Chrome Bridge requests access to HTTP and HTTPS pages and the `debugger`, `downloads`, `offscreen`, `scripting`, `storage`, `tabs`, and `webNavigation` permissions. These permissions are used only to provide the browser-control and explicitly requested recording features described above. Detailed permission reasons are maintained in the project's [Chrome Web Store submission guide](docs/chrome-web-store.md#permission-justifications).
 
 ## Security
 

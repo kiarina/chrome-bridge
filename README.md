@@ -9,7 +9,7 @@ It operates your existing Chrome through accessibility snapshots, strict element
 - Use Streamable HTTP, rather than stdio, as the MCP transport.
 - Implement the MCP server in Python with uv.
 
-The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 20 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
+The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 21 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
 
 | Tool | Function |
 | --- | --- |
@@ -30,6 +30,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_go_back` | Go back in the target tab's history and return a post-operation snapshot |
 | `browser_go_forward` | Go forward in the target tab's history and return a post-operation snapshot |
 | `browser_wait` | Wait for a specified number of seconds while retaining the target tab |
+| `browser_record_video` | Record the target tab as a bounded silent WebM below Downloads/chrome-bridge |
 | `browser_screenshot` | Capture the target tab's viewport as PNG image content |
 | `browser_get_console_logs` | Retrieve up to 100 console entries and exceptions from the target tab |
 | `browser_drag` | Drag between two snapshot refs and return a post-operation snapshot |

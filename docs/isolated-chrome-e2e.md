@@ -164,26 +164,29 @@ guards against a fallback to foregrounding `{tabId}` attach.
 One optional slow test may wait beyond the MV3 idle interval and then call `browser_tabs`, but it should not block the
 initial harness or every pull request until its runtime/flakiness is measured.
 
-## Recording technical probe
+## Recording validation
 
-The harness augments only its temporary extension artifact with `offscreen` and
-`downloads` permissions and three internal recording-probe files. It statically imports
-the probe from the copied service worker because dynamic `import()` is disallowed in a
-service-worker global scope. The production manifest, release archive, extension
-protocol, and MCP tool catalog do not expose this probe.
+The production manifest, protocol, offscreen encoder, and MCP catalog expose bounded
+standalone recording. E2E calls `browser_record_video` against inactive 1920×1080 and
+1080×1920 fixtures, verifies returned metadata and the downloaded EBML/WebM bytes,
+removes that exact download, confirms the original active tab is unchanged, and
+immediately calls the debugger-backed screenshot path. The rest of the two-profile
+scenario covers click/type/drag/upload, isolation, cleanup, and restart.
 
-On the inactive profile-A fixture, the probe owns one command-scoped debugger session,
-captures JPEG viewport frames, encodes them in an offscreen canvas/MediaRecorder, and
-downloads a WebM into the ephemeral profile. The test verifies an EBML header, records
-bounded timing/size metrics, removes that exact download, confirms the original active
-tab is unchanged, and immediately calls the production debugger-backed screenshot path.
-The rest of the two-profile scenario then covers click/type/drag/upload, isolation,
-cleanup, and restart after the refactor.
+Playwright configures accepted downloads with `allowAndName`, which replaces Chrome's
+chosen filesystem basename with a UUID. The ephemeral artifact therefore substitutes
+only the result's Downloads-relative filename conversion. Production uses and validates
+the completed Chrome Downloads item, and macOS/Windows conversion has unit coverage.
+The harness still injects one internal input-contention probe; it does not inject
+recording permissions, encoder files, protocol commands, or a hidden recording API.
 
 The first cold 1280×720, 1.5-second run produced 15 frames and a 42,639-byte WebM in
 1,581 ms, with 43 ms mean and 289 ms maximum `Page.captureScreenshot` time. Later
-1920×1080 and 1080×1920 runs each produced 15 frames and approximately 57 KB WebM files
-without drops. Landscape capture measured 17–21 ms mean and up to 63 ms; portrait
+The final public-tool run produced 15 frames and approximately 58 KB without drops for
+1.5-second 1920×1080, then exercised the maximum duration at 1080×1920: 100 frames,
+approximately 117 KB, no drops, and a 10,008 ms recording timeline within the 15-second
+server timeout. Earlier probe runs measured
+landscape capture at 17–21 ms mean and up to 63 ms; portrait
 measured 17–33 ms mean, with one 249 ms recording outlier and a 27 ms repeat maximum.
 
 For input contention, each profile starts with five samples before recording: begin a

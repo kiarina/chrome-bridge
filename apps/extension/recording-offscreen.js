@@ -1,4 +1,4 @@
-const MESSAGE_TARGET = "chrome-bridge-recording-probe-offscreen";
+const MESSAGE_TARGET = "chrome-bridge-recording-offscreen";
 const MIME_TYPES = [
   "video/webm;codecs=vp9",
   "video/webm;codecs=vp8",
@@ -6,10 +6,11 @@ const MIME_TYPES = [
 ];
 
 let recording;
+const objectUrls = new Set();
 
 function requireRecording(id) {
   if (!recording || recording.id !== id) {
-    throw new Error(`Recording probe ${id} is not active`);
+    throw new Error(`Recording ${id} is not active`);
   }
   return recording;
 }
@@ -22,8 +23,38 @@ function recorderMimeType() {
   return mimeType;
 }
 
+async function disposeCurrent() {
+  const current = recording;
+  recording = undefined;
+  if (!current) return;
+  if (current.recorder.state !== "inactive") {
+    current.recorder.stop();
+    try {
+      await current.stopped;
+    } catch {
+      // Abort intentionally discards encoder errors with the partial recording.
+    }
+  }
+  for (const track of current.stream.getTracks()) track.stop();
+}
+
+async function reset() {
+  await disposeCurrent();
+  for (const url of objectUrls) URL.revokeObjectURL(url);
+  objectUrls.clear();
+  return { reset: true };
+}
+
 async function start(message) {
-  if (recording) throw new Error("Another recording probe is active");
+  if (recording) throw new Error("Another recording is active");
+  if (
+    !Number.isInteger(message.width) ||
+    message.width <= 0 ||
+    !Number.isInteger(message.height) ||
+    message.height <= 0
+  ) {
+    throw new Error("Recording dimensions are invalid");
+  }
   const canvas = document.createElement("canvas");
   canvas.width = message.width;
   canvas.height = message.height;
@@ -94,6 +125,7 @@ async function stop(message) {
   for (const track of current.stream.getTracks()) track.stop();
   const blob = new Blob(current.chunks, { type: current.mimeType });
   const url = URL.createObjectURL(blob);
+  objectUrls.add(url);
   recording = undefined;
   return {
     blobSize: blob.size,
@@ -103,25 +135,35 @@ async function stop(message) {
   };
 }
 
+async function abort(message) {
+  if (!recording || recording.id !== message.id) return { aborted: false };
+  await disposeCurrent();
+  return { aborted: true };
+}
+
 function revoke(message) {
-  URL.revokeObjectURL(message.url);
+  if (objectUrls.delete(message.url)) URL.revokeObjectURL(message.url);
   return { revoked: true };
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.target !== MESSAGE_TARGET) return false;
   const operation =
-    message.type === "start"
-      ? start(message)
-      : message.type === "frame"
-        ? drawFrame(message)
-        : message.type === "stop"
-          ? stop(message)
-          : message.type === "revoke"
-            ? Promise.resolve(revoke(message))
-            : Promise.reject(
-                new Error(`Unknown recording probe message: ${message.type}`),
-              );
+    message.type === "reset"
+      ? reset()
+      : message.type === "start"
+        ? start(message)
+        : message.type === "frame"
+          ? drawFrame(message)
+          : message.type === "stop"
+            ? stop(message)
+            : message.type === "abort"
+              ? abort(message)
+              : message.type === "revoke"
+                ? Promise.resolve(revoke(message))
+                : Promise.reject(
+                    new Error(`Unknown recording message: ${message.type}`),
+                  );
   void operation.then(
     (result) => sendResponse({ ok: true, result }),
     (error) =>

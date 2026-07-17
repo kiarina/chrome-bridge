@@ -50,7 +50,7 @@ async function fixturePage(profile, url) {
   );
 }
 
-async function recordFixture(profile, page, tabId, filename) {
+async function recordFixture(call, page, browserId, filename, duration = 1.5) {
   await page.evaluate(() => {
     let frame = 0;
     globalThis.recordingProbeTimer = setInterval(() => {
@@ -59,15 +59,12 @@ async function recordFixture(profile, page, tabId, filename) {
     }, 100);
   });
   try {
-    return await profile.worker.evaluate(
-      async ({ currentTabId, currentFilename }) => {
-        return globalThis.__chromeBridgeRecordingProbe.recordTargetProbe({
-          tabId: currentTabId,
-          durationMs: 1_500,
-          filename: currentFilename,
-        });
-      },
-      { currentTabId: tabId, currentFilename: filename },
+    return successful(
+      await call("browser_record_video", {
+        browser_id: browserId,
+        filename,
+        duration,
+      }),
     );
   } finally {
     await page.evaluate(() => {
@@ -95,30 +92,48 @@ async function measureInputDelay(profile, tabId) {
   );
 }
 
-async function verifyRecording(profile, recording, expectedSize, label) {
+async function verifyRecording(
+  profile,
+  recording,
+  expectedSize,
+  expectedBrowserId,
+  expectedDuration,
+  label,
+) {
   expect(recording).toMatchObject({
-    mimeType: expect.stringMatching(/^video\/webm/),
-    skippedFrames: 0,
-    sourceWidth: expectedSize.width,
-    sourceHeight: expectedSize.height,
+    requestedFilename: expect.stringMatching(/\.webm$/),
+    filename: expect.stringMatching(/^chrome-bridge\/.+\.webm$/),
+    mimeType: "video/webm",
+    droppedFrameCount: 0,
     width: expectedSize.width,
     height: expectedSize.height,
+    browserId: expectedBrowserId,
   });
-  expect(recording.captureCount).toBeGreaterThanOrEqual(5);
-  expect(recording.frameCount).toBe(recording.captureCount);
-  expect(recording.blobSize).toBeGreaterThan(1_000);
-  const webm = await readFile(recording.filename);
+  expect(recording.frameCount).toBeGreaterThanOrEqual(expectedDuration * 5);
+  expect(recording.sizeBytes).toBeGreaterThan(1_000);
+  expect(recording.durationMs).toBeGreaterThanOrEqual(
+    expectedDuration * 1_000 - 100,
+  );
+  const download = await profile.worker.evaluate(async () => {
+    const [item] = await chrome.downloads.search({
+      state: "complete",
+      orderBy: ["-startTime"],
+      limit: 1,
+    });
+    return item ? { id: item.id, filename: item.filename } : null;
+  });
+  expect(download).not.toBeNull();
+  const webm = await readFile(download.filename);
+  expect(webm.byteLength).toBe(recording.sizeBytes);
   expect([...webm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
-  console.log(`${label} recording probe metrics`, JSON.stringify({
-    blobSize: recording.blobSize,
-    captureCount: recording.captureCount,
-    elapsedMs: Math.round(recording.elapsedMs),
-    maxCaptureMs: Math.round(recording.maxCaptureMs),
-    meanCaptureMs: Math.round(recording.meanCaptureMs),
-    source: `${recording.sourceWidth}x${recording.sourceHeight}`,
+  console.log(`${label} production recording metrics`, JSON.stringify({
+    blobSize: recording.sizeBytes,
+    elapsedMs: recording.durationMs,
+    frameCount: recording.frameCount,
+    skippedFrames: recording.droppedFrameCount,
     output: `${recording.width}x${recording.height}`,
   }));
-  await removeProbeDownload(profile, recording.downloadId);
+  await removeProbeDownload(profile, download.id);
 }
 
 function verifyInputDelay(measurement, expectedSize, label) {
@@ -283,29 +298,47 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       "portrait cold",
     );
     const recording = await recordFixture(
-      profileA,
+      call,
       pageA,
-      openedA.id,
-      "chrome-bridge/recording-probe-landscape.webm",
+      browserA,
+      "recording-production-landscape.webm",
     );
     await verifyRecording(
       profileA,
       recording,
       { width: 1_920, height: 1_080 },
+      browserA,
+      1.5,
       "landscape",
     );
     const portraitRecording = await recordFixture(
-      profileB,
+      call,
       pageB,
-      openedB.id,
-      "chrome-bridge/recording-probe-portrait.webm",
+      browserB,
+      "recording-production-portrait.webm",
+      10,
     );
     await verifyRecording(
       profileB,
       portraitRecording,
       { width: 1_080, height: 1_920 },
+      browserB,
+      10,
       "portrait",
     );
+    const downloadsBeforeInvalid = await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    );
+    const unsafeRecording = await call("browser_record_video", {
+      browser_id: browserA,
+      filename: "../escape.webm",
+      duration: 0.5,
+    });
+    expect(unsafeRecording.isError).toBe(true);
+    expect(toolText(unsafeRecording)).toContain("filename");
+    expect(await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    )).toBe(downloadsBeforeInvalid);
     expect(successful(await call("browser_tabs", { browser_id: browserA }))
       .find((tab) => tab.active).id).toBe(activeA);
     expect(successful(await call("browser_tabs", { browser_id: browserB }))

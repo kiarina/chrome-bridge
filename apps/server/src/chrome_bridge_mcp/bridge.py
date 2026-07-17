@@ -470,6 +470,26 @@ class BrowserController:
             raise ExtensionCommandError("page.wait returned an invalid response")
         return f"Waited for {time:g} seconds"
 
+    async def record_video(
+        self, filename: str, duration: float, browser_id: str | None = None
+    ) -> dict[str, Any]:
+        _validate_recording_filename(filename)
+        if (
+            isinstance(duration, bool)
+            or not isinstance(duration, (int, float))
+            or not math.isfinite(duration)
+            or duration < 0.5
+            or duration > 10
+        ):
+            raise ValueError("duration must be between 0.5 and 10 seconds")
+        connection = self._connection(browser_id)
+        result = await connection.request(
+            "page.recordVideo", {"filename": filename, "duration": duration}
+        )
+        if not _is_recording_result(result, requested_filename=filename):
+            raise ExtensionCommandError("page.recordVideo returned an invalid response")
+        return self._with_browser_id(result, connection)
+
     async def screenshot(self, browser_id: str | None = None) -> bytes:
         connection = self._connection(browser_id)
         result = await connection.request("page.screenshot", {})
@@ -530,6 +550,62 @@ def _validate_element_ref(element: str, ref: str) -> None:
         raise ValueError("element must be a non-empty description")
     if not ref.strip():
         raise ValueError("ref must be returned by browser_snapshot")
+
+
+def _validate_recording_filename(filename: str) -> None:
+    if not isinstance(filename, str) or not filename:
+        raise ValueError("filename must be a non-empty .webm basename")
+    if (
+        filename in {".", ".."}
+        or "/" in filename
+        or "\\" in filename
+        or any(ord(character) <= 31 or ord(character) == 127 for character in filename)
+        or not filename.endswith(".webm")
+    ):
+        raise ValueError(
+            "filename must be a .webm basename without path separators or control characters"
+        )
+    if len(filename.encode("utf-8")) > 200:
+        raise ValueError("filename must be at most 200 UTF-8 bytes")
+
+
+def _is_recording_result(result: Any, *, requested_filename: str) -> bool:
+    if not isinstance(result, dict):
+        return False
+    expected = {
+        "requestedFilename",
+        "filename",
+        "mimeType",
+        "durationMs",
+        "width",
+        "height",
+        "frameCount",
+        "droppedFrameCount",
+        "sizeBytes",
+    }
+    if set(result) != expected:
+        return False
+    positive_integers = ("durationMs", "width", "height", "frameCount", "sizeBytes")
+    if any(
+        not isinstance(result[name], int)
+        or isinstance(result[name], bool)
+        or result[name] <= 0
+        for name in positive_integers
+    ):
+        return False
+    dropped = result["droppedFrameCount"]
+    return (
+        result["requestedFilename"] == requested_filename
+        and isinstance(result["filename"], str)
+        and result["filename"].startswith("chrome-bridge/")
+        and "/" not in result["filename"].removeprefix("chrome-bridge/")
+        and "\\" not in result["filename"]
+        and result["filename"].endswith(".webm")
+        and result["mimeType"] == "video/webm"
+        and isinstance(dropped, int)
+        and not isinstance(dropped, bool)
+        and dropped >= 0
+    )
 
 
 def _validate_upload_paths(paths: list[str]) -> list[str]:

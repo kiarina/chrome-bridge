@@ -44,6 +44,23 @@ var protocol_v1_schema_default = {
       required: ["element", "ref", "paths"],
       additionalProperties: false
     },
+    recordVideoParams: {
+      type: "object",
+      properties: {
+        filename: {
+          type: "string",
+          minLength: 1,
+          maxLength: 200
+        },
+        duration: {
+          type: "number",
+          minimum: 0.5,
+          maximum: 10
+        }
+      },
+      required: ["filename", "duration"],
+      additionalProperties: false
+    },
     commandRequest: {
       type: "object",
       properties: {
@@ -68,7 +85,8 @@ var protocol_v1_schema_default = {
             "page.goForward",
             "page.wait",
             "page.screenshot",
-            "page.getConsoleLogs"
+            "page.getConsoleLogs",
+            "page.recordVideo"
           ]
         },
         params: { type: "object" }
@@ -273,6 +291,17 @@ var protocol_v1_schema_default = {
                 required: ["time"],
                 additionalProperties: false
               }
+            }
+          }
+        },
+        {
+          if: {
+            properties: { type: { const: "page.recordVideo" } },
+            required: ["type"]
+          },
+          then: {
+            properties: {
+              params: { $ref: "#/$defs/recordVideoParams" }
             }
           }
         }

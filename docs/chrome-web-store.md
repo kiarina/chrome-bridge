@@ -95,7 +95,9 @@ Single-purpose text for the Privacy tab:
 
 | Permission | Required use |
 | --- | --- |
-| `debugger` | Attach temporarily to the selected page target for trusted mouse/keyboard input, screenshots, current-document console messages, and file-chooser assignment; detach after each operation. |
+| `debugger` | Attach temporarily to the selected page target for trusted mouse/keyboard input, screenshots, current-document console messages, file-chooser assignment, and explicitly requested target recording frames; detach after each operation. |
+| `downloads` | Save only an explicitly requested silent WebM recording below `Downloads/chrome-bridge/`, use uniquified names rather than overwrite, and remove only an interrupted partial download created by that command. |
+| `offscreen` | Host the extension-packaged canvas and MediaRecorder needed to encode requested target-tab frames; the document is closed after each bounded recording. |
 | `scripting` | Inject the packaged content runtime into an already-open supported page when the manifest content script is not yet present. No remote code is downloaded or executed. |
 | `storage` | Persist the random browser ID, user label, endpoint, connection status, target state, and snapshot generation state. |
 | `tabs` | List, open, close, select, activate, and navigate tabs while keeping the agent target separate from the foreground tab. |
@@ -116,7 +118,10 @@ Suggested dashboard instructions:
 4. Check `http://127.0.0.1:8765/health`; `extensionConnected` should be `true`.
 5. Connect MCP Inspector or another MCP client to `http://127.0.0.1:8765/mcp` using Streamable HTTP.
 6. Call `browser_tabs`, open an HTTP(S) test page as inactive, select it, capture `browser_snapshot`, and use one returned ref with `browser_click`.
-7. Confirm the original active tab remains active. Close only the test tab.
+7. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a
+   silent WebM appears below `Downloads/chrome-bridge/` without activating the target.
+   Delete only that reviewer recording afterward.
+8. Confirm the original active tab remains active. Close only the test tab.
 
 Explain that the initial permission prompt is expected because operating arbitrary user-selected pages is the extension's single purpose. If review needs a deterministic page, publish a public static fixture that contains no login or credentials; do not ask reviewers to use a private account.
 
