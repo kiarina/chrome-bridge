@@ -21,6 +21,13 @@ Chrome Bridge can handle the following data when required by an explicit MCP ope
 
 Chrome Bridge does not use this data for advertising, profiling, credit decisions, or any purpose unrelated to its user-facing browser-control function.
 
+## Chrome Web Store Limited Use
+
+The use of information received from Google APIs will adhere to the Chrome Web
+Store User Data Policy, including the Limited Use requirements. Chrome Bridge
+uses user data only to provide or improve its disclosed browser-control purpose
+and does not use or transfer it for unrelated purposes.
+
 ## Processing, transmission, and sharing
 
 The extension sends commands and results only over the WebSocket endpoint configured by the user. The default endpoint is `ws://127.0.0.1:8765/extension`, which connects to the Chrome Bridge MCP server on the same machine. Results may then be returned by that server to the MCP client selected and configured by the user.
