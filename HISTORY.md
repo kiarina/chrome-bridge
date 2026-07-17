@@ -2,6 +2,21 @@
 
 ## 2026-07-17
 
+### Video recording result and failure contract
+
+- Fixed the planned recorded-operation success shape as `{operation, recording}` while
+  preserving every existing return value and content type when recording is omitted;
+  the bounded standalone tool returns recording metadata directly.
+- Defined metadata for the requested and actual Downloads-relative uniquified names,
+  WebM type, elapsed duration, fixed canvas size, submitted/dropped frames, encoded byte
+  size, and stable browser identity when available. Absolute paths and Chrome download
+  IDs remain private.
+- Fixed the mixed-failure matrix: validate before acting, warn against retry after an
+  operation succeeds but saving fails, keep the original operation error primary, and
+  report a saved diagnostic recording or cleanup failure only as secondary context.
+- Restricted the initial public filename to a validated `.webm` basename below
+  `Downloads/chrome-bridge/`; existing files are still protected by Chrome `uniquify`.
+
 ### Portrait Full HD and input-contention recording measurements
 
 - Added a portrait 1080×1920 isolated profile and encoded 15 frames into approximately

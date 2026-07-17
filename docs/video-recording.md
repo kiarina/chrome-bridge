@@ -61,11 +61,69 @@ a safe relative filename: reject absolute paths and parent traversal, and use Ch
 `uniquify` conflict behavior instead of overwriting an existing file. Audio is out of
 scope for the first implementation.
 
-The exact recording metadata added to tool results and the error contract for “page
-operation succeeded but encoding or download failed” must be fixed before the public
-schema is implemented. Do not silently report full success when the requested recording
-was not saved, and do not lose the original page-operation error during recording
-cleanup.
+### Success result contract
+
+Omitting `video_filename` preserves each tool's current return value and content type
+exactly. Supplying it changes only that invocation's success value to this wrapper:
+
+```json
+{
+  "operation": "the tool's existing success value",
+  "recording": {
+    "requestedFilename": "checkout.webm",
+    "filename": "chrome-bridge/checkout (1).webm",
+    "mimeType": "video/webm",
+    "durationMs": 1573,
+    "width": 1920,
+    "height": 1080,
+    "frameCount": 15,
+    "droppedFrameCount": 0,
+    "sizeBytes": 56920
+  }
+}
+```
+
+`operation` is the exact value that the same invocation would have returned without
+recording: currently a snapshot object for most page actions and a completion string for
+key and wait. The standalone tool returns the `recording` object directly because it has
+no second operation result. When the routed connection has a stable identity, recording
+metadata also contains `browserId`, matching the existing multiple-browser convention.
+
+`requestedFilename` is the validated caller input. `filename` is the actual path relative
+to the profile's Downloads directory after Chrome applies `uniquify`; it never contains
+an absolute local path. `durationMs` is the elapsed recording timeline from capture start
+through post-roll, and dimensions are the fixed encoder canvas. `frameCount` counts
+submitted frames, `droppedFrameCount` counts scheduled capture opportunities skipped or
+failed after recording started, and `sizeBytes` is the encoded Blob size verified before
+download. Do not expose Chrome's profile-local download ID.
+
+For the first implementation, `filename` is a basename rather than a nested relative
+path. Require a `.webm` suffix, reject empty names, `.`/`..`, `/` and `\\`, control
+characters, and names longer than 200 UTF-8 bytes. Do not trim, rewrite, or silently add
+an extension. Prefix the validated name with `chrome-bridge/` only after validation.
+
+### Mixed failure contract
+
+Filename, duration, browser, and target validation happen before recording starts and
+before the page operation runs. Once recording starts, always attempt finalization and
+debugger detach, but preserve operation outcome as the primary fact:
+
+| Outcome | Tool result and recovery |
+| --- | --- |
+| Recording cannot start | Return `Recording did not start: <detail>. The operation was not run.` as an MCP error; no download was created. |
+| Operation and recording succeed | Return the success wrapper above only after Chrome reports the download complete. |
+| Operation succeeds, recording finalization or download fails | Return an MCP error beginning `Operation completed, but recording failed:` and ending `Do not retry the operation automatically.` The operation may have side effects; inspect current page state before deciding what to do. |
+| Operation fails, recording succeeds | Return the original operation error first, followed by `Recording saved: <relative filename>`. The recording is a diagnostic artifact, never a substitute success. |
+| Operation and recording both fail | Return the original operation error first, followed by `Recording also failed: <detail>`. Cleanup failure never replaces the operation error. |
+| Timeout, disconnect, tab close, target change, or cancellation leaves operation outcome unknown | Return `Operation outcome unknown; recording interrupted: <detail>. Inspect current page state before retrying.` Finalize or discard any partial recording and detach best-effort; never reroute to a replacement target. |
+
+Errors remain MCP error results with human-readable messages; this milestone does not
+introduce stable numeric error codes or a new protocol error envelope. Error details must
+not contain absolute download paths. If Chrome creates an interrupted or partial download,
+remove only the download created by this command when its identity is known. Never delete
+or overwrite a pre-existing file. Standalone recording has no mixed operation outcome:
+its failures begin `Recording failed:` and are normally safe to retry after checking the
+target.
 
 ## Command-scoped debugger session
 
@@ -194,14 +252,14 @@ standalone recorder probe succeeds on an inactive target.
 
 Continue in this order:
 
-1. Fix public result metadata and mixed operation/recording failure semantics.
-2. Add the production offscreen/download pipeline and bounded standalone tool.
-3. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
-4. Verify failure cleanup, frame backpressure, extension reload, tab close, target
+1. Add the production offscreen/download pipeline and bounded standalone tool using the
+   success and mixed-failure contract above.
+2. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
+3. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
-5. Add upload recording after file-chooser cleanup is proven unchanged.
-6. Add navigate/back/forward only after renderer and target lifecycle measurements.
-7. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
+4. Add upload recording after file-chooser cleanup is proven unchanged.
+5. Add navigate/back/forward only after renderer and target lifecycle measurements.
+6. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

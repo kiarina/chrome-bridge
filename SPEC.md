@@ -237,6 +237,15 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.
+- Preserve every existing success value exactly when `video_filename` is omitted. When
+  it is supplied, return `{operation, recording}` with the actual Downloads-relative
+  uniquified filename, elapsed duration, dimensions, frame counts, and encoded size;
+  the standalone tool returns recording metadata directly and never exposes an absolute
+  path or Chrome download ID.
+- Validate recording input before the operation. If the operation succeeds but saving
+  fails, return an error that warns against automatic retry. If the operation fails,
+  preserve that error as primary and report saved recording or cleanup failure only as
+  secondary diagnostic context.
 - Own the debugger attachment within one page-operation queue entry. Pass that session
   explicitly to input and capture helpers, keep focus emulation limited to trusted input,
   and detach in `finally`; never retain or reference-count an attachment across MCP
@@ -256,7 +265,7 @@ New commands and result fields are backward-compatible protocol v1 extensions an
   exposing each stage.
 
 [Video recording design](docs/video-recording.md) is canonical for the planned API,
-debugger ownership, capture pipeline, dimensions, unresolved result/error contract, and
+debugger ownership, capture pipeline, dimensions, result/error contract, and
 implementation order.
 
 ## 8. Versioning

@@ -27,8 +27,9 @@ The feature is designed but not implemented. Follow
   drops. In the final five-sample cold contention runs, Full HD capture added 18 ms mean
   input queue delay in both orientations, with 27 ms landscape and 30 ms portrait
   maxima; branded Chrome and heavier pages remain unmeasured.
-- Fix recording result metadata and the operation-success/recording-failure error
-  contract before changing public schemas.
+- Recording result metadata and mixed operation/recording failure semantics are fixed in
+  the design. Preserve existing values when recording is omitted; implement the recorded
+  `{operation, recording}` wrapper and documented retry warnings without absolute paths.
 - Implement the production offscreen canvas/MediaRecorder/download pipeline and bounded
   standalone tool with safe `Downloads/chrome-bridge/` output and `uniquify` conflicts.
 - Add `video_filename` to non-navigation page actions first. Add upload only after file

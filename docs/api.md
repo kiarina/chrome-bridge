@@ -345,8 +345,17 @@ Video recording is designed but not implemented. The plan adds optional
 of the current target. Recordings will be silent WebM files saved under the profile's
 `Downloads/chrome-bridge/` directory without overwriting existing files. Tab-management
 and information tools do not initially receive the option. The authoritative planned
-arguments, ownership constraints, dimensions, rollout order, and unresolved result/error
-contract are in [Video recording design](video-recording.md).
+arguments, ownership constraints, dimensions, rollout order, and result/error contract
+are in [Video recording design](video-recording.md).
+
+The planned recorded-operation success value is `{ "operation": <existing success
+value>, "recording": <metadata> }`; omitting `video_filename` preserves the current
+success value and content type exactly. Metadata reports the requested name, actual
+Downloads-relative uniquified name, WebM type, elapsed duration, fixed dimensions,
+submitted and dropped frame counts, encoded byte size, and stable `browserId` when
+available. If the page operation succeeds but saving fails, the tool returns an error
+that explicitly warns against automatic retry. If the operation fails, its original
+error remains primary even if recording cleanup also fails.
 
 ## Errors
 
