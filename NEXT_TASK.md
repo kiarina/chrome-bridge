@@ -60,10 +60,13 @@ operation-scoped recording and Full HD screenshots remain. Follow
 - Isolated E2E now verifies a recorded key is not dispatched or rerouted when the target
   changes during pre-roll, saves exactly one diagnostic WebM, leaves the other profile's
   target unchanged, and permits an immediate screenshot with a freshly attached debugger.
-  Next add the tab-close interruption case; the earlier recorded-wait case already covers
-  external detach, no partial download, and immediate debugger reuse. Add
-  upload only after file chooser cleanup tests, and navigate/back/forward only after
-  renderer/target lifecycle measurements.
+  Recorded tab-close now distinguishes lifecycle loss after operation entry as an unknown
+  outcome, saves one valid diagnostic WebM, clears the target, preserves the other
+  profile, and permits immediate debugger reuse. The earlier recorded-wait case covers
+  external detach and no partial download.
+- Add upload recording next, preserving file-chooser interception cleanup on success,
+  rejection, target change, tab close, and external detach. Add navigate/back/forward
+  only after renderer and target lifecycle measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,

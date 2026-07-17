@@ -2,6 +2,20 @@
 
 ## 2026-07-17
 
+### Recorded-operation tab-close outcome contract
+
+- Added an isolated E2E case that closes the target after a recorded wait's first frame
+  and pre-roll, while the operation is running.
+- The first run exposed that lifecycle loss was reported as an ordinary target-change
+  failure even though a general operation could already have side effects.
+- Added an explicit internal unknown-outcome marker. A target change before operation
+  entry remains a known not-run failure; target replacement or tab loss after entry now
+  returns `Operation outcome unknown`, reports whether the diagnostic WebM was saved or
+  recording also failed, and requires page-state inspection before retry.
+- The tab-close E2E saved one valid diagnostic WebM, cleared the closed target, preserved
+  the other Chrome profile, and immediately reused a newly selected tab for screenshot.
+  All 43 extension tests, lint, and the 50.5-second two-profile E2E passed.
+
 ### Recorded-action target-change isolation
 
 - Added an isolated E2E case that starts a recorded `Escape` key operation and switches

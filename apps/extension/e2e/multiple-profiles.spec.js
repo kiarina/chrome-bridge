@@ -627,17 +627,81 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expect(new Set(reconnected.map((item) => item.browserId))).toEqual(new Set([browserA, browserB]));
     expectStatus(successful(await call("browser_snapshot", { browser_id: browserB })), "Updated B");
 
-    const restartedFixtureA = successful(await call("browser_tab_open", {
+    const closingRecordedTab = successful(await call("browser_tab_open", {
       browser_id: browserA,
       url: `${fixture.baseUrl}/a`,
       active: false,
     }));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: closingRecordedTab.id,
+    }));
+    const downloadsBeforeTabClose = await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    );
+    const tabClosingWait = call("browser_wait", {
+      browser_id: browserA,
+      time: 1,
+      video_filename: "tab-closed-wait.webm",
+    });
+    await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: closingRecordedTab.id })).toBe(true);
+    // Cross the guaranteed first frame and pre-roll so the target-independent wait has
+    // a known successful outcome even though capture is interrupted by tab closure.
+    await new Promise((resolve) => setTimeout(resolve, 750));
     expect(successful(await call("browser_tab_close", {
       browser_id: browserA,
-      tab_id: restartedFixtureA.id,
-    }))).toMatchObject({ closed: true, tabId: restartedFixtureA.id, browserId: browserA });
+      tab_id: closingRecordedTab.id,
+    }))).toMatchObject({
+      closed: true,
+      tabId: closingRecordedTab.id,
+      browserId: browserA,
+    });
+    const tabClosedResult = await tabClosingWait;
+    expect(tabClosedResult.isError).toBe(true);
+    expect(toolText(tabClosedResult)).toContain(
+      "Operation outcome unknown:",
+    );
+    expect(toolText(tabClosedResult)).toContain(
+      "Inspect current page state before retrying.",
+    );
+    const tabCloseDownloads = await profileA.worker.evaluate(async () => ({
+      count: (await chrome.downloads.search({})).length,
+      latest: (await chrome.downloads.search({
+        state: "complete",
+        orderBy: ["-startTime"],
+        limit: 1,
+      })).map((item) => ({ filename: item.filename, id: item.id }))[0],
+    }));
+    expect(tabCloseDownloads.count).toBe(downloadsBeforeTabClose + 1);
+    expect(toolText(tabClosedResult)).toContain("Recording saved:");
+    const tabCloseDiagnostic = tabCloseDownloads.latest;
+    const tabCloseWebm = await readFile(tabCloseDiagnostic.filename);
+    expect([...tabCloseWebm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    await removeProbeDownload(profileA, tabCloseDiagnostic.id);
+    expect(successful(await call("browser_tabs", { browser_id: browserA })))
+      .not.toEqual(expect.arrayContaining([expect.objectContaining({ targeted: true })]));
     expect(successful(await call("browser_tabs", { browser_id: browserB })))
       .toEqual(expect.arrayContaining([expect.objectContaining({ id: openedB.id })]));
+
+    const postCloseFixtureA = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+      active: false,
+    }));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: postCloseFixtureA.id,
+    }));
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+    expect(successful(await call("browser_tab_close", {
+      browser_id: browserA,
+      tab_id: postCloseFixtureA.id,
+    }))).toMatchObject({ closed: true, tabId: postCloseFixtureA.id });
 
     const interruptedTab = successful(await call("browser_tab_open", {
       browser_id: browserB,

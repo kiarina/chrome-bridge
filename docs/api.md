@@ -406,7 +406,9 @@ Downloads-relative uniquified name, WebM type, elapsed duration, fixed dimension
 submitted and dropped frame counts, encoded byte size, and stable `browserId` when
 available. If the page operation succeeds but saving fails, the tool returns an error
 that explicitly warns against automatic retry. If the operation fails, its original
-error remains primary even if recording cleanup also fails.
+error remains primary even if recording cleanup also fails. If a target changes or closes
+after operation entry, the error begins `Operation outcome unknown:`, reports whether a
+diagnostic recording was saved, and requires inspecting current page state before retry.
 
 ## Errors
 
@@ -423,6 +425,7 @@ Tool errors are returned to the client as MCP error results. There is no publish
 | navigation failure | No history, load failure, or restricted destination | Check the URL/history and navigate to HTTP(S) if needed |
 | upload failure | Invalid path, no chooser, or multiple files for a single input | Correct the paths/ref; interception is cleaned up after failure |
 | timeout/disconnect | Command did not finish within the default 15 seconds, or disconnected during processing | Check connectivity, obtain current state, then retry |
+| recorded outcome unknown | Target changed or closed after a recorded operation entered | Inspect current page state and the reported diagnostic recording before deciding whether to retry |
 
 On error, chrome-bridge never implicitly reroutes to another browser/tab or falls back to a similar element.
 

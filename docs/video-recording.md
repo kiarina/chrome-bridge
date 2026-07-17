@@ -112,7 +112,7 @@ debugger detach, but preserve operation outcome as the primary fact:
 | Operation succeeds, recording finalization or download fails | Return an MCP error beginning `Operation completed, but recording failed:` and ending `Do not retry the operation automatically.` The operation may have side effects; inspect current page state before deciding what to do. |
 | Operation fails, recording succeeds | Return the original operation error first, followed by `Recording saved: <relative filename>`. The recording is a diagnostic artifact, never a substitute success. |
 | Operation and recording both fail | Return the original operation error first, followed by `Recording also failed: <detail>`. Cleanup failure never replaces the operation error. |
-| Timeout, disconnect, tab close, target change, or cancellation leaves operation outcome unknown | Return `Operation outcome unknown; recording interrupted: <detail>. Inspect current page state before retrying.` Finalize or discard any partial recording and detach best-effort; never reroute to a replacement target. |
+| Target change, tab close, disconnect, timeout, or cancellation after operation entry leaves the outcome unknown | Return `Operation outcome unknown: <detail>`, followed by either `Recording saved: <relative filename>` or `Recording also failed: <detail>`, and end with `Inspect current page state before retrying.` Finalize or discard any partial recording and detach best-effort; never reroute to a replacement target. Target loss before operation entry remains a known not-run failure. |
 
 Errors remain MCP error results with human-readable messages; this milestone does not
 introduce stable numeric error codes or a new protocol error envelope. Error details must
@@ -328,13 +328,11 @@ final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
-1. Add tab-close interruption coverage. Target change during recorded-key pre-roll now
-   proves no input dispatch or rerouting, one valid diagnostic WebM, other-profile
-   isolation, stale-ref invalidation, and immediate debugger reuse; recorded wait already
-   covers external detach with no partial download.
-2. Add upload recording after file-chooser cleanup is proven unchanged.
-3. Add navigate/back/forward only after renderer and target lifecycle measurements.
-4. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
+1. Add upload recording after file-chooser cleanup is proven unchanged. Recorded target
+   change before operation entry, tab close after entry, external detach, diagnostic
+   download handling, profile isolation, and immediate debugger reuse are covered.
+2. Add navigate/back/forward only after renderer and target lifecycle measurements.
+3. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

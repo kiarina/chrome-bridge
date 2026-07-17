@@ -20,6 +20,13 @@ function errorDetail(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+export class OperationOutcomeUnknownError extends Error {
+  constructor(cause) {
+    super(errorDetail(cause));
+    this.name = "OperationOutcomeUnknownError";
+  }
+}
+
 export function validateRecordingFilename(filename) {
   if (typeof filename !== "string" || filename.length === 0) {
     throw new Error("filename must be a non-empty .webm basename");
@@ -82,6 +89,14 @@ export function settleRecordedOperation({
   recordingResult,
   recordingError,
 }) {
+  if (operationError instanceof OperationOutcomeUnknownError) {
+    const recordingDetail = recordingResult
+      ? `Recording saved: ${recordingResult.filename}`
+      : `Recording also failed: ${errorDetail(recordingError)}`;
+    throw new Error(
+      `Operation outcome unknown: ${errorDetail(operationError)} ${recordingDetail} Inspect current page state before retrying.`,
+    );
+  }
   if (operationError) {
     const operationDetail = errorDetail(operationError);
     if (recordingResult) {

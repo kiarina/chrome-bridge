@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  OperationOutcomeUnknownError,
   recordingDownloadPath,
   recordingFilenameFromDownload,
   settleRecordedOperation,
@@ -51,6 +52,25 @@ test("keeps operation outcome primary across mixed recording failures", () => {
       recordingError: new Error("encoder failed"),
     }),
   ).toThrow("wait failed Recording also failed: encoder failed");
+});
+
+test("marks a lifecycle interruption as unknown without implying a safe retry", () => {
+  expect(() =>
+    settleRecordedOperation({
+      operationError: new OperationOutcomeUnknownError("target tab closed"),
+      recordingResult: { filename: "chrome-bridge/diagnostic.webm" },
+    }),
+  ).toThrow(
+    "Operation outcome unknown: target tab closed Recording saved: chrome-bridge/diagnostic.webm Inspect current page state before retrying.",
+  );
+  expect(() =>
+    settleRecordedOperation({
+      operationError: new OperationOutcomeUnknownError("target tab closed"),
+      recordingError: new Error("capture stopped"),
+    }),
+  ).toThrow(
+    "Operation outcome unknown: target tab closed Recording also failed: capture stopped Inspect current page state before retrying.",
+  );
 });
 
 test("rejects paths, controls, missing suffixes, and oversized UTF-8 names", () => {

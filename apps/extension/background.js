@@ -11,6 +11,7 @@ import {
 import { connectionActionPresentation } from "./connection-ui.js";
 import { withDebuggerSession } from "./debugger-session.js";
 import {
+  OperationOutcomeUnknownError,
   recordTargetOperation,
   recordTargetVideo,
 } from "./recording.js";
@@ -284,7 +285,9 @@ async function runOptionallyRecordedTargetOperation(params, operation) {
     filename: params.videoFilename,
     operation: async (session, captureOperationFrame) => {
       await requireUnchangedTarget(selectedTab.id);
-      return operation(session, captureOperationFrame);
+      return runWithRecordedTargetOutcome(selectedTab.id, () =>
+        operation(session, captureOperationFrame),
+      );
     },
   });
 }
@@ -336,6 +339,27 @@ async function requireUnchangedTarget(tabId) {
     throw new Error(
       "Target tab changed while the page operation was waiting to run",
     );
+  }
+}
+
+async function targetLifecycleChanged(tabId) {
+  if ((await getTargetTabId()) !== tabId) return true;
+  try {
+    await chrome.tabs.get(tabId);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+async function runWithRecordedTargetOutcome(tabId, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (await targetLifecycleChanged(tabId)) {
+      throw new OperationOutcomeUnknownError(error);
+    }
+    throw error;
   }
 }
 
@@ -1661,7 +1685,10 @@ async function executeCommand(type, params) {
         return recordTargetOperation({
           tabId: selectedTab.id,
           filename: params.videoFilename,
-          operation: () => waitTarget(params),
+          operation: () =>
+            runWithRecordedTargetOutcome(selectedTab.id, () =>
+              waitTarget(params),
+            ),
         });
       });
     }

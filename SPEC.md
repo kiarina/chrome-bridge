@@ -247,7 +247,9 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Validate recording input before the operation. If the operation succeeds but saving
   fails, return an error that warns against automatic retry. If the operation fails,
   preserve that error as primary and report saved recording or cleanup failure only as
-  secondary diagnostic context.
+  secondary diagnostic context. If target identity is lost after operation entry, mark
+  the outcome unknown, report the diagnostic recording result, and require current page
+  state inspection before retry; target loss before entry remains a known not-run error.
 - Own the debugger attachment within one page-operation queue entry. Pass that session
   explicitly to input and capture helpers, keep focus emulation limited to trusted input,
   and detach in `finally`; never retain or reference-count an attachment across MCP
