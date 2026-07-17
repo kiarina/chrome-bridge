@@ -14,7 +14,7 @@
 uv sync --all-groups
 npm --prefix apps/extension ci
 npm --prefix apps/extension run build
-uv run chrome-bridge-server
+uv run chrome-bridge-mcp
 ```
 
 In Chrome, manually open `chrome://extensions`, enable Developer mode, choose Load unpacked, and select `apps/extension`. After changing extension code, click Reload on the same page. See the [Operations guide](operations.md) for routine start/stop procedures, environment variables, Options, MCP client configuration, and incident response.

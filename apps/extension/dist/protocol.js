@@ -1,4 +1,4 @@
-// ../server/src/chrome_bridge_server/protocol_v1.schema.json
+// ../server/src/chrome_bridge_mcp/protocol_v1.schema.json
 var protocol_v1_schema_default = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://kiarina.github.io/chrome-bridge/protocol/v1.schema.json",
@@ -349,7 +349,7 @@ var protocol_v1_schema_default = {
   }
 };
 
-// ../server/src/chrome_bridge_server/protocol_v2.schema.json
+// ../server/src/chrome_bridge_mcp/protocol_v2.schema.json
 var protocol_v2_schema_default = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://kiarina.github.io/chrome-bridge/protocol/v2.schema.json",

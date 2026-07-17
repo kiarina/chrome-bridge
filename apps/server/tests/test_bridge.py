@@ -7,14 +7,14 @@ from typing import Any
 
 import pytest
 
-from chrome_bridge_server.bridge import (
+from chrome_bridge_mcp.bridge import (
     BridgeHub,
     BrowserConnection,
     BrowserController,
     ExtensionCommandError,
     ExtensionUnavailableError,
 )
-from chrome_bridge_server.protocol import ProtocolValidationError
+from chrome_bridge_mcp.protocol import ProtocolValidationError
 
 
 class FakeSocket:

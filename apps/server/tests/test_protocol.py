@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from chrome_bridge_server.protocol import (
+from chrome_bridge_mcp.protocol import (
     PROTOCOL_SCHEMA,
     PROTOCOL_V2_SCHEMA,
     ProtocolValidationError,

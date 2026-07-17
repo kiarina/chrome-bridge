@@ -2,7 +2,7 @@
 name = "chrome-bridge-workspace"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["chrome-bridge-server"]
+dependencies = ["chrome-bridge-mcp"]
 
 [dependency-groups]
 dev = [
@@ -16,7 +16,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
-chrome-bridge-server = { workspace = true }
+chrome-bridge-mcp = { workspace = true }
 
 [tool.uv.workspace]
 members = ["apps/server"]

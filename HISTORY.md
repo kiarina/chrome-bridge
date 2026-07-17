@@ -2,6 +2,13 @@
 
 ## 2026-07-17
 
+### MIT licensing and Python package naming
+
+- Selected MIT for the original chrome-bridge code and added matching license text to the repository, Python distribution, and extension ZIP. Playwright-derived code remains under Apache-2.0 with its existing third-party notice and full license text.
+- Renamed the unpublished Python distribution, import package, and CLI from `chrome-bridge-server` / `chrome_bridge_server` to `chrome-bridge-mcp` / `chrome_bridge_mcp`, while retaining `chrome-bridge` as the repository, product, and MCP client configuration name.
+- Extended static and release validation to reject missing or inconsistent MIT license files and stale package/archive names.
+- All 98 Python tests, 23 extension tests, lint/static gates, clean-wheel import, and two-profile artifact E2E passed. Two independent builds were byte-identical with SHA-256 prefixes `19b063e3...` for the extension ZIP, `e2a0c3da...` for the wheel, and `d7656637...` for the sdist.
+
 ### Branded Chrome upload change-barrier smoke
 
 - Reloaded the unpacked extension in two branded Chrome profiles and connected both simultaneously to the production loopback server.

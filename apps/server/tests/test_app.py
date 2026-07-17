@@ -4,7 +4,7 @@ import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from chrome_bridge_server import Settings, create_app
+from chrome_bridge_mcp import Settings, create_app
 
 
 def test_health() -> None:

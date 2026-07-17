@@ -85,6 +85,8 @@ def validate_extension(extension_zip: Path) -> None:
             raise ValueError(
                 f"extension manifest files missing from archive: {sorted(missing)}"
             )
+        if archive.read("LICENSE") != (ROOT / "LICENSE").read_bytes():
+            raise ValueError("extension LICENSE does not match the project LICENSE")
 
 
 def validate_python_archives(wheel: Path, sdist: Path) -> None:
@@ -92,22 +94,56 @@ def validate_python_archives(wheel: Path, sdist: Path) -> None:
         wheel_names = archive.namelist()
         assert_clean_names(wheel_names)
         required_suffixes = {
-            "chrome_bridge_server/__main__.py",
-            "chrome_bridge_server/protocol_v1.schema.json",
-            "chrome_bridge_server/protocol_v2.schema.json",
+            "chrome_bridge_mcp/__main__.py",
+            "chrome_bridge_mcp/protocol_v1.schema.json",
+            "chrome_bridge_mcp/protocol_v2.schema.json",
         }
         for suffix in required_suffixes:
             if not any(name.endswith(suffix) for name in wheel_names):
                 raise ValueError(f"wheel is missing {suffix}")
-        if not any(
-            name.endswith(".dist-info/entry_points.txt") for name in wheel_names
-        ):
+        entry_points = [
+            name for name in wheel_names if name.endswith(".dist-info/entry_points.txt")
+        ]
+        if len(entry_points) != 1:
             raise ValueError("wheel is missing console entry point metadata")
+        if "chrome-bridge-mcp = chrome_bridge_mcp.__main__:main" not in archive.read(
+            entry_points[0]
+        ).decode("utf-8"):
+            raise ValueError("wheel has an unexpected console entry point")
+        licenses = [
+            name for name in wheel_names if name.endswith(".dist-info/licenses/LICENSE")
+        ]
+        if len(licenses) != 1:
+            raise ValueError("wheel is missing the MIT license")
+        if archive.read(licenses[0]) != (ROOT / "LICENSE").read_bytes():
+            raise ValueError("wheel LICENSE does not match the project LICENSE")
     with tarfile.open(sdist, "r:gz") as archive:
         names = archive.getnames()
         assert_clean_names(names)
         if not any(name.endswith("/pyproject.toml") for name in names):
             raise ValueError("sdist is missing pyproject.toml")
+        required_suffixes = {
+            "/LICENSE",
+            "/src/chrome_bridge_mcp/__main__.py",
+            "/src/chrome_bridge_mcp/protocol_v1.schema.json",
+            "/src/chrome_bridge_mcp/protocol_v2.schema.json",
+        }
+        for suffix in required_suffixes:
+            if not any(name.endswith(suffix) for name in names):
+                raise ValueError(f"sdist is missing {suffix.removeprefix('/')}")
+        licenses = [
+            member
+            for member in archive.getmembers()
+            if member.name.endswith("/LICENSE")
+        ]
+        if len(licenses) != 1:
+            raise ValueError("sdist must contain exactly one project LICENSE")
+        license_stream = archive.extractfile(licenses[0])
+        if (
+            license_stream is None
+            or license_stream.read() != (ROOT / "LICENSE").read_bytes()
+        ):
+            raise ValueError("sdist LICENSE does not match the project LICENSE")
 
 
 def venv_python(venv: Path) -> Path:
@@ -136,7 +172,7 @@ def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -
                 str(python),
                 "-c",
                 (
-                    "from importlib.resources import files; import chrome_bridge_server as p; "
+                    "from importlib.resources import files; import chrome_bridge_mcp as p; "
                     "assert files(p).joinpath('protocol_v1.schema.json').is_file(); "
                     "print(p.__file__)"
                 ),
@@ -171,8 +207,8 @@ def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -
 
 def validate(release_dir: Path, *, run_e2e: bool) -> None:
     extension_archives = list(release_dir.glob("chrome-bridge-extension-*.zip"))
-    wheels = list(release_dir.glob("chrome_bridge_server-*.whl"))
-    sdists = list(release_dir.glob("chrome_bridge_server-*.tar.gz"))
+    wheels = list(release_dir.glob("chrome_bridge_mcp-*.whl"))
+    sdists = list(release_dir.glob("chrome_bridge_mcp-*.tar.gz"))
     if len(extension_archives) != 1 or len(wheels) != 1 or len(sdists) != 1:
         raise ValueError(
             "release directory must contain exactly one extension ZIP, wheel, and sdist"

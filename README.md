@@ -75,7 +75,7 @@ The MCP client connects to `http://127.0.0.1:8765/mcp`. The Chrome extension mak
 uv sync --all-groups
 npm --prefix apps/extension ci
 npm --prefix apps/extension run build
-uv run chrome-bridge-server
+uv run chrome-bridge-mcp
 ```
 
 1. Open `chrome://extensions` and enable Developer mode.
@@ -134,3 +134,7 @@ uv run python scripts/check_release_reproducible.py
 ```
 
 See [docs/development.md](docs/development.md) for detailed procedures, [docs/api.md](docs/api.md) for the tool API, [docs/architecture.md](docs/architecture.md) for design, [docs/release.md](docs/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/operations.md](docs/operations.md) is canonical for routine operation, configuration, logging, and incident response.
+
+## License
+
+chrome-bridge is licensed under the [MIT License](LICENSE). Playwright-derived extension code remains under Apache-2.0; see [THIRD_PARTY_NOTICES.md](apps/extension/THIRD_PARTY_NOTICES.md) for provenance and license details.

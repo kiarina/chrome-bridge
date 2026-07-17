@@ -36,13 +36,13 @@ On save, the service worker closes the current socket and reconnects with the ne
 From a source checkout, run the following in the foreground:
 
 ```bash
-uv run chrome-bridge-server
+uv run chrome-bridge-mcp
 ```
 
 After installing the wheel with `uv tool install`, use:
 
 ```bash
-chrome-bridge-server
+chrome-bridge-mcp
 ```
 
 The server has no daemonization or OS-service registration. Stop foreground operation with `Ctrl-C`. With a service manager, run exactly one process, retain stdout/stderr, and wait for clean exit after SIGTERM.

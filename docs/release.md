@@ -5,17 +5,17 @@
 The v0.1 build produces three local artifacts plus checksums:
 
 - `chrome-bridge-extension-0.1.0.zip`: Extension runtime for Load unpacked.
-- `chrome_bridge_server-0.1.0-py3-none-any.whl`: Wheel for the Python server tool.
-- `chrome_bridge_server-0.1.0.tar.gz`: Python server source distribution.
+- `chrome_bridge_mcp-0.1.0-py3-none-any.whl`: Wheel for the Python MCP server.
+- `chrome_bridge_mcp-0.1.0.tar.gz`: Python MCP server source distribution.
 - `SHA256SUMS`: SHA-256 checksums for the three files above.
 
-Build, clean install, and artifact-based isolated Chromium E2E are automated. However, the repository has no project `LICENSE` and no Git remote. Do not publish to third parties, create a GitHub Release, or upload to a package index until the copyright holder decides the project license and publication destinations. The extension ZIP includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions.
+Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The repository still has no Git remote, so do not create a GitHub Release or upload to a package index until publication destinations and credentials are configured.
 
 ## Canonical file selection
 
 [`apps/extension/extension-files.json`](../apps/extension/extension-files.json) is canonical for extension runtime and notice files. The E2E harness, static validation, and release build use the same allowlist. Do not include source TypeScript, tests, `node_modules`, Playwright output, or Chrome profile data in the release ZIP.
 
-The Python wheel packages only `src/chrome_bridge_server` and includes protocol schemas as package data. Hatch target settings exclude `tests/` from the sdist. Release validation lists entries in the wheel, sdist, and extension ZIP and rejects forbidden paths or missing console entry points/schemas.
+The Python wheel distribution is `chrome-bridge-mcp`; it packages only `src/chrome_bridge_mcp` and includes the MIT license and protocol schemas as package data. Hatch target settings exclude `tests/` from the sdist. Release validation lists entries in the wheel, sdist, and extension ZIP and rejects forbidden paths or missing licenses, console entry points, or schemas.
 
 ## Build and validation
 
@@ -65,8 +65,8 @@ Extract the extension ZIP into a fixed installation directory. To preserve the u
 ```bash
 mkdir -p /path/to/chrome-bridge-extension
 unzip chrome-bridge-extension-0.1.0.zip -d /path/to/chrome-bridge-extension
-uv tool install ./chrome_bridge_server-0.1.0-py3-none-any.whl
-chrome-bridge-server
+uv tool install ./chrome_bridge_mcp-0.1.0-py3-none-any.whl
+chrome-bridge-mcp
 ```
 
 Enable Developer mode at Chrome's `chrome://extensions` and Load unpacked from the fixed directory. Connect the MCP client to `http://127.0.0.1:8765/mcp`. Check server and extension connection counts with `curl http://127.0.0.1:8765/health`. See the [Operations guide](operations.md) for everyday operation and incident response.
@@ -86,7 +86,7 @@ Rollback follows the same procedure, restoring the backed-up wheel and ZIP to th
 
 Complete the following before publication:
 
-1. Select a project license and apply it to the root `LICENSE`, Python metadata, and extension ZIP.
+1. Confirm the root, extension ZIP, wheel, and sdist carry the MIT license while retaining Playwright's Apache-2.0 notice and license.
 2. Decide the Git remote, repository visibility, and release signing/retention policies.
-3. Attach GitHub Actions-verified artifacts to tag `v0.1.0` and confirm SHA-256 matches a local rebuild.
-4. If publishing wheel/sdist to a package index, configure project-name ownership and trusted publishing.
+3. Reserve the `chrome-bridge-mcp` project name and configure trusted publishing if publishing wheel/sdist to PyPI.
+4. Attach GitHub Actions-verified artifacts to tag `v0.1.0` and confirm SHA-256 matches a local rebuild.

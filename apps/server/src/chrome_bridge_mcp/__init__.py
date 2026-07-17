@@ -1,4 +1,4 @@
-"""Chrome Bridge MCP server."""
+"""Chrome Bridge MCP server package."""
 
 from .app import create_app
 from .config import Settings

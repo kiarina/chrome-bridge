@@ -1,5 +1,5 @@
-import schemaV1 from "../../server/src/chrome_bridge_server/protocol_v1.schema.json";
-import schemaV2 from "../../server/src/chrome_bridge_server/protocol_v2.schema.json";
+import schemaV1 from "../../server/src/chrome_bridge_mcp/protocol_v1.schema.json";
+import schemaV2 from "../../server/src/chrome_bridge_mcp/protocol_v2.schema.json";
 
 type JsonSchema = Record<string, unknown>;
 

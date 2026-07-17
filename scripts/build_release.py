@@ -114,7 +114,7 @@ def build(output_dir: Path) -> list[Path]:
                 "uv",
                 "build",
                 "--package",
-                "chrome-bridge-server",
+                "chrome-bridge-mcp",
                 "--out-dir",
                 str(python_dir),
             ],

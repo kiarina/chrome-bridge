@@ -6,7 +6,7 @@ import socket
 
 import uvicorn
 
-from chrome_bridge_server import Settings, create_app
+from chrome_bridge_mcp import Settings, create_app
 
 
 async def run() -> None:

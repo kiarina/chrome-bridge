@@ -96,7 +96,7 @@ Error response:
 Connection lifecycle messages are `hello`, `ping`, and `pong`. The current implementation's `hello.protocolVersion` is `1`.
 Commands time out after 15 seconds by default. Extension disconnect fails every in-flight command.
 
-`apps/server/src/chrome_bridge_server/protocol_v1.schema.json` is canonical for protocol v1 envelopes and command parameters. Request IDs are lowercase UUIDv4 values, and every object rejects unknown fields. A success response contains `result`; an error response contains only a non-empty `error`; the two are never mixed. The server controller continues to validate command-specific result payloads.
+`apps/server/src/chrome_bridge_mcp/protocol_v1.schema.json` is canonical for protocol v1 envelopes and command parameters. Request IDs are lowercase UUIDv4 values, and every object rejects unknown fields. A success response contains `result`; an error response contains only a non-empty `error`; the two are never mixed. The server controller continues to validate command-specific result payloads.
 
 Handling of invalid messages at the boundary:
 

@@ -23,6 +23,10 @@
   ],
   "notices": [
     {
+      "source": "../../LICENSE",
+      "archive": "LICENSE"
+    },
+    {
       "source": "THIRD_PARTY_NOTICES.md",
       "archive": "THIRD_PARTY_NOTICES.md"
     },

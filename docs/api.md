@@ -2,7 +2,7 @@
 
 This document is the user-facing reference for the 20 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
 
-[`apps/server/src/chrome_bridge_server/app.py`](../apps/server/src/chrome_bridge_server/app.py) is the runtime source of truth for tool names, input JSON Schemas, and tool descriptions; they are available through MCP `tools/list`. The [Specification](../SPEC.md) is canonical for detailed page-operation semantics and security boundaries, and [Multiple browser routing](multiple-browser-routing.md) is canonical for multi-browser routing rules.
+[`apps/server/src/chrome_bridge_mcp/app.py`](../apps/server/src/chrome_bridge_mcp/app.py) is the runtime source of truth for tool names, input JSON Schemas, and tool descriptions; they are available through MCP `tools/list`. The [Specification](../SPEC.md) is canonical for detailed page-operation semantics and security boundaries, and [Multiple browser routing](multiple-browser-routing.md) is canonical for multi-browser routing rules.
 
 ## Common conventions
 

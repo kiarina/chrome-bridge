@@ -63,6 +63,17 @@ def validate_manifest() -> None:
         len(set(versions.values())) == 1,
         f"package versions must match: {versions}",
     )
+    require(
+        server["project"]["name"] == "chrome-bridge-mcp",
+        "Python distribution must be chrome-bridge-mcp",
+    )
+    require(
+        server["project"].get("license") == "MIT" and package.get("license") == "MIT",
+        "Python and extension package metadata must use MIT",
+    )
+    root_license = (ROOT / "LICENSE").read_text(encoding="utf-8")
+    server_license = (SERVER_PACKAGE / "LICENSE").read_text(encoding="utf-8")
+    require(root_license == server_license, "server LICENSE must match root LICENSE")
 
     expected_icons = {str(size): f"icons/icon-{size}.png" for size in (16, 32, 48, 128)}
     require(manifest.get("icons") == expected_icons, "manifest icon set drifted")
@@ -116,6 +127,15 @@ def validate_manifest() -> None:
     )
     notices = release_files.get("notices")
     require(isinstance(notices, list) and notices, "extension notices are required")
+    require(
+        any(
+            notice.get("source") == "../../LICENSE"
+            and notice.get("archive") == "LICENSE"
+            for notice in notices
+            if isinstance(notice, dict)
+        ),
+        "extension release must include the project LICENSE",
+    )
     for notice in notices:
         require(
             isinstance(notice, dict) and set(notice) == {"source", "archive"},
@@ -129,7 +149,7 @@ def validate_manifest() -> None:
 
 
 def validate_protocol_schemas() -> None:
-    schema_dir = SERVER_PACKAGE / "src" / "chrome_bridge_server"
+    schema_dir = SERVER_PACKAGE / "src" / "chrome_bridge_mcp"
     v1 = load_json(schema_dir / "protocol_v1.schema.json")
     v2 = load_json(schema_dir / "protocol_v2.schema.json")
     Draft202012Validator.check_schema(v1)
