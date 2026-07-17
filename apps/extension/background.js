@@ -29,6 +29,7 @@ const SNAPSHOT_GENERATION_KEY = "snapshotGeneration";
 const LATEST_SNAPSHOT_KEY = "latestSnapshot";
 const CONTENT_RUNTIME_FILE = "dist/content-runtime.js";
 const NAVIGATION_TIMEOUT_MS = 10_000;
+const RECORDED_NAVIGATION_TIMEOUT_MS = 7_000;
 const FILE_CHOOSER_TIMEOUT_MS = 3_000;
 const FILE_INPUT_CHANGE_TIMEOUT_MS = 2_000;
 const MAX_WAIT_SECONDS = 10;
@@ -312,8 +313,10 @@ function contentRuntimeUrl(tab) {
   return ["http:", "https:"].includes(url.protocol) ? url : null;
 }
 
-async function waitForContentRuntimeTab(tabId) {
-  const deadline = Date.now() + 10_000;
+async function waitForContentRuntimeTab(
+  tabId,
+  deadline = Date.now() + NAVIGATION_TIMEOUT_MS,
+) {
   while (true) {
     const tab = await chrome.tabs.get(tabId);
     const url = contentRuntimeUrl(tab);
@@ -331,6 +334,35 @@ async function waitForContentRuntimeTab(tabId) {
       );
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
+class NavigationDeadlineError extends Error {
+  constructor(timeoutMs) {
+    super(
+      `Target navigation did not complete within ${timeoutMs / 1_000} seconds`,
+    );
+    this.name = "NavigationDeadlineError";
+  }
+}
+
+function beforeNavigationDeadline(promise, deadline, timeoutMs) {
+  const remainingMs = Math.max(0, deadline - Date.now());
+  let timeout;
+  const expired = new Promise((_, reject) => {
+    timeout = setTimeout(
+      () => reject(new NavigationDeadlineError(timeoutMs)),
+      remainingMs,
+    );
+  });
+  return Promise.race([promise, expired]).finally(() => clearTimeout(timeout));
+}
+
+async function stopTimedOutNavigation(tabId) {
+  try {
+    await chrome.tabs.stop(tabId);
+  } catch {
+    // Target change or tab closure can make the best-effort stop unnecessary.
   }
 }
 
@@ -356,7 +388,10 @@ async function runWithRecordedTargetOutcome(tabId, operation) {
   try {
     return await operation();
   } catch (error) {
-    if (await targetLifecycleChanged(tabId)) {
+    if (
+      error instanceof NavigationDeadlineError ||
+      (await targetLifecycleChanged(tabId))
+    ) {
       throw new OperationOutcomeUnknownError(error);
     }
     throw error;
@@ -446,9 +481,12 @@ function validateDragPoints(result) {
   };
 }
 
-async function captureSnapshotForTarget(tabId) {
+async function captureSnapshotForTarget(
+  tabId,
+  deadline = Date.now() + NAVIGATION_TIMEOUT_MS,
+) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    await waitForContentRuntimeTab(tabId);
+    await waitForContentRuntimeTab(tabId, deadline);
     await requireUnchangedTarget(tabId);
     await ensureContentRuntime(tabId);
     const generation = await nextSnapshotGeneration();
@@ -1175,7 +1213,7 @@ function requireHttpUrl(value) {
   return url.toString();
 }
 
-function topFrameNavigation(tabId) {
+function topFrameNavigation(tabId, deadline, timeoutMs) {
   let cleanup = () => {};
   const promise = new Promise((resolve, reject) => {
     const matches = (details) =>
@@ -1200,9 +1238,8 @@ function topFrameNavigation(tabId) {
       }
     };
     const timeout = setTimeout(
-      () =>
-        reject(new Error("Target navigation did not start within 10 seconds")),
-      NAVIGATION_TIMEOUT_MS,
+      () => reject(new NavigationDeadlineError(timeoutMs)),
+      Math.max(0, deadline - Date.now()),
     );
     chrome.webNavigation.onCommitted.addListener(onCommitted);
     chrome.webNavigation.onHistoryStateUpdated.addListener(
@@ -1229,24 +1266,37 @@ function topFrameNavigation(tabId) {
   return { promise, cleanup: () => cleanup() };
 }
 
-async function navigateAndCapture(tabId, action, operationName) {
+async function navigateAndCapture(
+  tabId,
+  action,
+  operationName,
+  timeoutMs = NAVIGATION_TIMEOUT_MS,
+) {
   await requireUnchangedTarget(tabId);
   await clearLatestSnapshotGeneration();
-  const navigation = topFrameNavigation(tabId);
+  const deadline = Date.now() + timeoutMs;
+  const navigation = topFrameNavigation(tabId, deadline, timeoutMs);
   try {
     try {
-      await action();
+      await beforeNavigationDeadline(action(), deadline, timeoutMs);
     } catch (error) {
+      if (error instanceof NavigationDeadlineError) throw error;
       const detail = error instanceof Error ? error.message : String(error);
       throw new Error(`Cannot ${operationName} in the target tab: ${detail}`);
     }
     await navigation.promise;
+    await waitForContentRuntimeTab(tabId, deadline);
+    await requireUnchangedTarget(tabId);
+    return await captureSnapshotForTarget(tabId, deadline);
+  } catch (error) {
+    if (error instanceof NavigationDeadlineError || Date.now() >= deadline) {
+      await stopTimedOutNavigation(tabId);
+      throw new NavigationDeadlineError(timeoutMs);
+    }
+    throw error;
   } finally {
     navigation.cleanup();
   }
-  await waitForContentRuntimeTab(tabId);
-  await requireUnchangedTarget(tabId);
-  return captureSnapshotForTarget(tabId);
 }
 
 async function navigateTarget(params) {
@@ -1262,24 +1312,33 @@ async function navigateTarget(params) {
       }
     },
     "navigate",
+    params.videoFilename === undefined
+      ? NAVIGATION_TIMEOUT_MS
+      : RECORDED_NAVIGATION_TIMEOUT_MS,
   );
 }
 
-async function goBackTarget() {
+async function goBackTarget(params) {
   const tab = await getTargetTab();
   return navigateAndCapture(
     tab.id,
     () => chrome.tabs.goBack(tab.id),
     "go back",
+    params.videoFilename === undefined
+      ? NAVIGATION_TIMEOUT_MS
+      : RECORDED_NAVIGATION_TIMEOUT_MS,
   );
 }
 
-async function goForwardTarget() {
+async function goForwardTarget(params) {
   const tab = await getTargetTab();
   return navigateAndCapture(
     tab.id,
     () => chrome.tabs.goForward(tab.id),
     "go forward",
+    params.videoFilename === undefined
+      ? NAVIGATION_TIMEOUT_MS
+      : RECORDED_NAVIGATION_TIMEOUT_MS,
   );
 }
 
@@ -1305,50 +1364,34 @@ async function screenshotTarget() {
   const tab = await waitForContentRuntimeTab(selectedTab.id);
   await requireUnchangedTarget(tab.id);
   await ensureContentRuntime(tab.id);
-  await sendContentMessage(tab.id, {
-    type: "chrome-bridge.ui.capture",
-    hidden: true,
-  });
-  let captured;
-  try {
-    captured = await runWithDebugger(
-      tab.id,
-      async (debuggee) => {
-        const metrics = await chrome.debugger.sendCommand(
-          debuggee,
-          "Page.getLayoutMetrics",
-        );
-        const viewport = metrics?.cssVisualViewport;
-        const width = Math.ceil(viewport?.clientWidth || 0);
-        const height = Math.ceil(viewport?.clientHeight || 0);
-        if (width <= 0 || height <= 0) {
-          throw new Error("Chrome returned invalid viewport metrics");
-        }
-        const output = fitWithinMediaBounds(width, height);
-        const result = await chrome.debugger.sendCommand(
-          debuggee,
-          "Page.captureScreenshot",
-          currentViewportScreenshotParams({
-            format: "png",
-          }),
-        );
-        if (typeof result?.data !== "string" || !result.data) {
-          throw new Error("Chrome returned an invalid PNG screenshot");
-        }
-        return { data: result.data, output };
-      },
-      false,
-    );
-  } finally {
-    try {
-      await sendContentMessage(tab.id, {
-        type: "chrome-bridge.ui.capture",
-        hidden: false,
-      });
-    } catch {
-      // Navigation or closure can destroy the content runtime after capture.
-    }
-  }
+  const captured = await runWithDebugger(
+    tab.id,
+    async (debuggee) => {
+      const metrics = await chrome.debugger.sendCommand(
+        debuggee,
+        "Page.getLayoutMetrics",
+      );
+      const viewport = metrics?.cssVisualViewport;
+      const width = Math.ceil(viewport?.clientWidth || 0);
+      const height = Math.ceil(viewport?.clientHeight || 0);
+      if (width <= 0 || height <= 0) {
+        throw new Error("Chrome returned invalid viewport metrics");
+      }
+      const output = fitWithinMediaBounds(width, height);
+      const result = await chrome.debugger.sendCommand(
+        debuggee,
+        "Page.captureScreenshot",
+        currentViewportScreenshotParams({
+          format: "png",
+        }),
+      );
+      if (typeof result?.data !== "string" || !result.data) {
+        throw new Error("Chrome returned an invalid PNG screenshot");
+      }
+      return { data: result.data, output };
+    },
+    false,
+  );
   const response = await sendContentMessage(tab.id, {
     type: "chrome-bridge.image.resize",
     data: captured.data,
@@ -1689,12 +1732,14 @@ async function executeCommand(type, params) {
     }
     case "page.goBack": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () => goBackTarget()),
+        runOptionallyRecordedTargetOperation(params, () => goBackTarget(params)),
       );
     }
     case "page.goForward": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () => goForwardTarget()),
+        runOptionallyRecordedTargetOperation(params, () =>
+          goForwardTarget(params),
+        ),
       );
     }
     case "page.wait": {

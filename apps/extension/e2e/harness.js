@@ -121,7 +121,9 @@ export async function startFixtureServer() {
       request.socket.destroy();
       return;
     }
-    const fixturePath = request.url === "/slow-a" ? "/a" : request.url;
+    const fixturePath = ["/slow-a", "/timeout-a"].includes(request.url)
+      ? "/a"
+      : request.url;
     if (fixturePath !== "/a" && fixturePath !== "/b") {
       response.writeHead(404).end("Not found");
       return;
@@ -191,8 +193,8 @@ dropzone.addEventListener("drop", (event) => {
 });
 </script></body></html>`);
     };
-    if (request.url === "/slow-a") {
-      setTimeout(sendFixture, 2_000);
+    if (["/slow-a", "/timeout-a"].includes(request.url)) {
+      setTimeout(sendFixture, request.url === "/timeout-a" ? 8_000 : 2_000);
     } else {
       sendFixture();
     }

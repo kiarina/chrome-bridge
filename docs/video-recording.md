@@ -108,6 +108,13 @@ debugger detach, but preserve operation outcome as the primary fact:
 | Operation and recording both fail | Return the original operation error first, followed by `Recording also failed: <detail>`. Cleanup failure never replaces the operation error. |
 | Target change, tab close, disconnect, timeout, or cancellation after operation entry leaves the outcome unknown | Return `Operation outcome unknown: <detail>`, followed by either `Recording saved: <relative filename>` or `Recording also failed: <detail>`, and end with `Inspect current page state before retrying.` Finalize or discard any partial recording and detach best-effort; never reroute to a replacement target. Target loss before operation entry remains a known not-run failure. |
 
+Recorded navigate/back/forward use one seven-second extension-side deadline across the
+navigation event, page-load readiness, and post-navigation snapshot. This leaves time
+inside the server's default 15-second command budget for recording finalization,
+download confirmation, debugger detach, and operation-queue release. On deadline, stop
+the pending tab load best-effort before finalizing the diagnostic recording; a following
+recording must be able to start on the same target without closing the tab.
+
 Errors remain MCP error results with human-readable messages; this milestone does not
 introduce stable numeric error codes or a new protocol error envelope. Error details must
 not contain absolute download paths. If Chrome creates an interrupted or partial download,

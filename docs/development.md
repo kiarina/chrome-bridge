@@ -159,14 +159,14 @@ For real-Chrome screenshot/console validation, create two inactive loopback tabs
 5. The original active tab ID remains unchanged across select, screenshot, console, and target changes.
 6. Close only test tabs and clean up even after intermediate errors.
 
-After changing the target indicator or virtual cursor, also verify on the same inactive fixture:
+After changing target-state presentation or the virtual cursor, also verify on the same inactive fixture:
 
-1. Immediately after select, the tab title starts with `◉ ` and the top right shows `Agent target`; the original active tab is unchanged.
-2. Only while `browser_wait(time=1)` runs, the title uses `● ` and the indicator reads `Agent operating`; completion or error returns to target state.
+1. Immediately after select, the tab title starts with `◉ `, the popup shows Target, no status badge is injected into the page, and the original active tab is unchanged.
+2. Only while `browser_wait(time=1)` runs, the title uses `● ` and the popup shows Operating; completion or error returns to target state without adding a page badge.
 3. Repeated `document.title` changes never duplicate the prefix, and selecting another target restores the latest original title.
 4. The click/type/select arrow tip matches the operation point and shows a ripple. During drag, pressed state follows interpolated points and clears at the end.
-5. Target change removes status and cursor from the old tab and shows status only on the new target. Navigation restores only status; the cursor remains hidden until the next coordinate operation.
-6. A screenshot includes the cursor but not top-right status, and the page shows status again afterward.
+5. Target change restores the old tab title and removes its cursor. Navigation restores the target title prefix; the cursor remains hidden until the next coordinate operation.
+6. A screenshot includes the cursor and no target/operating badge.
 7. `prefers-reduced-motion: reduce` skips cursor movement waits and pulse/ripple animation.
 8. Repeat with two profiles and confirm their target/operating states never mix.
 

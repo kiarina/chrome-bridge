@@ -219,21 +219,17 @@ test("tracks target and operating state without losing dynamic page titles", asy
 }) => {
   await page.setContent("<!doctype html><title>Original</title><main>Page</main>");
   await installHarness(page);
+  await page.evaluate(() => {
+    const legacy = document.createElement("div");
+    legacy.id = "chrome-bridge-agent-indicator";
+    document.documentElement.append(legacy);
+  });
 
   await page.evaluate(() =>
     globalThis.chromeBridgeSnapshotTest.setAgentUiState("target"),
   );
   await expect(page).toHaveTitle("◉ Original");
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          document
-            .querySelector("#chrome-bridge-agent-indicator")
-            ?.shadowRoot?.querySelector(".label")?.textContent,
-      ),
-    )
-    .toBe("Agent target");
+  expect(await page.locator("#chrome-bridge-agent-indicator").count()).toBe(0);
 
   await page.evaluate(() => {
     document.title = "Updated by page";
@@ -243,23 +239,18 @@ test("tracks target and operating state without losing dynamic page titles", asy
   const operating = await page.evaluate(() => {
     const runtime = globalThis.chromeBridgeSnapshotTest;
     runtime.setAgentUiState("operating");
-    const host = document.querySelector("#chrome-bridge-agent-indicator");
     return {
       title: document.title,
       logicalTitle: runtime.getLogicalDocumentTitle(),
-      label: host.shadowRoot.querySelector(".label").textContent,
-      state: host.shadowRoot.querySelector(".indicator").dataset.state,
-      dotColor: globalThis.getComputedStyle(
-        host.shadowRoot.querySelector(".dot"),
-      ).backgroundColor,
+      indicatorExists: Boolean(
+        document.querySelector("#chrome-bridge-agent-indicator"),
+      ),
     };
   });
   expect(operating).toEqual({
     title: "● Updated by page",
     logicalTitle: "Updated by page",
-    label: "Agent operating",
-    state: "operating",
-    dotColor: "rgb(184, 15, 98)",
+    indicatorExists: false,
   });
 
   await page.evaluate(() =>
@@ -271,31 +262,26 @@ test("tracks target and operating state without losing dynamic page titles", asy
   ).toBe(0);
 });
 
-test("hides only the status indicator while preparing a screenshot", async ({
+test("keeps the virtual cursor visible without injecting screenshot UI", async ({
   page,
 }) => {
   await page.setContent("<!doctype html><title>Capture</title><main>Page</main>");
   await installHarness(page);
 
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(() => {
     const runtime = globalThis.chromeBridgeSnapshotTest;
     runtime.setAgentUiState("target");
     runtime.moveVirtualCursor({ x: 80, y: 90 });
-    await runtime.setIndicatorHiddenForCapture(true);
-    const indicator = document.querySelector(
-      "#chrome-bridge-agent-indicator",
-    );
     const cursor = document.querySelector("#chrome-bridge-virtual-cursor");
-    const hidden = {
-      indicator: indicator.style.visibility,
-      cursorHidden: cursor.style.visibility === "hidden",
+    return {
+      indicatorExists: Boolean(
+        document.querySelector("#chrome-bridge-agent-indicator"),
+      ),
+      cursorVisible: cursor.style.visibility !== "hidden",
     };
-    await runtime.setIndicatorHiddenForCapture(false);
-    return { hidden, restored: indicator.style.visibility };
   });
 
-  expect(result.hidden).toEqual({ indicator: "hidden", cursorHidden: false });
-  expect(result.restored).toBe("visible");
+  expect(result).toEqual({ indicatorExists: false, cursorVisible: true });
 });
 
 test("resolves exact drag endpoints and moves the virtual cursor", async ({

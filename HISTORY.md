@@ -2,6 +2,28 @@
 
 ## 2026-07-17
 
+### Unobstructed agent state and recorded-navigation timeout recovery
+
+- Removed the in-page `Agent target` / `Agent operating` badge after showcase work
+  showed that a fixed top-right overlay could obscure site controls and recording
+  content. Target and operating state remain visible through the `◉ ` / `● ` tab-title
+  prefixes and extension popup; the virtual cursor remains the only page overlay. The
+  replacement runtime also removes a legacy badge left in an already-open document.
+- Added one seven-second deadline across recorded navigate/back/forward navigation,
+  load readiness, and post-navigation snapshot capture. On expiry, the extension stops
+  the pending tab load best-effort, reports the operation outcome as unknown, finalizes
+  or aborts recording, detaches the debugger, and releases the serialized operation
+  queue before the server's default 15-second timeout.
+- Added an isolated delayed-navigation regression. The timed-out recorded navigation
+  returned before the server deadline, and a recording started immediately afterward
+  on the same tab without closing it. Two full E2E runs produced 16-frame recovery
+  recordings over 1,556–1,575 ms with no drops.
+- After reloading the unpacked extension, a branded-Chrome smoke test recorded a normal
+  navigation in 1,296 ms and immediately recorded the same tab again in 558 ms. A
+  1365×817 screenshot showed the complete controlled signup viewport with no injected
+  badge, including the formerly contested top-right area; only the created test tab was
+  closed afterward, while both requested WebMs were retained in Downloads for review.
+
 ### Kiteframe operation-recording showcase foundation
 
 - Added a self-contained fictional SaaS journey under `examples/recording-demo`: a

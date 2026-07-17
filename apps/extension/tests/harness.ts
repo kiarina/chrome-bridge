@@ -20,7 +20,6 @@ import {
   getAgentUiState,
   getLogicalDocumentTitle,
   setAgentUiState,
-  setIndicatorHiddenForCapture,
 } from "../src/agent-ui";
 import { resizePng } from "../src/image";
 
@@ -41,7 +40,6 @@ import { resizePng } from "../src/image";
   setAgentUiState,
   getAgentUiState,
   getLogicalDocumentTitle,
-  setIndicatorHiddenForCapture,
   disposeAgentUi,
   resizePng,
 };

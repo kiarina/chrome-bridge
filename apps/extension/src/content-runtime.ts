@@ -16,7 +16,6 @@ import {
   type AgentUiState,
   getLogicalDocumentTitle,
   setAgentUiState,
-  setIndicatorHiddenForCapture,
 } from "./agent-ui";
 
 const RUNTIME_MARKER = "__chromeBridgeContentRuntimeV1";
@@ -36,7 +35,6 @@ type ContentMessage = {
   state?: AgentUiState;
   durationMs?: number;
   pressed?: boolean;
-  hidden?: boolean;
 };
 
 if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
@@ -199,17 +197,6 @@ if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
           });
         }
         return false;
-      }
-      if (message?.type === "chrome-bridge.ui.capture") {
-        void setIndicatorHiddenForCapture(message.hidden === true).then(
-          () => sendResponse({ ok: true }),
-          (error) =>
-            sendResponse({
-              ok: false,
-              error: error instanceof Error ? error.message : String(error),
-            }),
-        );
-        return true;
       }
       if (message?.type === "chrome-bridge.dom.waitForStable") {
         void waitForStableDOM().then(

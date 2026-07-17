@@ -303,15 +303,11 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     const pageA = await fixturePage(profileA, `${fixture.baseUrl}/a`);
     const pageB = await fixturePage(profileB, `${fixture.baseUrl}/b`);
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
-    await expect.poll(() => pageA.evaluate(() =>
-      document.querySelector("#chrome-bridge-agent-indicator")?.shadowRoot?.querySelector(".label")?.textContent,
-    )).toBe("Agent target");
+    expect(await pageA.locator("#chrome-bridge-agent-indicator").count()).toBe(0);
 
     const waitingA = call("browser_wait", { browser_id: browserA, time: 0.5 });
     await expect.poll(() => pageA.title()).toBe("● Chrome Bridge E2E");
-    await expect.poll(() => pageA.evaluate(() =>
-      document.querySelector("#chrome-bridge-agent-indicator")?.shadowRoot?.querySelector(".label")?.textContent,
-    )).toBe("Agent operating");
+    expect(await pageA.locator("#chrome-bridge-agent-indicator").count()).toBe(0);
     expect(successful(await waitingA)).toBe("Waited for 0.5 seconds");
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
 
@@ -546,6 +542,43 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       browser_id: browserA,
       url: `${fixture.baseUrl}/a`,
     }));
+
+    const downloadsBeforeTimedOutNavigation = (await downloadState(profileA)).count;
+    const timedOutNavigationStartedAt = performance.now();
+    const timedOutNavigation = await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/timeout-a`,
+      video_filename: "timed-out-navigation.webm",
+    });
+    expect(timedOutNavigation.isError).toBe(true);
+    expect(toolText(timedOutNavigation)).toContain("Operation outcome unknown:");
+    expect(toolText(timedOutNavigation)).toContain(
+      "Target navigation did not complete within 7 seconds",
+    );
+    expect(performance.now() - timedOutNavigationStartedAt).toBeLessThan(15_000);
+    if (toolText(timedOutNavigation).includes("Recording saved:")) {
+      await verifyAndRemoveDiagnostic(profileA, downloadsBeforeTimedOutNavigation);
+    } else {
+      expect(toolText(timedOutNavigation)).toContain("Recording also failed:");
+      expect((await downloadState(profileA)).count)
+        .toBe(downloadsBeforeTimedOutNavigation);
+    }
+
+    const recoveredRecording = successful(await call("browser_wait", {
+      browser_id: browserA,
+      time: 0.5,
+      video_filename: "after-navigation-timeout.webm",
+    }));
+    expect(recoveredRecording.operation).toBe("Waited for 0.5 seconds");
+    await verifyRecording(
+      profileA,
+      recoveredRecording.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1.5,
+      "recording after navigation timeout",
+      2,
+    );
 
     const navigationTargetChangeTab = successful(await call("browser_tab_open", {
       browser_id: browserA,
@@ -1062,9 +1095,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       .toEqual([1_080, 1_920]);
     console.info("landscape screenshot metrics", landscapeScreenshot);
     console.info("portrait screenshot metrics", portraitScreenshot);
-    await expect.poll(() => pageA.evaluate(() =>
-      document.querySelector("#chrome-bridge-agent-indicator")?.style.visibility,
-    )).toBe("visible");
+    expect(await pageA.locator("#chrome-bridge-agent-indicator").count()).toBe(0);
 
     const replacementA = successful(await call("browser_tab_open", {
       browser_id: browserA,

@@ -166,10 +166,10 @@ viewport without moving `scrollY` or substituting document-top content.
 - When the server is not running, reconnect with exponential backoff capped at 30 seconds.
 - Send a heartbeat every 20 seconds to keep the service worker alive (Chrome 116+).
 - Display a virtual cursor at the operation location during page operations.
-- Indicate the target tab with a leading `◉ ` in the title and `Agent target` at the top right of the page. Switch to `● ` and `Agent operating` only while a page command runs. Track dynamic title changes and restore the latest page title when the target is cleared.
-- Isolate target/operating indicators and the virtual cursor from page styles with Shadow DOM. Do not render them inside restricted pages; use the popup's Target/Operating display as the fallback.
+- Indicate the target tab with a leading `◉ ` in the title and switch to `● ` only while a page command runs. Track dynamic title changes and restore the latest page title when the target is cleared. Do not inject a target/operating badge into the page; the popup remains the detailed Target/Operating display and the page viewport stays unobstructed.
+- Isolate the virtual cursor from page styles with Shadow DOM. Do not render it inside restricted pages.
 - The virtual cursor is an arrow whose tip matches the operation coordinates. Synchronize distance-dependent 100–320 ms movement, a click ripple, and drag pressed state with trusted input. Skip animation waits under reduced motion. Keep the cursor at its last position until the target is cleared.
-- Screenshots temporarily hide only the status indicator and include the virtual cursor. Restore the status after both success and failure.
+- Screenshots include the virtual cursor and contain no injected target/operating badge.
 - The popup displays the target tab separately from Chrome UI's active tab.
 - Manual user tab switching does not change the target.
 - Page commands use the same routing whether the target tab is foreground or background and never foreground it automatically.
@@ -235,9 +235,9 @@ viewport without moving `scrollY` or substituting document-top content.
 - Refs from old snapshots, other tabs, or before navigation are rejected as stale.
 - Click/hover/type/select return URL, title, and ARIA snapshot afterward.
 - The virtual cursor is visible during click, hover, and drag.
-- An inactive target's title and in-page indicator transition through Target/Operating while Chrome UI's active tab remains unchanged.
+- An inactive target's title and popup state transition through Target/Operating while Chrome UI's active tab remains unchanged, without injecting a page badge.
 - Target changes, tab close, and operation failure leave no stale status/cursor, and the latest dynamic page title is restored when the target is cleared.
-- Screenshots include only the cursor, and the status indicator is restored after capture.
+- Screenshots include the cursor without a target/operating badge.
 - Screenshots and console logs preserve their MCP content types.
 
 ### Target video recording milestone (standalone, wait, and trusted/DOM action recording implemented)

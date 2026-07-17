@@ -15,12 +15,10 @@ Current implementation progress:
   `ffprobe`/`ffmpeg` validation and concatenation script. A branded-Chrome run
   produced all clips and a reviewed 25.6-second 1366×818 WebM/MP4 presentation;
   generated media remains ignored from Git.
-- Before presenting recording as publication-ready, investigate two issues
-  observed during early showcase runs: the in-page `Agent operating` badge
-  overlapped a top-right site control and caused strict clickability rejection,
-  and one recorded `browser_navigate` timed out with the following standalone
-  recording also timing out until the controlled fixture tabs were closed. The
-  final showcase avoids both paths; do not silently treat that as resolution.
+- Removed the in-page Target/Operating badge while retaining title prefixes and popup
+  state, so site controls and recordings are not obscured. Recorded navigation now has
+  an extension-side deadline with pending-load cancellation; an isolated regression
+  confirmed that another recording starts on the same tab immediately afterward.
 
 Remaining showcase work:
 
