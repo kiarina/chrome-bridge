@@ -314,6 +314,12 @@ Captures the target's CSS visual viewport without foregrounding it.
 
 **Returns:** MCP image content in PNG format. The actual image is downscaled to at most 1024×768 pixels while preserving its aspect ratio. The agent's virtual cursor is included; the top-right target/operating status is hidden only during capture.
 
+The implemented limit remains 1024×768. A planned recording milestone will change
+screenshots and video to shared orientation-aware Full HD bounds: landscape or square
+content fits within 1920×1080, portrait content fits within 1080×1920, with no cropping,
+stretching, or upscaling. See [Video recording design](video-recording.md); that planned
+contract is not exposed by the current tool yet.
+
 ### `browser_get_console_logs`
 
 Retrieves console calls and uncaught exceptions retained by Chrome Runtime for the target's current document.
@@ -330,6 +336,17 @@ Retrieves console calls and uncaught exceptions retained by Chrome Runtime for t
 ```
 
 Each entry contains `type: string`, `timestamp: number`, and `message: string`. This is not an extension-maintained persistent log; it is the buffer Chrome replays for the current document when `Runtime.enable` is called. The same entry may be returned again on a later call.
+
+## Planned video recording API
+
+Video recording is designed but not implemented. The plan adds optional
+`video_filename` to page-action tools and adds
+`browser_record_video(filename, duration, browser_id)` for a bounded standalone capture
+of the current target. Recordings will be silent WebM files saved under the profile's
+`Downloads/chrome-bridge/` directory without overwriting existing files. Tab-management
+and information tools do not initially receive the option. The authoritative planned
+arguments, ownership constraints, dimensions, rollout order, and unresolved result/error
+contract are in [Video recording design](video-recording.md).
 
 ## Errors
 

@@ -2,6 +2,21 @@
 
 ## 2026-07-17
 
+### Target video recording and Full HD media design
+
+- Selected optional `video_filename` on page-action tools plus a bounded standalone
+  `browser_record_video` tool, producing silent WebM files below
+  `Downloads/chrome-bridge/` without overwriting existing files.
+- Chose a command-scoped debugger session explicitly shared by capture and trusted-input
+  helpers, not a global or cross-command reference-counted lease. Input has priority and
+  recording drops frames under debugger contention.
+- Unified the planned screenshot and video size policy: preserve the complete viewport,
+  do not crop/stretch/upscale, fit landscape or square content within 1920×1080, and fit
+  portrait content within 1080×1920.
+- Kept the feature explicitly unimplemented and recorded the staged prototype, lifecycle,
+  performance, two-profile isolation, and branded-Chrome validation work in
+  `docs/video-recording.md` and `NEXT_TASK.md`.
+
 ### Chrome Web Store publication handoff
 
 - Selected Chrome Web Store as the extension distribution channel, with an Unlisted first release and deferred publishing. The Store submission reuses the reproducible release ZIP instead of introducing a separate build.

@@ -13,3 +13,31 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 - Confirm matching `SHA256SUMS` between the tag build and a local rebuild, notices/licenses in release assets, a fresh install, and a branded-Chrome manual smoke test.
 - After Store approval, disable the unpacked copy before testing the Store installation, then verify connection, inactive-tab operation, stable Store ID across update, and rollback before publishing or considering Public visibility.
 - Do not publish artifacts to third parties until the remote, visibility, release authority, package-index destination, Store publisher account, and public privacy/support URLs are explicitly configured.
+
+## P2: target-tab video recording and Full HD media sizing
+
+The feature is designed but not implemented. Follow
+[`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
+
+- Add one shared orientation-aware sizing helper and cover landscape, portrait, square,
+  small, unusual-aspect, and high-DPI inputs. The future screenshot/video bounds are
+  1920×1080 for landscape or square and 1080×1920 for portrait, preserving the complete
+  viewport without crop, stretch, or upscale.
+- Prototype a command-scoped debugger session on the existing page-operation queue. Pass
+  it explicitly, retain the current attach/detach path when recording is absent, scope
+  focus emulation to input, skip frames under contention, and prove cleanup/reuse after
+  every failure path.
+- Implement standalone bounded silent-WebM recording on an inactive target, offscreen
+  canvas/MediaRecorder encoding, and safe `Downloads/chrome-bridge/` output with
+  `uniquify` conflicts.
+- Fix recording result metadata and the operation-success/recording-failure error
+  contract before changing public schemas.
+- Add `video_filename` to non-navigation page actions first. Add upload only after file
+  chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
+  measurements.
+- Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
+  Full HD policy in the same milestone as tests and documentation; measure PNG size,
+  resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,
+  and command duration.
+- Update manifest permissions, runtime/release allowlists, privacy and Chrome Web Store
+  declarations, protocol schemas, API docs, and isolated/branded-Chrome validation.

@@ -230,6 +230,35 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshots include only the cursor, and the status indicator is restored after capture.
 - Screenshots and console logs preserve their MCP content types.
 
+### Target video recording milestone (planned, not implemented)
+
+- Add optional `video_filename` to page-action tools and add a bounded
+  `browser_record_video(filename, duration, browser_id)` tool for the current target.
+- Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
+  names, never overwrite an existing file, and do not expose recording through
+  tab-management or information-only tools initially.
+- Own the debugger attachment within one page-operation queue entry. Pass that session
+  explicitly to input and capture helpers, keep focus emulation limited to trusted input,
+  and detach in `finally`; never retain or reference-count an attachment across MCP
+  commands.
+- Prefer operation latency over frame rate. Skip capture frames while critical debugger
+  work is active, never capture frames concurrently, and never reroute or foreground the
+  target after detach, navigation, close, or failure.
+- Update screenshot and video output together to preserve the entire CSS visual viewport
+  without crop, stretch, or upscale. Landscape or square output fits within 1920×1080;
+  portrait output fits within 1080×1920.
+- Use a fixed video canvas selected at recording start. Contain a resized viewport with
+  padding only if the viewport changes during recording; never change encoded dimensions
+  mid-stream.
+- Validate standalone and non-navigation recording first, then upload, then navigation
+  and history after debugger/renderer lifecycle measurements. Pass unit tests, isolated
+  two-profile Chromium E2E, and branded-Chrome background-target measurements before
+  exposing each stage.
+
+[Video recording design](docs/video-recording.md) is canonical for the planned API,
+debugger ownership, capture pipeline, dimensions, unresolved result/error contract, and
+implementation order.
+
 ## 8. Versioning
 
 - Manage the extension protocol with integer versions and increment for incompatible changes.

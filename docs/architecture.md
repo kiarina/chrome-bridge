@@ -126,6 +126,23 @@ sequenceDiagram
     S-->>M: MCP content
 ```
 
+## Planned target video recording
+
+Target-tab video recording is designed but not implemented. It will use a debugger
+session owned only by one page-operation queue entry, explicitly passed to recording and
+input helpers. It will not introduce a global reference-counted attachment or retain a
+debugger session across MCP commands. Input commands take priority and frame capture is
+skipped under debugger backpressure so recording cannot delay page operation merely to
+maintain frame rate.
+
+The planned pipeline repeatedly captures the exact background target, sends frames to a
+single offscreen document for canvas/MediaRecorder encoding, and downloads a silent WebM
+below the Chrome profile's Downloads directory. Screenshot and video will share
+orientation-aware Full HD bounds without cropping or upscaling. Navigation and upload
+recording remain gated on lifecycle and cleanup measurements. See
+[Video recording design](video-recording.md) for the canonical planned API, ownership,
+dimensions, and validation order.
+
 ## Security decisions
 
 - Validate Host and Origin as DNS-rebinding defenses required by the MCP transport specification.
