@@ -55,6 +55,7 @@ Suggested detailed description:
 > - Select a background target independently from Chrome's active tab.
 > - Use generation-scoped accessibility references for click, type, select, drag, and file-upload operations.
 > - Capture viewport screenshots and current-document console messages.
+> - Record explicitly requested operations as silent WebM files saved locally below Downloads/chrome-bridge.
 > - Connect to a user-configured WebSocket endpoint; the supported default is the local Chrome Bridge MCP server on `127.0.0.1`.
 >
 > Chrome Bridge requires the separate `chrome-bridge-mcp` local server and an MCP-compatible client. It does not provide a cloud relay, analytics, or advertising.
@@ -72,6 +73,17 @@ Required assets:
 - Store icon: the packaged 128×128 PNG.
 - At least one current product screenshot at 1280×800 or 640×400; prefer 1280×800 and provide up to five.
 - Small promotional image: 440×280 PNG or JPEG.
+
+The prepared v0.1 assets are:
+
+- `apps/extension/icons/icon-128.png`
+- `docs/assets/chrome-web-store-screenshot-1280x800.png`
+- `docs/assets/chrome-web-store-small-promo-440x280.png`
+
+The editable source for the small promotional image is
+`docs/assets/chrome-web-store-small-promo.svg`. The first screenshot is derived from
+the controlled Kiteframe operation-recording showcase and contains only synthetic
+fixture data.
 
 The 1400×560 marquee image is optional. Capture screenshots from branded Chrome using only controlled fixture pages and synthetic data. Show the popup connection state, Options identity/routing, a background target indicator, and an MCP operation result without exposing real tabs, account names, URLs, cookies, messages, file paths, or profile data. Use full-bleed images with square corners and keep overlaid text minimal.
 

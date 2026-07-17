@@ -9,6 +9,7 @@
 - Added a tag-triggered release workflow that rebuilds the artifacts, performs clean-install artifact E2E and reproducibility checks, verifies checksums, publishes a GitHub Release, and sends only the wheel and sdist to PyPI through OIDC trusted publishing.
 - Registered the Chrome Web Store publisher account and declared it Non-Trader for the current personal, non-commercial open-source distribution, with an explicit handoff to reclassify and verify it if the activity later becomes related to a trade, business, craft, or profession.
 - Rebuilt the v0.1.0 release artifacts immediately before the first Store upload. Clean-wheel install, artifact-based two-profile Chromium E2E, and two independent byte-identical builds passed; the extension ZIP SHA-256 is `029fc7284a29d1b22aaa0f4c4410043b55f891a2ca3c8c3583450a00e8139301`.
+- Uploaded that verified extension ZIP as the initial draft Store item, then prepared the required 1280×800 screenshot and 440×280 small promotional image from controlled fixture data and the packaged icon. No review submission was made.
 - Kept `v0.1.0` untagged until the workflow is merged and the remaining public URL prerequisites are complete.
 
 ### Publish the operation-recording showcase
