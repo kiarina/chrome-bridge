@@ -178,7 +178,7 @@ var protocol_v1_schema_default = {
             required: ["type"]
           },
           then: {
-            properties: { params: { $ref: "#/$defs/elementParams" } }
+            properties: { params: { $ref: "#/$defs/recordedElementParams" } }
           }
         },
         {
@@ -206,7 +206,8 @@ var protocol_v1_schema_default = {
                     pattern: "^s[0-9]+e[0-9]+$"
                   },
                   endElement: { type: "string", minLength: 1 },
-                  endRef: { type: "string", pattern: "^s[0-9]+e[0-9]+$" }
+                  endRef: { type: "string", pattern: "^s[0-9]+e[0-9]+$" },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
                 },
                 required: [
                   "startElement",
@@ -232,7 +233,8 @@ var protocol_v1_schema_default = {
                   element: { type: "string", minLength: 1 },
                   ref: { type: "string", pattern: "^s[0-9]+e[0-9]+$" },
                   text: { type: "string" },
-                  submit: { type: "boolean" }
+                  submit: { type: "boolean" },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
                 },
                 required: ["element", "ref", "text", "submit"],
                 additionalProperties: false
@@ -256,7 +258,8 @@ var protocol_v1_schema_default = {
                     type: "array",
                     items: { type: "string" },
                     minItems: 1
-                  }
+                  },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
                 },
                 required: ["element", "ref", "values"],
                 additionalProperties: false
@@ -273,7 +276,10 @@ var protocol_v1_schema_default = {
             properties: {
               params: {
                 type: "object",
-                properties: { key: { type: "string", minLength: 1 } },
+                properties: {
+                  key: { type: "string", minLength: 1 },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
+                },
                 required: ["key"],
                 additionalProperties: false
               }

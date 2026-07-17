@@ -127,22 +127,36 @@ export async function startFixtureServer() {
 <body><main>
 <h1>Isolated fixture</h1>
 <button id="update">Update</button>
+<button id="hover">Hover target</button>
 <button id="upload">Choose files</button>
 <input id="files" type="file" multiple hidden>
 <button id="upload-one">Choose one file</button>
 <input id="one-file" type="file" hidden>
 <label>Name <input aria-label="Name"></label>
+<label>Color <select aria-label="Color"><option value="red">Red</option><option value="blue">Blue</option></select></label>
 <div role="button" tabindex="0" draggable="true" id="card">Movable card</div>
 <section role="region" aria-label="Drop zone" id="dropzone">Drop here</section>
 <p id="drop-status">Drop: ready</p>
 <p id="upload-status">Files: none</p>
 <p id="upload-processing">Processing: idle</p>
+<p id="hover-status">Hover: ready</p>
+<p id="select-status">Selected: red</p>
+<p id="key-status">Key: ready</p>
 <p role="status">Ready</p>
 </main>
 <script>
 const label = location.pathname.slice(1).toUpperCase();
 document.querySelector("button").addEventListener("click", () => {
   document.querySelector("[role=status]").textContent = "Updated " + label;
+});
+document.querySelector("#hover").addEventListener("mouseenter", () => {
+  document.querySelector("#hover-status").textContent = "Hover: completed " + label;
+});
+document.querySelector("select").addEventListener("change", (event) => {
+  document.querySelector("#select-status").textContent = "Selected: " + event.target.value;
+});
+document.addEventListener("keydown", (event) => {
+  document.querySelector("#key-status").textContent = "Key: " + event.key;
 });
 const fileInput = document.querySelector("#files");
 document.querySelector("#upload").addEventListener("click", () => fileInput.click());

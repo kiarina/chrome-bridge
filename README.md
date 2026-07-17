@@ -21,11 +21,11 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_tab_activate` | Select the page-operation target and foreground its window |
 | `browser_snapshot` | Capture an accessibility snapshot of the target tab |
 | `browser_click` | Click a snapshot ref, optionally record the operation, and return a post-operation snapshot |
-| `browser_hover` | Move the pointer to the element identified by a snapshot ref and return a post-operation snapshot |
-| `browser_type` | Type into the editable element identified by a snapshot ref and return a post-operation snapshot |
+| `browser_hover` | Move to a snapshot ref, optionally record the operation, and return a post-operation snapshot |
+| `browser_type` | Type into a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_upload_file` | Assign local files to the file chooser opened by a snapshot ref and return a snapshot after the change completes |
-| `browser_select_option` | Select values in the select identified by a snapshot ref and return a post-operation snapshot |
-| `browser_press_key` | Send a single key or key chord to the target tab |
+| `browser_select_option` | Select values in a snapshot ref, optionally record, and return a post-operation snapshot |
+| `browser_press_key` | Send a key or chord to the target tab, optionally recording the operation |
 | `browser_navigate` | Navigate the target tab to an HTTP(S) URL and return a post-operation snapshot |
 | `browser_go_back` | Go back in the target tab's history and return a post-operation snapshot |
 | `browser_go_forward` | Go forward in the target tab's history and return a post-operation snapshot |
@@ -33,7 +33,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_record_video` | Record the target tab as a bounded silent WebM below Downloads/chrome-bridge |
 | `browser_screenshot` | Capture the target tab's viewport as PNG image content |
 | `browser_get_console_logs` | Retrieve up to 100 console entries and exceptions from the target tab |
-| `browser_drag` | Drag between two snapshot refs and return a post-operation snapshot |
+| `browser_drag` | Drag between two snapshot refs, optionally record, and return a post-operation snapshot |
 
 ## Comparison with similar tools
 

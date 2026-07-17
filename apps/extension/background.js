@@ -267,6 +267,28 @@ function runPageOperation(operation) {
   return next;
 }
 
+async function runOptionallyRecordedTargetOperation(params, operation) {
+  if (params.videoFilename === undefined) return operation();
+  let selectedTab;
+  try {
+    selectedTab = await getTargetTab();
+    await requireUnchangedTarget(selectedTab.id);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Recording did not start: ${detail}. The operation was not run.`,
+    );
+  }
+  return recordTargetOperation({
+    tabId: selectedTab.id,
+    filename: params.videoFilename,
+    operation: async (session, captureOperationFrame) => {
+      await requireUnchangedTarget(selectedTab.id);
+      return operation(session, captureOperationFrame);
+    },
+  });
+}
+
 async function getTargetTab() {
   const tabId = await getTargetTabId();
   if (tabId === null) {
@@ -582,7 +604,13 @@ async function fileInputChangeBarrier(debuggee, backendNodeId) {
   };
 }
 
-async function dispatchTrustedDrag(debuggee, tabId, start, end) {
+async function dispatchTrustedDrag(
+  debuggee,
+  tabId,
+  start,
+  end,
+  captureOperationFrame = undefined,
+) {
   await waitMilliseconds(start.settleMs);
   await dispatchMouseMove(debuggee, start);
   await sendContentMessage(tabId, {
@@ -607,6 +635,7 @@ async function dispatchTrustedDrag(debuggee, tabId, start, end) {
     );
     const steps = Math.max(6, Math.min(12, Math.ceil(distance / 40)));
     const stepDurationMs = Math.round(totalDurationMs / steps);
+    const captureEvery = Math.max(1, Math.ceil(steps / 4));
     for (let step = 1; step <= steps; step += 1) {
       const progress = step / steps;
       const eased = 1 - (1 - progress) ** 3;
@@ -628,6 +657,12 @@ async function dispatchTrustedDrag(debuggee, tabId, start, end) {
         buttons: 1,
       });
       await waitMilliseconds(stepDurationMs);
+      if (
+        captureOperationFrame &&
+        (step % captureEvery === 0 || step === steps)
+      ) {
+        await captureOperationFrame(debuggee);
+      }
     }
   } catch (error) {
     dragError = error;
@@ -754,18 +789,33 @@ async function clickTarget(params, session = undefined) {
   await ensureContentRuntime(tab.id);
   await requireCurrentAriaRef(tab.id, params.ref);
 
-  await runWithDebugger(tab.id, async (debuggee) => {
-    const response = await sendContentMessage(tab.id, {
-      type: "chrome-bridge.click.prepare",
-      ref: params.ref,
-    });
-    const point = validateClickPoint(response.result);
-    await requireUnchangedTarget(tab.id);
-    await requireCurrentAriaRef(tab.id, params.ref);
-    await waitMilliseconds(point.settleMs);
+  if (session) {
+    const point = await prepareRefPoint(
+      tab,
+      "chrome-bridge.click.prepare",
+      params.ref,
+    );
     await showCursorPress(tab.id);
-    await dispatchTrustedClick(debuggee, point);
-  }, true, session);
+    await runWithDebugger(
+      tab.id,
+      (debuggee) => dispatchTrustedClick(debuggee, point),
+      true,
+      session,
+    );
+  } else {
+    await runWithDebugger(tab.id, async (debuggee) => {
+      const response = await sendContentMessage(tab.id, {
+        type: "chrome-bridge.click.prepare",
+        ref: params.ref,
+      });
+      const point = validateClickPoint(response.result);
+      await requireUnchangedTarget(tab.id);
+      await requireCurrentAriaRef(tab.id, params.ref);
+      await waitMilliseconds(point.settleMs);
+      await showCursorPress(tab.id);
+      await dispatchTrustedClick(debuggee, point);
+    });
+  }
   await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tab.id);
   await requireUnchangedTarget(tab.id);
@@ -795,23 +845,50 @@ async function finishSnapshotOperation(tabId) {
   return captureSnapshotForTarget(tabId);
 }
 
-async function hoverTarget(params) {
+async function prepareRefPoint(tab, type, ref) {
+  const response = await sendContentMessage(tab.id, { type, ref });
+  const point = validateClickPoint(response.result);
+  await requireUnchangedTarget(tab.id);
+  await requireCurrentAriaRef(tab.id, ref);
+  await waitMilliseconds(point.settleMs);
+  return point;
+}
+
+async function hoverTarget(params, session = undefined) {
   const tab = await getCurrentRefTarget(params);
-  await runWithDebugger(tab.id, async (debuggee) => {
-    const response = await sendContentMessage(tab.id, {
-      type: "chrome-bridge.hover.prepare",
-      ref: params.ref,
+  if (session) {
+    const point = await prepareRefPoint(
+      tab,
+      "chrome-bridge.hover.prepare",
+      params.ref,
+    );
+    await runWithDebugger(
+      tab.id,
+      (debuggee) => dispatchMouseMove(debuggee, point),
+      true,
+      session,
+    );
+  } else {
+    await runWithDebugger(tab.id, async (debuggee) => {
+      const response = await sendContentMessage(tab.id, {
+        type: "chrome-bridge.hover.prepare",
+        ref: params.ref,
+      });
+      const point = validateClickPoint(response.result);
+      await requireUnchangedTarget(tab.id);
+      await requireCurrentAriaRef(tab.id, params.ref);
+      await waitMilliseconds(point.settleMs);
+      await dispatchMouseMove(debuggee, point);
     });
-    const point = validateClickPoint(response.result);
-    await requireUnchangedTarget(tab.id);
-    await requireCurrentAriaRef(tab.id, params.ref);
-    await waitMilliseconds(point.settleMs);
-    await dispatchMouseMove(debuggee, point);
-  });
+  }
   return finishSnapshotOperation(tab.id);
 }
 
-async function dragTarget(params) {
+async function dragTarget(
+  params,
+  session = undefined,
+  captureOperationFrame = undefined,
+) {
   for (const [name, value] of [
     ["startElement", params.startElement],
     ["endElement", params.endElement],
@@ -827,7 +904,7 @@ async function dragTarget(params) {
   await requireCurrentAriaRef(tab.id, params.startRef);
   await requireCurrentAriaRef(tab.id, params.endRef);
 
-  await runWithDebugger(tab.id, async (debuggee) => {
+  if (session) {
     const response = await sendContentMessage(tab.id, {
       type: "chrome-bridge.drag.prepare",
       startRef: params.startRef,
@@ -837,12 +914,38 @@ async function dragTarget(params) {
     await requireUnchangedTarget(tab.id);
     await requireCurrentAriaRef(tab.id, params.startRef);
     await requireCurrentAriaRef(tab.id, params.endRef);
-    await dispatchTrustedDrag(debuggee, tab.id, points.start, points.end);
-  });
+    await waitMilliseconds(points.start.settleMs);
+    await runWithDebugger(
+      tab.id,
+      (debuggee) =>
+        dispatchTrustedDrag(
+          debuggee,
+          tab.id,
+          { ...points.start, settleMs: 0 },
+          points.end,
+          captureOperationFrame,
+        ),
+      true,
+      session,
+    );
+  } else {
+    await runWithDebugger(tab.id, async (debuggee) => {
+      const response = await sendContentMessage(tab.id, {
+        type: "chrome-bridge.drag.prepare",
+        startRef: params.startRef,
+        endRef: params.endRef,
+      });
+      const points = validateDragPoints(response.result);
+      await requireUnchangedTarget(tab.id);
+      await requireCurrentAriaRef(tab.id, params.startRef);
+      await requireCurrentAriaRef(tab.id, params.endRef);
+      await dispatchTrustedDrag(debuggee, tab.id, points.start, points.end);
+    });
+  }
   return finishSnapshotOperation(tab.id);
 }
 
-async function typeTarget(params) {
+async function typeTarget(params, session = undefined) {
   const tab = await getCurrentRefTarget(params);
   if (typeof params.text !== "string") {
     throw new Error("text must be a string");
@@ -850,20 +953,39 @@ async function typeTarget(params) {
   if (typeof params.submit !== "boolean") {
     throw new Error("submit must be a boolean");
   }
-  await runWithDebugger(tab.id, async (debuggee) => {
-    const response = await sendContentMessage(tab.id, {
-      type: "chrome-bridge.type.prepare",
-      ref: params.ref,
-    });
-    const point = validateClickPoint(response.result);
-    await requireUnchangedTarget(tab.id);
-    await requireCurrentAriaRef(tab.id, params.ref);
-    await waitMilliseconds(point.settleMs);
+  if (session) {
+    const point = await prepareRefPoint(
+      tab,
+      "chrome-bridge.type.prepare",
+      params.ref,
+    );
     await showCursorPress(tab.id);
-    await dispatchTrustedClick(debuggee, point);
-    await dispatchText(debuggee, params.text);
-    if (params.submit) await dispatchKeyChord(debuggee, "Enter");
-  });
+    await runWithDebugger(
+      tab.id,
+      async (debuggee) => {
+        await dispatchTrustedClick(debuggee, point);
+        await dispatchText(debuggee, params.text);
+        if (params.submit) await dispatchKeyChord(debuggee, "Enter");
+      },
+      true,
+      session,
+    );
+  } else {
+    await runWithDebugger(tab.id, async (debuggee) => {
+      const response = await sendContentMessage(tab.id, {
+        type: "chrome-bridge.type.prepare",
+        ref: params.ref,
+      });
+      const point = validateClickPoint(response.result);
+      await requireUnchangedTarget(tab.id);
+      await requireCurrentAriaRef(tab.id, params.ref);
+      await waitMilliseconds(point.settleMs);
+      await showCursorPress(tab.id);
+      await dispatchTrustedClick(debuggee, point);
+      await dispatchText(debuggee, params.text);
+      if (params.submit) await dispatchKeyChord(debuggee, "Enter");
+    });
+  }
   return finishSnapshotOperation(tab.id);
 }
 
@@ -980,13 +1102,16 @@ async function uploadFilesTarget(params) {
   return finishSnapshotOperation(tab.id);
 }
 
-async function pressKeyTarget(params) {
+async function pressKeyTarget(params, session = undefined) {
   const selectedTab = await getTargetTab();
   const tab = await waitForContentRuntimeTab(selectedTab.id);
   await requireUnchangedTarget(tab.id);
   await ensureContentRuntime(tab.id);
-  await runWithDebugger(tab.id, (debuggee) =>
-    dispatchKeyChord(debuggee, params.key),
+  await runWithDebugger(
+    tab.id,
+    (debuggee) => dispatchKeyChord(debuggee, params.key),
+    true,
+    session,
   );
   await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tab.id);
@@ -1474,39 +1599,42 @@ async function executeCommand(type, params) {
       });
     }
     case "page.click": {
-      return runPageOperation(async () => {
-        if (params.videoFilename === undefined) return clickTarget(params);
-        let selectedTab;
-        try {
-          selectedTab = await getTargetTab();
-          await requireUnchangedTarget(selectedTab.id);
-        } catch (error) {
-          const detail = error instanceof Error ? error.message : String(error);
-          throw new Error(
-            `Recording did not start: ${detail}. The operation was not run.`,
-          );
-        }
-        return recordTargetOperation({
-          tabId: selectedTab.id,
-          filename: params.videoFilename,
-          operation: (session) => clickTarget(params, session),
-        });
-      });
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, (session) =>
+          clickTarget(params, session),
+        ),
+      );
     }
     case "page.hover": {
-      return runPageOperation(() => hoverTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, (session) =>
+          hoverTarget(params, session),
+        ),
+      );
     }
     case "page.type": {
-      return runPageOperation(() => typeTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, (session) =>
+          typeTarget(params, session),
+        ),
+      );
     }
     case "page.selectOption": {
-      return runPageOperation(() => selectOptionTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, () =>
+          selectOptionTarget(params),
+        ),
+      );
     }
     case "page.uploadFile": {
       return runPageOperation(() => uploadFilesTarget(params));
     }
     case "page.pressKey": {
-      return runPageOperation(() => pressKeyTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, (session) =>
+          pressKeyTarget(params, session),
+        ),
+      );
     }
     case "page.navigate": {
       return runPageOperation(() => navigateTarget(params));
@@ -1560,7 +1688,13 @@ async function executeCommand(type, params) {
       });
     }
     case "page.drag": {
-      return runPageOperation(() => dragTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(
+          params,
+          (session, captureOperationFrame) =>
+            dragTarget(params, session, captureOperationFrame),
+        ),
+      );
     }
     default:
       throw new Error(`Unsupported command: ${type}`);

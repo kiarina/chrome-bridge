@@ -27,12 +27,12 @@ The following 12 page-operation tools operate on the persistent target; they do 
 | `browser_go_back` | None | Post-operation snapshot |
 | `browser_go_forward` | None | Post-operation snapshot |
 | `browser_wait` | `time`, optional `video_filename` | Completion message, or operation/recording wrapper |
-| `browser_press_key` | `key` | Completion message |
+| `browser_press_key` | `key`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
 | `browser_click` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
-| `browser_hover` | `element`, `ref` | Post-operation snapshot |
-| `browser_type` | `element`, `ref`, `text`, `submit` | Post-operation snapshot |
-| `browser_select_option` | `element`, `ref`, `values` | Post-operation snapshot |
+| `browser_hover` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
+| `browser_type` | `element`, `ref`, `text`, `submit`, optional `video_filename` | Snapshot, or operation/recording wrapper |
+| `browser_select_option` | `element`, `ref`, `values`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_screenshot` | None | PNG image content |
 | `browser_get_console_logs` | None | Console entries |
 
@@ -40,7 +40,7 @@ Add `browser_drag` to operate between two strict refs.
 
 | Tool | Main arguments | Result |
 | --- | --- | --- |
-| `browser_drag` | `startElement`, `startRef`, `endElement`, `endRef` | Post-operation snapshot |
+| `browser_drag` | `startElement`, `startRef`, `endElement`, `endRef`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 
 As a chrome-bridge-specific extension, assign local files to the file chooser opened by a trusted click on a strict ref, without directly searching for hidden file inputs.
 
@@ -116,10 +116,10 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `tabs.activate {tabId: integer}`
 - `page.snapshot {}`
 - `page.click {element: string, ref: string, videoFilename?: string}`
-- `page.hover {element: string, ref: string}`
-- `page.type {element: string, ref: string, text: string, submit: boolean}`
-- `page.selectOption {element: string, ref: string, values: string[]}`
-- `page.pressKey {key: string}`
+- `page.hover {element: string, ref: string, videoFilename?: string}`
+- `page.type {element: string, ref: string, text: string, submit: boolean, videoFilename?: string}`
+- `page.selectOption {element: string, ref: string, values: string[], videoFilename?: string}`
+- `page.pressKey {key: string, videoFilename?: string}`
 - `page.navigate {url: string}`
 - `page.goBack {}`
 - `page.goForward {}`
@@ -127,7 +127,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.screenshot {}`
 - `page.getConsoleLogs {}`
 - `page.recordVideo {filename: string, duration: number}`
-- `page.drag {startElement: string, startRef: string, endElement: string, endRef: string}`
+- `page.drag {startElement: string, startRef: string, endElement: string, endRef: string, videoFilename?: string}`
 - `page.uploadFile {element: string, ref: string, paths: string[]}`
 
 Tab result fields are `id`, `windowId`, `index`, `active`, `targeted`, `pinned`, `incognito`, `title`, and `url`.
@@ -231,11 +231,11 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshots include only the cursor, and the status indicator is restored after capture.
 - Screenshots and console logs preserve their MCP content types.
 
-### Target video recording milestone (standalone, wait, and click recording implemented)
+### Target video recording milestone (standalone, wait, and trusted/DOM action recording implemented)
 
 - The bounded `browser_record_video(filename, duration, browser_id)` tool is implemented
-  for the current target. `browser_wait` and `browser_click` accept optional
-  `video_filename`; adding it to the remaining page-action tools remains planned.
+  for the current target. `browser_wait`, click, hover, type, select, key, and drag accept
+  optional `video_filename`; upload and history/navigation actions remain planned.
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.
@@ -252,9 +252,11 @@ New commands and result fields are backward-compatible protocol v1 extensions an
   explicitly to input and capture helpers, keep focus emulation limited to trusted input,
   and detach in `finally`; never retain or reference-count an attachment across MCP
   commands.
-- Prefer operation latency over frame rate. Skip capture frames while critical debugger
-  work is active, never capture frames concurrently, and never reroute or foreground the
-  target after detach, navigation, close, or failure.
+- Guarantee one submitted initial-state frame and a 500 ms pre-roll before a recorded
+  operation, then retain the 500 ms post-roll. Prefer operation latency over cadence for
+  ordinary trusted input. Recorded drag may take at most four explicit milestone frames
+  through its existing debugger session so intermediate positions remain visible; measure
+  and bound that added latency. Never reroute or foreground after failure.
 - Update screenshot and video output together to preserve the entire CSS visual viewport
   without crop, stretch, or upscale. Landscape or square output fits within 1920×1080;
   portrait output fits within 1080×1920.

@@ -2,6 +2,48 @@
 
 ## 2026-07-17
 
+### Correct operation-video temporal semantics
+
+- Manual playback revealed that the initial branded acceptance was inadequate: videos
+  contained multiple hashes and correct final state, but the first non-black frame was
+  already post-operation and drag showed no intermediate position. The old drag timeline
+  jumped from 0 to 783 ms while seven scheduled captures were skipped during input.
+- Changed recorder startup to wait for the first submitted frame and added a fixed 500 ms
+  operation pre-roll. Recorded cursor preparation now runs outside the critical debugger
+  interval so normal scheduled capture can observe its movement.
+- Added at most four explicit drag milestone captures through the already-owned debugger
+  session. This intentionally adds bounded capture time to drag without reordering input,
+  opening another debugger, or weakening cleanup.
+- All 123 Python and 42 extension tests passed. Isolated two-profile E2E produced
+  21–26 frames over 2,156–2,844 ms, required at least 24 drag frames, and still passed
+  mixed-failure, download cleanup, active-tab, immediate screenshot, and reconnect checks.
+- After extension reload, branded Chrome produced select/key/drag recordings with
+  22/21/25 frames over 2,170/2,371/2,867 ms at 1365×817. Full-frame contact sheets
+  visually confirmed the pre-operation state, the final state, and multiple intermediate
+  cursor positions during drag; the original active tab remained unchanged.
+- A short black lead-in remains visible before the first page frame. It does not remove
+  the captured initial state, but is retained as a separate encoding-quality follow-up.
+
+### Recorded hover, type, select, key, and drag actions
+
+- Added optional `video_filename` to hover, type, select, key, and drag across MCP,
+  protocol, server validation, and the production extension. Omission preserves each
+  original Snapshot or completion string; presence returns `{operation, recording}`.
+- Shared one recorded-target wrapper that rechecks target identity after recorder startup.
+  Hover, type, key, and drag borrow the recorder's command-scoped debugger session;
+  select runs beside capture without claiming critical debugger time.
+- Isolated 1920×1080 E2E recorded all five visible fixture outcomes as 16–17 frames,
+  about 64–66 KB, and 1,649–2,248 ms timelines. Trusted-input actions skipped 3–7
+  capture opportunities while select skipped none, preserving operation priority.
+- Each recording validated its completed WebM and removed only that test download. The
+  flow then passed upload, screenshot, active-tab preservation, two-profile isolation,
+  and extension reconnect checks.
+- Branded Chrome recorded the same five actions at 1365×817 as 16–17 frames,
+  50,863–53,056 bytes, and 1,665–2,264 ms timelines. Trusted input skipped 3–6 capture
+  opportunities while select skipped none; all WebMs had valid EBML headers and 15–16
+  distinct frame hashes. Visible outcomes, active-tab preservation, and immediate
+  screenshot reuse all passed.
+
 ### First recorded trusted-input action: browser_click
 
 - Added optional `video_filename` to `browser_click` and `page.click`. Omission preserves

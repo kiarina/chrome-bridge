@@ -16,8 +16,8 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 
 ## P2: target-tab video recording and Full HD media sizing
 
-Standalone, wait, and click recording are implemented; remaining operation-scoped
-recording and Full HD screenshots remain. Follow
+Standalone, wait, and trusted/DOM action recording are implemented; remaining
+operation-scoped recording and Full HD screenshots remain. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
 - The orientation-aware sizing helper and command-scoped debugger session are complete.
@@ -38,12 +38,26 @@ recording and Full HD screenshots remain. Follow
   tool are implemented with safe `Downloads/chrome-bridge/` output, completed-download
   validation, partial-download cleanup, and `uniquify` conflicts. Branded Chrome still
   needs to confirm the actual returned uniquified name and heavier-page measurements.
-- Add `video_filename` to hover, type, select, key, and drag next, reusing the recorder's
-  command-scoped debugger session for trusted input. Recorded click produced 17 frames
-  over 1,829 ms in isolated E2E and 16 frames over 1,873 ms in branded Chrome, deliberately
-  skipping two and three capture opportunities during input. Add upload only after file
-  chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
-  measurements.
+- Recorded hover, type, select, key, and drag now reuse the same operation wrapper and,
+  for trusted input, the recorder's command-scoped debugger session. Isolated runs
+  produced 16–17 frames over 1,649–2,248 ms; trusted input skipped 3–7 capture
+  opportunities while select skipped none. Branded Chrome produced 16–17 frames over
+  1,665–2,264 ms with the same input-priority behavior, unchanged active tab, and
+  immediate screenshot reuse. Manual playback then exposed that the first useful frame
+  was already post-operation and drag contained no intermediate position; metadata and
+  distinct hashes were insufficient acceptance criteria.
+- The corrective implementation guarantees the first submitted frame, adds 500 ms
+  pre-roll, records cursor preparation outside the critical interval, and takes at most
+  four drag milestone frames. Isolated E2E now produces 21–26 frames over
+  2,156–2,844 ms and requires at least 24 drag frames.
+- Branded Chrome now confirms actual select/key/drag timelines contain state 1 and state
+  2, with multiple intermediate cursor positions during drag. It produced 21–25 frames
+  over 2,170–2,867 ms at 1365×817 without changing the active tab. A short black lead-in
+  remains as a separate encoding-quality follow-up. Next verify mixed failure cleanup,
+  external detach, target change/tab close, immediate debugger reuse, and two-profile
+  isolation across the newly recorded actions. Add
+  upload only after file chooser cleanup tests, and navigate/back/forward only after
+  renderer/target lifecycle measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,

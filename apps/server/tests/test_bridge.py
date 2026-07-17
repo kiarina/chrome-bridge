@@ -504,6 +504,89 @@ async def test_element_operation_routes_and_returns_snapshot(
     assert await task == snapshot
 
 
+@pytest.mark.parametrize(
+    ("method_name", "arguments", "command", "params"),
+    [
+        (
+            "hover",
+            ("Menu", "s10e2"),
+            "page.hover",
+            {"element": "Menu", "ref": "s10e2"},
+        ),
+        (
+            "type_text",
+            ("Search", "s10e3", "hello", True),
+            "page.type",
+            {"element": "Search", "ref": "s10e3", "text": "hello", "submit": True},
+        ),
+        (
+            "select_option",
+            ("Colors", "s10e4", ["red", "blue"]),
+            "page.selectOption",
+            {"element": "Colors", "ref": "s10e4", "values": ["red", "blue"]},
+        ),
+        (
+            "drag",
+            ("Card", "s10e5", "Done", "s10e6"),
+            "page.drag",
+            {
+                "startElement": "Card",
+                "startRef": "s10e5",
+                "endElement": "Done",
+                "endRef": "s10e6",
+            },
+        ),
+    ],
+)
+async def test_recorded_snapshot_operation_returns_wrapper(
+    method_name: str,
+    arguments: tuple[Any, ...],
+    command: str,
+    params: dict[str, Any],
+) -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    filename = f"{method_name}.webm"
+    task = asyncio.create_task(
+        getattr(controller, method_name)(*arguments, video_filename=filename)
+    )
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == command
+    assert request["params"] == {**params, "videoFilename": filename}
+
+    snapshot = {
+        "generation": 11,
+        "url": "https://example.com/",
+        "title": "Fixture",
+        "snapshot": '- status "Updated" [ref=s11e4]',
+    }
+    recording = {
+        "requestedFilename": filename,
+        "filename": f"chrome-bridge/{filename}",
+        "mimeType": "video/webm",
+        "durationMs": 1250,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 12,
+        "droppedFrameCount": 2,
+        "sizeBytes": 4096,
+    }
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {"operation": snapshot, "recording": recording},
+        }
+    )
+    assert await task == {
+        "operation": {**snapshot, "browserId": BROWSER_A},
+        "recording": {**recording, "browserId": BROWSER_A},
+    }
+
+
 async def test_press_key_routes_and_returns_browser_mcp_message() -> None:
     hub = BridgeHub(timeout_seconds=1)
     socket = FakeSocket()
@@ -524,6 +607,43 @@ async def test_press_key_routes_and_returns_browser_mcp_message() -> None:
         }
     )
     assert await task == "Pressed key Control+a"
+
+
+async def test_press_key_with_video_returns_operation_wrapper() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(controller.press_key("Enter", video_filename="key.webm"))
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.pressKey"
+    assert request["params"] == {"key": "Enter", "videoFilename": "key.webm"}
+    recording = {
+        "requestedFilename": "key.webm",
+        "filename": "chrome-bridge/key.webm",
+        "mimeType": "video/webm",
+        "durationMs": 800,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 8,
+        "droppedFrameCount": 1,
+        "sizeBytes": 2048,
+    }
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {
+                "operation": {"pressed": True, "key": "Enter"},
+                "recording": recording,
+            },
+        }
+    )
+    assert await task == {
+        "operation": "Pressed key Enter",
+        "recording": {**recording, "browserId": BROWSER_A},
+    }
 
 
 @pytest.mark.parametrize(

@@ -187,7 +187,7 @@ Clicks the element identified by a snapshot ref using trusted mouse input, witho
 | --- | --- | --- | --- |
 | `element` | string | yes | Non-empty human-readable element description |
 | `ref` | string | yes | Ref from the latest snapshot |
-| `video_filename` | string | no | Record the click through its post-operation snapshot and 500 ms post-roll to this `.webm` basename |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the post-operation snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
 **Returns:** Without `video_filename`, a post-operation `Snapshot` exactly as before.
@@ -200,7 +200,7 @@ rate.
 
 Moves the pointer to the element identified by a snapshot ref.
 
-Arguments are the same as `browser_click`. **Returns:** A post-operation `Snapshot`.
+Arguments and conditional recording result are the same as `browser_click`.
 
 ### `browser_type`
 
@@ -212,9 +212,10 @@ Clicks and focuses the editable element identified by a snapshot ref, then types
 | `ref` | string | yes | Editable-element ref from the latest snapshot |
 | `text` | string | yes | Text to enter; may be empty |
 | `submit` | boolean | yes | Whether to send Enter after typing |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** A post-operation `Snapshot`.
+**Returns:** A post-operation `Snapshot`, or `{operation, recording}` when recorded.
 
 ### `browser_select_option`
 
@@ -225,9 +226,11 @@ Selects the specified `option.value` values in the `<select>` identified by a sn
 | `element` | string | yes | Non-empty human-readable element description |
 | `ref` | string | yes | `<select>` ref from the latest snapshot |
 | `values` | string[] | yes | One or more exact `option.value` values |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
-Every value is validated before any change. **Returns:** A `Snapshot` after dispatching `input` and `change`.
+Every value is validated before any change. **Returns:** A `Snapshot` after dispatching
+`input` and `change`, or `{operation, recording}` when recorded.
 
 ### `browser_drag`
 
@@ -239,9 +242,12 @@ Drags between two refs in the same latest snapshot.
 | `startRef` | string | yes | Source ref |
 | `endElement` | string | yes | Non-empty human-readable destination description |
 | `endRef` | string | yes | Destination ref |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll, drag milestones, and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
-The four drag-specific arguments use camel case in the public schema. The source must be clickable and the destination visible within the viewport. **Returns:** A post-operation `Snapshot`.
+The four drag-specific arguments use camel case in the public schema. The source must be
+clickable and the destination visible within the viewport. **Returns:** A post-operation
+`Snapshot`, or `{operation, recording}` when recorded.
 
 ### `browser_upload_file`
 
@@ -267,11 +273,14 @@ Sends a single key or `+`-delimited key chord to the target page.
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `key` | string | yes | Key name, single character, or key chord |
+| `video_filename` | string | no | Record the key operation with 500 ms initial-state pre-roll and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
 Named keys include `Alt`, arrow keys, `Backspace`, `Control`, `Delete`, `End`, `Enter`, `Escape`, `Home`, `Meta`, `PageDown`, `PageUp`, `Shift`, `Space`, and `Tab`. Single characters and chords such as `Control+a`, `Meta+a`, and `Shift+ArrowDown` are also accepted.
 
-**Returns:** Text content `Pressed key <key>`. The latest refs are cleared, so call `browser_snapshot` before the next element operation.
+**Returns:** Text content `Pressed key <key>`, or `{ "operation": "Pressed key <key>",
+"recording": <metadata> }` when recorded. The latest refs are cleared, so call
+`browser_snapshot` before the next element operation.
 
 ### `browser_navigate`
 
@@ -303,7 +312,7 @@ Waits for a specified duration while retaining the target. This is a real-time s
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `time` | number | yes | Finite number of seconds from 0 through 10 |
-| `video_filename` | string | no | Record the wait and 500 ms post-roll to this validated `.webm` basename |
+| `video_filename` | string | no | Record after a guaranteed initial frame and 500 ms pre-roll, then the wait and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
 **Returns:** Without `video_filename`, text content `Waited for <time> seconds` exactly as
@@ -384,10 +393,10 @@ recording. If encoding or download fails, the command returns an MCP error begin
 
 ## Operation-scoped recording API
 
-`browser_wait` and `browser_click` implement optional `video_filename`. Adding it to the
-remaining page-action tools remains planned. Tab-management and information tools do not
-receive the option. The authoritative ownership constraints, rollout order, and mixed
-operation/recording result and error contract are in
+Wait, click, hover, type, select, key, and drag implement optional `video_filename`.
+Upload and history/navigation actions remain planned. Tab-management and information
+tools do not receive the option. The authoritative ownership constraints, rollout order,
+and mixed operation/recording result and error contract are in
 [Video recording design](video-recording.md).
 
 The recorded-operation success value is `{ "operation": <existing success

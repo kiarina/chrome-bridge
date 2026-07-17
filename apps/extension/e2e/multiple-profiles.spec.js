@@ -283,7 +283,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       recordedWait.recording,
       { width: 1_920, height: 1_080 },
       browserA,
-      10.4,
+      10.9,
       "recorded wait",
     );
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
@@ -381,26 +381,102 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       recordedClick.recording,
       { width: 1_920, height: 1_080 },
       browserA,
-      0.5,
+      1,
       "recorded click",
       10,
     );
-    const typedA = successful(await call("browser_type", {
+    const recordedHover = successful(await call("browser_hover", {
+      browser_id: browserA,
+      element: "Hover target button",
+      ref: refFor(clickedA, /button "Hover target"[^\n]*\[ref=([^\]]+)\]/),
+      video_filename: "recorded-hover.webm",
+    }));
+    const hoveredA = recordedHover.operation;
+    expect(hoveredA.snapshot).toContain("Hover: completed A");
+    await verifyRecording(
+      profileA,
+      recordedHover.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded hover",
+      10,
+    );
+    const recordedType = successful(await call("browser_type", {
       browser_id: browserA,
       element: "Name field",
-      ref: refFor(clickedA, /textbox "Name"[^\n]*\[ref=([^\]]+)\]/),
+      ref: refFor(hoveredA, /textbox "Name"[^\n]*\[ref=([^\]]+)\]/),
       text: "Alice",
       submit: false,
+      video_filename: "recorded-type.webm",
     }));
+    const typedA = recordedType.operation;
     expect(typedA.snapshot).toContain("Alice");
-    const draggedA = successful(await call("browser_drag", {
+    await verifyRecording(
+      profileA,
+      recordedType.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded type",
+      10,
+    );
+    const recordedSelect = successful(await call("browser_select_option", {
+      browser_id: browserA,
+      element: "Color select",
+      ref: refFor(typedA, /combobox "Color"[^\n]*\[ref=([^\]]+)\]/),
+      values: ["blue"],
+      video_filename: "recorded-select.webm",
+    }));
+    const selectedA = recordedSelect.operation;
+    expect(selectedA.snapshot).toContain("Selected: blue");
+    await verifyRecording(
+      profileA,
+      recordedSelect.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded select",
+    );
+    const recordedKey = successful(await call("browser_press_key", {
+      browser_id: browserA,
+      key: "Enter",
+      video_filename: "recorded-key.webm",
+    }));
+    expect(recordedKey.operation).toBe("Pressed key Enter");
+    await verifyRecording(
+      profileA,
+      recordedKey.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded key",
+      10,
+    );
+    const afterKeyA = successful(await call("browser_snapshot", {
+      browser_id: browserA,
+    }));
+    expect(afterKeyA.snapshot).toContain("Key: Enter");
+    const recordedDrag = successful(await call("browser_drag", {
       browser_id: browserA,
       startElement: "Movable card",
-      startRef: refFor(typedA, /button "Movable card"[^\n]*\[ref=([^\]]+)\]/),
+      startRef: refFor(afterKeyA, /button "Movable card"[^\n]*\[ref=([^\]]+)\]/),
       endElement: "Drop zone",
-      endRef: refFor(typedA, /region "Drop zone"[^\n]*\[ref=([^\]]+)\]/),
+      endRef: refFor(afterKeyA, /region "Drop zone"[^\n]*\[ref=([^\]]+)\]/),
+      video_filename: "recorded-drag.webm",
     }));
+    const draggedA = recordedDrag.operation;
     expect(draggedA.snapshot).toContain("Drop: completed A");
+    expect(recordedDrag.recording.frameCount).toBeGreaterThanOrEqual(24);
+    await verifyRecording(
+      profileA,
+      recordedDrag.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded drag",
+      15,
+    );
     const uploadedA = successful(await call("browser_upload_file", {
       browser_id: browserA,
       element: "Choose files button",
@@ -518,6 +594,9 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       video_filename: "interrupted-wait.webm",
     });
     await expect.poll(() => interruptedPage.title()).toBe("● Chrome Bridge E2E");
+    // Detach after the guaranteed first frame and 500 ms operation pre-roll so
+    // this remains an operation-completed/recording-failed contract test.
+    await new Promise((resolve) => setTimeout(resolve, 750));
     await profileB.worker.evaluate(async ({ tabId }) => {
       const target = (await chrome.debugger.getTargets()).find(
         (candidate) => candidate.tabId === tabId && candidate.attached,

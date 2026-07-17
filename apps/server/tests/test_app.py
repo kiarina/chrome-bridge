@@ -161,6 +161,7 @@ def test_tools_include_non_focusing_tab_select() -> None:
             "endElement",
             "endRef",
         }
+        assert "video_filename" in tools["browser_drag"]["inputSchema"]["properties"]
         assert set(tools["browser_upload_file"]["inputSchema"]["required"]) == {
             "element",
             "ref",
@@ -170,18 +171,27 @@ def test_tools_include_non_focusing_tab_select() -> None:
             "element",
             "ref",
         }
+        assert "video_filename" in tools["browser_hover"]["inputSchema"]["properties"]
         assert set(tools["browser_type"]["inputSchema"]["required"]) == {
             "element",
             "ref",
             "text",
             "submit",
         }
+        assert "video_filename" in tools["browser_type"]["inputSchema"]["properties"]
         assert set(tools["browser_select_option"]["inputSchema"]["required"]) == {
             "element",
             "ref",
             "values",
         }
+        assert (
+            "video_filename"
+            in tools["browser_select_option"]["inputSchema"]["properties"]
+        )
         assert set(tools["browser_press_key"]["inputSchema"]["required"]) == {"key"}
+        assert (
+            "video_filename" in tools["browser_press_key"]["inputSchema"]["properties"]
+        )
         assert set(tools["browser_navigate"]["inputSchema"]["required"]) == {"url"}
         assert set(tools["browser_go_back"]["inputSchema"]["properties"]) == {
             "browser_id"

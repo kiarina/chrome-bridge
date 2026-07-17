@@ -4,11 +4,10 @@
 
 This document is the canonical design and rollout record for target-tab video recording.
 The production offscreen/download pipeline and bounded standalone tool are implemented.
-Operation-scoped `browser_wait(video_filename=...)` and
-`browser_click(video_filename=...)` are also implemented; other operation options and
-Full HD screenshot output remain planned. The current 21-tool API includes these
-recording modes, while screenshot remains limited to 1024×768 until its production tests
-and documentation land together.
+Operation-scoped wait, click, hover, type, select, key, and drag recording are also
+implemented; upload/history/navigation options and Full HD screenshot output remain
+planned. The current 21-tool API includes these recording modes, while screenshot remains
+limited to 1024×768 until its production tests and documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -17,24 +16,21 @@ routing, strict refs, debugger cleanup, or operation ordering.
 
 ## Public API and planned operation options
 
-`browser_wait` and `browser_click` now accept optional
+`browser_wait`, `browser_click`, `browser_hover`, `browser_type`,
+`browser_select_option`, `browser_press_key`, and `browser_drag` now accept optional
 `video_filename: string | null = null`. Add the same option to these remaining
 page-operation tools:
 
-- `browser_hover`
-- `browser_type`
 - `browser_upload_file`
-- `browser_select_option`
-- `browser_press_key`
 - `browser_navigate`
 - `browser_go_back`
 - `browser_go_forward`
-- `browser_drag`
 
 Omitting the argument preserves the current behavior and must not add a persistent
 debugger attachment or recording overhead. When it is present, recording begins before
-the operation, continues through its post-operation processing, and includes a short
-post-roll before finalization and download.
+the operation, waits until an initial-state frame is submitted, retains it for a 500 ms
+pre-roll, continues through operation/post-processing, and includes a 500 ms post-roll
+before finalization and download.
 
 Do not initially add the argument to discovery, inspection, screenshot, console, or
 tab-management tools. The source and completion boundary are ambiguous for open,
@@ -147,12 +143,14 @@ when it is absent. Focus emulation remains scoped to actual trusted input and mu
 stay enabled for the duration of a recording.
 
 The existing page-operation queue remains the concurrency boundary. Within one session,
-trusted input has priority over frame capture. Do not issue overlapping screenshot
-captures; if input or another critical debugger command owns the session, skip that
-video frame instead of delaying the operation. The encoder may hold the last frame to
-fill timing gaps. Any detach, tab close, target change, protocol failure, or cancellation
-must stop capture and execute best-effort final cleanup without attaching to a different
-tab or target.
+ordinary trusted input has priority over scheduled frame capture. Do not issue overlapping
+screenshot captures; if critical debugger work owns the session, skip that scheduled
+frame. Recorded drag is the bounded exception: after moving to a milestone, capture at
+most four explicit frames through the already-owned debugger session so intermediate
+positions appear in the artifact. These captures may extend drag duration and must be
+measured; they never reorder input or attach another debugger. Any detach, tab close,
+target change, protocol failure, or cancellation must stop capture and execute best-effort
+final cleanup without attaching to a different tab or target.
 
 Navigation, back/forward, and file upload are later implementation stages. Navigation
 can replace renderer state, while upload combines debugger use with file-chooser
@@ -167,9 +165,10 @@ has already demonstrated background-target capture. Send frames to a single MV3
 offscreen document, draw them to a canvas, encode video with `MediaRecorder`, and pass
 the resulting Blob to `chrome.downloads` from the service worker.
 
-Target approximately 10 frames per second, but preserve operation latency by dropping
-capture frames under debugger backpressure. Measure CPU, memory, encoded size, capture
-latency, and MCP command duration before fixing the production frame-rate contract.
+Target approximately 10 frames per second. Preserve ordinary operation latency by dropping
+scheduled frames under debugger backpressure, while retaining the bounded drag milestones
+defined above. Measure CPU, memory, encoded size, capture latency, and MCP command duration
+before fixing the production frame-rate contract.
 
 ## Shared screenshot and video dimensions
 
@@ -284,11 +283,46 @@ were skipped during trusted input, the encoded VP9 stream contained 15 distinct 
 frame hashes, the post-click snapshot contained the fixture update, the original active
 tab remained unchanged, and an immediate screenshot successfully reattached.
 
+The same session-borrowing path now covers hover, type, key, and drag; select records
+alongside its content-runtime DOM operation without claiming critical debugger time. In
+isolated 1920×1080 E2E, hover, type, select, key, and drag produced 16–17 frames over
+1,649–2,248 ms and approximately 64–66 KB each. Trusted-input operations deliberately
+skipped 3–7 capture opportunities, while select dropped none. Every operation updated
+its visible fixture state, preserved the inactive target, removed only its test download,
+and continued through upload, screenshot, profile isolation, and reconnect checks.
+
+After extension reload, branded Chrome recorded the five operations at 1365×817 as
+16–17 frames, 50,863–53,056 bytes, and 1,665–2,264 ms timelines. Hover, type, key, and
+drag skipped 3, 5, 3, and 6 capture opportunities respectively; select again skipped
+none. Each VP9/WebM had a valid EBML header and 15–16 distinct decoded frame hashes.
+All visible outcomes, the original active tab, and immediate screenshot reuse passed.
+
+That initial branded check validated metadata, final DOM state, and distinct frame hashes,
+but not temporal content. Manual playback subsequently showed that the first encoded
+non-black frame already contained the final state and that drag had no intermediate
+positions; its first two frame timestamps were 0 and 783 ms. Treat the preceding branded
+result as a discovered acceptance gap, not evidence of useful operation video.
+
+The corrective implementation waits for the first submitted frame, adds a 500 ms pre-roll,
+moves recorded cursor preparation outside the critical debugger interval, and captures at
+most four drag milestones. Isolated E2E now produces 21–26 frames over 2,156–2,844 ms;
+drag produces at least 24 frames while preserving active-tab, cleanup, mixed-failure, and
+immediate reuse checks.
+
+After extension reload, branded Chrome recorded select, key, and drag at 1365×817 as
+22, 21, and 25 frames over 2,170, 2,371, and 2,867 ms. Contact sheets built from the
+decoded timelines visually confirmed the initial and final fixture states. Drag also
+showed the virtual cursor at multiple intermediate positions before `Drop: completed A`;
+the original active tab remained unchanged. This closes the temporal-content acceptance
+gap. A short black lead-in before the first page frame remains a separate encoder-quality
+follow-up; it does not replace or obscure the retained initial-state interval.
+
 Continue in this order:
 
-1. Add the same session-borrowing path to hover, type, select, key, and drag.
-2. Verify failure cleanup, frame backpressure, extension reload, tab close, target
+1. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
+2. Remove or reduce the short black lead-in without weakening the guarantee that a useful
+   initial-state interval is present.
 3. Add upload recording after file-chooser cleanup is proven unchanged.
 4. Add navigate/back/forward only after renderer and target lifecycle measurements.
 5. Change screenshot dimensions, remaining public tool schemas, Store disclosures,

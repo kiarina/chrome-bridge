@@ -4,6 +4,7 @@ import { fitWithinMediaBounds } from "./media-sizing.js";
 const MESSAGE_TARGET = "chrome-bridge-recording-offscreen";
 const OFFSCREEN_PATH = "recording-offscreen.html";
 const CAPTURE_INTERVAL_MS = 100;
+const OPERATION_PRE_ROLL_MS = 500;
 const OPERATION_POST_ROLL_MS = 500;
 const DOWNLOAD_TIMEOUT_MS = 3_000;
 const DOWNLOAD_PREFIX = "chrome-bridge/";
@@ -234,6 +235,11 @@ async function createTargetRecorder({ tabId, filename }) {
       resolveStop = resolve;
     });
     let droppedFrameCount = 0;
+    let firstFrameSubmitted = false;
+    let resolveFirstFrame;
+    const firstFrameReady = new Promise((resolve) => {
+      resolveFirstFrame = resolve;
+    });
     const captureLoop = (async () => {
       let nextFrameAt = recordingStartedAt;
       while (!stopRequested) {
@@ -242,6 +248,10 @@ async function createTargetRecorder({ tabId, filename }) {
         );
         if (capture.captured) {
           await sendOffscreen({ type: "frame", id, data: capture.value });
+          if (!firstFrameSubmitted) {
+            firstFrameSubmitted = true;
+            resolveFirstFrame();
+          }
         } else {
           droppedFrameCount += 1;
         }
@@ -255,6 +265,11 @@ async function createTargetRecorder({ tabId, filename }) {
       () => ({ error: undefined }),
       (error) => ({ error }),
     );
+    const startupOutcome = await Promise.race([
+      firstFrameReady.then(() => null),
+      captureLoop,
+    ]);
+    if (startupOutcome?.error) throw startupOutcome.error;
 
     let finished = false;
     let encoderStopped = false;
@@ -268,6 +283,20 @@ async function createTargetRecorder({ tabId, filename }) {
 
     return {
       session,
+      async captureOperationFrame(debuggee) {
+        try {
+          const data = await captureFrame(
+            debuggee,
+            sourceWidth,
+            sourceHeight,
+          );
+          await sendOffscreen({ type: "frame", id, data });
+          return true;
+        } catch {
+          droppedFrameCount += 1;
+          return false;
+        }
+      },
       async finish(postRollMs = 0) {
         if (finished) throw new Error("Recording is already finalized");
         finished = true;
@@ -394,8 +423,12 @@ export async function recordTargetOperation({ tabId, filename, operation }) {
   let recordingResult;
   let recordingError;
   try {
+    await wait(OPERATION_PRE_ROLL_MS);
     try {
-      operationResult = await operation(recorder.session);
+      operationResult = await operation(
+        recorder.session,
+        recorder.captureOperationFrame,
+      );
     } catch (error) {
       operationError = error;
     }

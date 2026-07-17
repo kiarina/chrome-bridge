@@ -96,19 +96,28 @@ def create_app(settings: Settings) -> Any:
         startRef: str,
         endElement: str,
         endRef: str,
+        video_filename: str | None = None,
         browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Drag the exact source snapshot ref to the exact target snapshot ref."""
+        """Drag between exact refs, optionally recording it to a WebM."""
         return await controller.drag(
-            startElement, startRef, endElement, endRef, browser_id
+            startElement,
+            startRef,
+            endElement,
+            endRef,
+            browser_id,
+            video_filename,
         )
 
     @mcp.tool(name="browser_hover")
     async def browser_hover(
-        element: str, ref: str, browser_id: str | None = None
+        element: str,
+        ref: str,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Hover over the exact target snapshot ref without focusing its Chrome tab."""
-        return await controller.hover(element, ref, browser_id)
+        """Hover an exact target ref, optionally recording it to a WebM."""
+        return await controller.hover(element, ref, browser_id, video_filename)
 
     @mcp.tool(name="browser_upload_file")
     async def browser_upload_file(
@@ -126,22 +135,39 @@ def create_app(settings: Settings) -> Any:
 
     @mcp.tool(name="browser_type")
     async def browser_type(
-        element: str, ref: str, text: str, submit: bool, browser_id: str | None = None
+        element: str,
+        ref: str,
+        text: str,
+        submit: bool,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Type text into the exact editable snapshot ref and optionally press Enter."""
-        return await controller.type_text(element, ref, text, submit, browser_id)
+        """Type into an exact ref, optionally recording it to a WebM."""
+        return await controller.type_text(
+            element, ref, text, submit, browser_id, video_filename
+        )
 
     @mcp.tool(name="browser_select_option")
     async def browser_select_option(
-        element: str, ref: str, values: list[str], browser_id: str | None = None
+        element: str,
+        ref: str,
+        values: list[str],
+        video_filename: str | None = None,
+        browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Select exact option values in the referenced select element."""
-        return await controller.select_option(element, ref, values, browser_id)
+        """Select exact values, optionally recording it to a WebM."""
+        return await controller.select_option(
+            element, ref, values, browser_id, video_filename
+        )
 
     @mcp.tool(name="browser_press_key")
-    async def browser_press_key(key: str, browser_id: str | None = None) -> str:
-        """Press a key or key chord on the target page without focusing its tab."""
-        return await controller.press_key(key, browser_id)
+    async def browser_press_key(
+        key: str,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> str | dict[str, Any]:
+        """Press a key or chord, optionally recording it to a WebM."""
+        return await controller.press_key(key, browser_id, video_filename)
 
     @mcp.tool(name="browser_navigate")
     async def browser_navigate(
