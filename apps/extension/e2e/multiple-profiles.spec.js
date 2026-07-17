@@ -477,10 +477,74 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       "recorded drag",
       15,
     );
+
+    const targetChangeTab = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/b`,
+      active: false,
+    }));
+    const downloadsBeforeTargetChange = await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    );
+    const interruptedKey = call("browser_press_key", {
+      browser_id: browserA,
+      key: "Escape",
+      video_filename: "target-changed-key.webm",
+    });
+    await expect.poll(() => pageA.title()).toBe("● Chrome Bridge E2E");
+    // Allow startup and its first frame to complete, then change only the routing target
+    // during pre-roll. The key must not run on either tab; the original recording remains
+    // a diagnostic artifact and its command-scoped debugger must still be released.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: targetChangeTab.id,
+    }));
+    const targetChangedResult = await interruptedKey;
+    expect(targetChangedResult.isError).toBe(true);
+    expect(toolText(targetChangedResult)).toContain(
+      "Target tab changed while the page operation was waiting to run",
+    );
+    expect(toolText(targetChangedResult)).toContain("Recording saved:");
+    expect(await pageA.textContent("body")).toContain("Key: Enter");
+    expect(successful(await call("browser_tabs", { browser_id: browserB }))
+      .find((tab) => tab.targeted).id).toBe(openedB.id);
+    const targetChangeDownloads = await profileA.worker.evaluate(async () => ({
+      count: (await chrome.downloads.search({})).length,
+      latest: (await chrome.downloads.search({
+        state: "complete",
+        orderBy: ["-startTime"],
+        limit: 1,
+      })).map((item) => ({ filename: item.filename, id: item.id }))[0],
+    }));
+    expect(targetChangeDownloads.count).toBe(downloadsBeforeTargetChange + 1);
+    const diagnosticDownload = targetChangeDownloads.latest;
+    const diagnosticWebm = await readFile(diagnosticDownload.filename);
+    expect([...diagnosticWebm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    await removeProbeDownload(profileA, diagnosticDownload.id);
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: openedA.id,
+    }));
+    expect(successful(await call("browser_tab_close", {
+      browser_id: browserA,
+      tab_id: targetChangeTab.id,
+    }))).toMatchObject({ closed: true, tabId: targetChangeTab.id });
+    await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
+    const afterTargetChangeA = successful(await call("browser_snapshot", {
+      browser_id: browserA,
+    }));
+    expect(afterTargetChangeA.snapshot).toContain("Drop: completed A");
+
     const uploadedA = successful(await call("browser_upload_file", {
       browser_id: browserA,
       element: "Choose files button",
-      ref: refFor(draggedA, /button "Choose files"[^\n]*\[ref=([^\]]+)\]/),
+      ref: refFor(
+        afterTargetChangeA,
+        /button "Choose files"[^\n]*\[ref=([^\]]+)\]/,
+      ),
       paths: uploadPaths,
     }));
     expect(uploadedA.snapshot).toContain("Files: upload-one.txt, upload-two.txt");

@@ -328,8 +328,10 @@ final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
-1. Verify failure cleanup, frame backpressure, extension reload, tab close, target
-   change, two-profile isolation, and immediate debugger reuse.
+1. Add tab-close interruption coverage. Target change during recorded-key pre-roll now
+   proves no input dispatch or rerouting, one valid diagnostic WebM, other-profile
+   isolation, stale-ref invalidation, and immediate debugger reuse; recorded wait already
+   covers external detach with no partial download.
 2. Add upload recording after file-chooser cleanup is proven unchanged.
 3. Add navigate/back/forward only after renderer and target lifecycle measurements.
 4. Change screenshot dimensions, remaining public tool schemas, Store disclosures,

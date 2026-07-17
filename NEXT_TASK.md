@@ -57,8 +57,11 @@ operation-scoped recording and Full HD screenshots remain. Follow
   Chromium and branded Chrome both decoded timestamp 0.000 as the fixture page and
   showed no black lead-in. The branded drag retained 24 submitted frames over 2,766 ms,
   both operation margins, intermediate cursor positions, and the unchanged active tab.
-- Then verify mixed failure cleanup, external detach, target change/tab close, immediate
-  debugger reuse, and two-profile isolation across the newly recorded actions. Add
+- Isolated E2E now verifies a recorded key is not dispatched or rerouted when the target
+  changes during pre-roll, saves exactly one diagnostic WebM, leaves the other profile's
+  target unchanged, and permits an immediate screenshot with a freshly attached debugger.
+  Next add the tab-close interruption case; the earlier recorded-wait case already covers
+  external detach, no partial download, and immediate debugger reuse. Add
   upload only after file chooser cleanup tests, and navigate/back/forward only after
   renderer/target lifecycle measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared

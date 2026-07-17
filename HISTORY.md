@@ -2,6 +2,19 @@
 
 ## 2026-07-17
 
+### Recorded-action target-change isolation
+
+- Added an isolated E2E case that starts a recorded `Escape` key operation and switches
+  only that Chrome profile's target during the 500 ms pre-roll.
+- The operation failed before dispatching the key, retained `Key: Enter` on the original
+  tab, did not reroute input to the replacement target, and saved one valid diagnostic
+  WebM under the documented operation-error contract.
+- The other Chrome profile retained its own target. An immediate screenshot on the new
+  target succeeded, proving command-scoped debugger cleanup, and reselecting the original
+  required a fresh snapshot as expected.
+- The full isolated two-profile E2E passed in 48.1 seconds. Tab-close interruption remains
+  the next lifecycle case.
+
 ### Remove the recording black lead-in
 
 - Identified that the offscreen canvas was filled black and its `MediaRecorder` started
