@@ -49,6 +49,16 @@ test("accepts every protocol v1 command with exact params", () => {
     },
     {
       id,
+      type: "page.uploadFile",
+      params: {
+        element: "Add photos",
+        ref: "s1e4",
+        paths: ["/tmp/one.png", "/tmp/two.png"],
+        videoFilename: "upload.webm",
+      },
+    },
+    {
+      id,
       type: "page.hover",
       params: {
         element: "Save",
@@ -100,7 +110,7 @@ test("accepts every protocol v1 command with exact params", () => {
     },
   ];
 
-  expect(messages).toHaveLength(22);
+  expect(messages).toHaveLength(23);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });
@@ -111,16 +121,6 @@ test("rejects unknown commands, missing params, wrong types, and extra fields", 
     { id, type: "tabs.open", params: { url: "about:blank" } },
     { id, type: "tabs.close", params: { tabId: "1" } },
     { id, type: "page.click", params: { element: "Save", ref: "bad" } },
-    {
-      id,
-      type: "page.uploadFile",
-      params: {
-        element: "Add",
-        ref: "s1e2",
-        paths: ["/tmp/one.png"],
-        videoFilename: "not-yet-supported.webm",
-      },
-    },
     { id, type: "page.wait", params: { time: 11 } },
     {
       id,

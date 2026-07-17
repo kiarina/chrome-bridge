@@ -408,17 +408,17 @@ class BrowserController:
         ref: str,
         paths: list[str],
         browser_id: str | None = None,
+        video_filename: str | None = None,
     ) -> dict[str, Any]:
         _validate_element_ref(element, ref)
         resolved_paths = _validate_upload_paths(paths)
         connection = self._connection(browser_id)
-        result = await connection.request(
+        return await self._snapshot_operation(
             "page.uploadFile",
             {"element": element, "ref": ref, "paths": resolved_paths},
+            connection,
+            video_filename,
         )
-        if not _is_snapshot_result(result):
-            raise ExtensionCommandError("page.uploadFile returned an invalid response")
-        return self._with_browser_id(result, connection)
 
     async def type_text(
         self,

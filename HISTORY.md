@@ -2,6 +2,21 @@
 
 ## 2026-07-17
 
+### First recorded file uploads
+
+- Added optional `video_filename` to `browser_upload_file` / `page.uploadFile` across the
+  MCP schema, server validation, protocol, extension, tests, and API documentation.
+- Recorded upload borrows the command-scoped debugger session for file-chooser
+  interception instead of attaching twice. Cursor preparation runs before the critical
+  interval, and one bounded click milestone frame is captured through the owned session.
+- The existing chooser listener, change barrier, interception disable, Runtime object
+  release, and debugger cleanup remain in their original `finally` paths.
+- Isolated two-profile E2E recorded a successful upload as 22 frames over 2,372 ms with
+  three skipped scheduled captures, then verified a single-file rejection saved one valid
+  diagnostic WebM and left subsequent upload/screenshot operations working.
+- All 124 Python and 43 extension tests passed; the complete E2E passed in 52.8 seconds.
+  Upload-specific target-change, tab-close, and external-detach injection remain next.
+
 ### Recorded-operation tab-close outcome contract
 
 - Added an isolated E2E case that closes the target after a recorded wait's first frame

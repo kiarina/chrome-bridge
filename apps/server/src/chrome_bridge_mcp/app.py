@@ -124,14 +124,17 @@ def create_app(settings: Settings) -> Any:
         element: str,
         ref: str,
         paths: list[str],
+        video_filename: str | None = None,
         browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Upload local files and snapshot after the exact input dispatches change.
+        """Upload local files, optionally recording through input change and snapshot.
 
         Site-specific asynchronous media processing may require browser_wait followed by
         browser_snapshot.
         """
-        return await controller.upload_files(element, ref, paths, browser_id)
+        return await controller.upload_files(
+            element, ref, paths, browser_id, video_filename
+        )
 
     @mcp.tool(name="browser_type")
     async def browser_type(

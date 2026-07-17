@@ -159,7 +159,7 @@ For real-Chrome drag validation, place a `draggable=true` source and a drop zone
 For real-Chrome upload validation, use a loopback fixture whose visible button click handler calls `click()` on a hidden `<input type="file" multiple>` and whose change handler writes only `File.name` values to status.
 
 1. Create two small test files with different contents in a temporary directory outside the repository.
-2. Obtain the visible button's ref from a snapshot and call `browser_upload_file(element, ref, paths)` on the background target.
+2. Obtain the visible button's ref from a snapshot and call `browser_upload_file(element, ref, paths, video_filename=...)` on the background target; omit the filename when recording is not under test.
 3. Confirm both basenames and synchronous change-handler output in the post-operation snapshot, with unchanged active tab/window focus. Asynchronous media-processing status may remain pending in the direct result; separately confirm a new snapshot after `browser_wait` changes to complete.
 4. Confirm the server rejects relative paths, nonexistent paths, directories, zero files, and 21 files before sending a command.
 5. A button ref that opens no chooser returns a timeout error, and multiple paths for a single-file input are rejected before assignment.

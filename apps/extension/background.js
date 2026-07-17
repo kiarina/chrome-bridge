@@ -1047,7 +1047,11 @@ async function selectOptionTarget(params) {
   return finishSnapshotOperation(tab.id);
 }
 
-async function uploadFilesTarget(params) {
+async function uploadFilesTarget(
+  params,
+  session = undefined,
+  captureOperationFrame = undefined,
+) {
   const tab = await getCurrentRefTarget(params);
   if (
     !Array.isArray(params.paths) ||
@@ -1058,15 +1062,26 @@ async function uploadFilesTarget(params) {
     throw new Error("paths must contain between 1 and 20 file paths");
   }
 
+  const preparedPoint = session
+    ? await prepareRefPoint(
+        tab,
+        "chrome-bridge.click.prepare",
+        params.ref,
+      )
+    : undefined;
+
   await runWithDebugger(tab.id, async (debuggee) => {
-    const response = await sendContentMessage(tab.id, {
-      type: "chrome-bridge.click.prepare",
-      ref: params.ref,
-    });
-    const point = validateClickPoint(response.result);
-    await requireUnchangedTarget(tab.id);
-    await requireCurrentAriaRef(tab.id, params.ref);
-    await waitMilliseconds(point.settleMs);
+    let point = preparedPoint;
+    if (!point) {
+      const response = await sendContentMessage(tab.id, {
+        type: "chrome-bridge.click.prepare",
+        ref: params.ref,
+      });
+      point = validateClickPoint(response.result);
+      await requireUnchangedTarget(tab.id);
+      await requireCurrentAriaRef(tab.id, params.ref);
+      await waitMilliseconds(point.settleMs);
+    }
 
     const chooser = fileChooserOpened(debuggee);
     let changeBarrier;
@@ -1083,6 +1098,7 @@ async function uploadFilesTarget(params) {
       chooserIntercepted = true;
       await showCursorPress(tab.id);
       await dispatchTrustedClick(debuggee, point);
+      await captureOperationFrame?.(debuggee);
       const opened = await chooser.promise;
       if (!["selectSingle", "selectMultiple"].includes(opened.mode)) {
         throw new Error("Chrome returned an unknown file chooser mode");
@@ -1122,7 +1138,7 @@ async function uploadFilesTarget(params) {
         }
       }
     }
-  });
+  }, true, session);
   return finishSnapshotOperation(tab.id);
 }
 
@@ -1651,7 +1667,13 @@ async function executeCommand(type, params) {
       );
     }
     case "page.uploadFile": {
-      return runPageOperation(() => uploadFilesTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(
+          params,
+          (session, captureOperationFrame) =>
+            uploadFilesTarget(params, session, captureOperationFrame),
+        ),
+      );
     }
     case "page.pressKey": {
       return runPageOperation(() =>

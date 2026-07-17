@@ -23,7 +23,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_click` | Click a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_hover` | Move to a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_type` | Type into a snapshot ref, optionally record the operation, and return a post-operation snapshot |
-| `browser_upload_file` | Assign local files to the file chooser opened by a snapshot ref and return a snapshot after the change completes |
+| `browser_upload_file` | Assign local files to the chooser opened by a snapshot ref, optionally recording through the resulting snapshot |
 | `browser_select_option` | Select values in a snapshot ref, optionally record, and return a post-operation snapshot |
 | `browser_press_key` | Send a key or chord to the target tab, optionally recording the operation |
 | `browser_navigate` | Navigate the target tab to an HTTP(S) URL and return a post-operation snapshot |

@@ -258,11 +258,15 @@ Trusted-clicks a snapshot ref and assigns local files to the chooser opened by t
 | `element` | string | yes | Human-readable description of the element that opens the chooser |
 | `ref` | string | yes | Ref from the latest snapshot |
 | `paths` | string[] | yes | File paths on the machine running the server and Chrome |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll, one click milestone, and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
 `paths` is limited to 1–20 absolute paths to existing regular files and is resolved to canonical paths by the server. Multiple paths cannot be assigned to a single-file input. Successful results and health responses never include paths.
 
-**Returns:** A `Snapshot` after the file input's `change` event and synchronous handlers complete, followed by DOM stabilization. Completion of site-specific asynchronous uploads, thumbnail generation, or media processing is not guaranteed. If needed, call `browser_snapshot` after `browser_wait`.
+**Returns:** A `Snapshot` after the file input's `change` event and synchronous handlers
+complete, followed by DOM stabilization, or `{operation, recording}` when recorded.
+Completion of site-specific asynchronous uploads, thumbnail generation, or media
+processing is not guaranteed. If needed, call `browser_snapshot` after `browser_wait`.
 
 ## Keyboard, navigation, and timing tools
 
@@ -393,8 +397,8 @@ recording. If encoding or download fails, the command returns an MCP error begin
 
 ## Operation-scoped recording API
 
-Wait, click, hover, type, select, key, and drag implement optional `video_filename`.
-Upload and history/navigation actions remain planned. Tab-management and information
+Wait, click, hover, type, select, key, drag, and upload implement optional
+`video_filename`. History/navigation actions remain planned. Tab-management and information
 tools do not receive the option. The authoritative ownership constraints, rollout order,
 and mixed operation/recording result and error contract are in
 [Video recording design](video-recording.md).

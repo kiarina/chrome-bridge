@@ -17,11 +17,11 @@ routing, strict refs, debugger cleanup, or operation ordering.
 ## Public API and planned operation options
 
 `browser_wait`, `browser_click`, `browser_hover`, `browser_type`,
-`browser_select_option`, `browser_press_key`, and `browser_drag` now accept optional
+`browser_select_option`, `browser_press_key`, `browser_drag`, and
+`browser_upload_file` now accept optional
 `video_filename: string | null = null`. Add the same option to these remaining
 page-operation tools:
 
-- `browser_upload_file`
 - `browser_navigate`
 - `browser_go_back`
 - `browser_go_forward`
@@ -328,9 +328,9 @@ final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
-1. Add upload recording after file-chooser cleanup is proven unchanged. Recorded target
-   change before operation entry, tab close after entry, external detach, diagnostic
-   download handling, profile isolation, and immediate debugger reuse are covered.
+1. Inject upload-specific target change, tab close, and external detach while chooser
+   interception is active. Success and single-file rejection already preserve cleanup,
+   produce valid recordings, and allow later debugger operations.
 2. Add navigate/back/forward only after renderer and target lifecycle measurements.
 3. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation

@@ -49,7 +49,8 @@ var protocol_v1_schema_default = {
           items: { type: "string", minLength: 1 },
           minItems: 1,
           maxItems: 20
-        }
+        },
+        videoFilename: { $ref: "#/$defs/recordingFilename" }
       },
       required: ["element", "ref", "paths"],
       additionalProperties: false

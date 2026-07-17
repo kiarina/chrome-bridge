@@ -46,7 +46,7 @@ As a chrome-bridge-specific extension, assign local files to the file chooser op
 
 | Tool | Main arguments | Result |
 | --- | --- | --- |
-| `browser_upload_file` | `element`, `ref`, `paths` | Snapshot after the input change completes |
+| `browser_upload_file` | `element`, `ref`, `paths`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 
 ### Out of scope for v0.1
 
@@ -128,7 +128,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.getConsoleLogs {}`
 - `page.recordVideo {filename: string, duration: number}`
 - `page.drag {startElement: string, startRef: string, endElement: string, endRef: string, videoFilename?: string}`
-- `page.uploadFile {element: string, ref: string, paths: string[]}`
+- `page.uploadFile {element: string, ref: string, paths: string[], videoFilename?: string}`
 
 Tab result fields are `id`, `windowId`, `index`, `active`, `targeted`, `pinned`, `incognito`, `title`, and `url`.
 
@@ -190,7 +190,7 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshot returns the background target viewport as PNG image content up to 1024×768 without changing the active tab.
 - Console logs return at most 100 JSON lines containing only console entries/exceptions from the current target.
 - Drag strictly resolves start/end refs from the same latest snapshot and returns a post-operation snapshot without foregrounding the background target.
-- Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input.
+- Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input. Recorded upload borrows the recorder session for interception and takes at most one explicit click milestone frame; every outcome disables interception and releases its change barrier in `finally`.
 - Every protocol v1 envelope and all 20 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
 - Fixture tests for role/name/form state, Shadow DOM, slots, and `aria-owns` pass.
 

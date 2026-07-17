@@ -538,7 +538,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     }));
     expect(afterTargetChangeA.snapshot).toContain("Drop: completed A");
 
-    const uploadedA = successful(await call("browser_upload_file", {
+    const recordedUpload = successful(await call("browser_upload_file", {
       browser_id: browserA,
       element: "Choose files button",
       ref: refFor(
@@ -546,9 +546,20 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
         /button "Choose files"[^\n]*\[ref=([^\]]+)\]/,
       ),
       paths: uploadPaths,
+      video_filename: "recorded-upload.webm",
     }));
+    const uploadedA = recordedUpload.operation;
     expect(uploadedA.snapshot).toContain("Files: upload-one.txt, upload-two.txt");
     expect(uploadedA.snapshot).toContain("Processing: pending");
+    await verifyRecording(
+      profileA,
+      recordedUpload.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded upload",
+      10,
+    );
     await call("browser_wait", { browser_id: browserA, time: 6 });
     const processedUploadA = successful(await call("browser_snapshot", {
       browser_id: browserA,
@@ -559,9 +570,22 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       element: "Choose one file button",
       ref: refFor(processedUploadA, /button "Choose one file"[^\n]*\[ref=([^\]]+)\]/),
       paths: uploadPaths,
+      video_filename: "rejected-recorded-upload.webm",
     });
     expect(singleUpload.isError).toBe(true);
     expect(toolText(singleUpload)).toContain("accepts only one file");
+    expect(toolText(singleUpload)).toContain("Recording saved:");
+    const rejectedUploadDownload = await profileA.worker.evaluate(async () =>
+      (await chrome.downloads.search({
+        state: "complete",
+        orderBy: ["-startTime"],
+        limit: 1,
+      })).map((item) => ({ filename: item.filename, id: item.id }))[0],
+    );
+    const rejectedUploadWebm = await readFile(rejectedUploadDownload.filename);
+    expect([...rejectedUploadWebm.subarray(0, 4)])
+      .toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    await removeProbeDownload(profileA, rejectedUploadDownload.id);
     expect(await pageA.evaluate(() => {
       const host = document.querySelector("#chrome-bridge-virtual-cursor");
       return Boolean(host?.shadowRoot?.querySelector("svg.cursor"));

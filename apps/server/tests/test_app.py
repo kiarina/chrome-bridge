@@ -167,6 +167,9 @@ def test_tools_include_non_focusing_tab_select() -> None:
             "ref",
             "paths",
         }
+        assert "video_filename" in tools["browser_upload_file"]["inputSchema"][
+            "properties"
+        ]
         assert set(tools["browser_hover"]["inputSchema"]["required"]) == {
             "element",
             "ref",

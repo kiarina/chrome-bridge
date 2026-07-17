@@ -403,6 +403,60 @@ async def test_upload_files_routes_canonical_paths_and_returns_snapshot(
     assert await task == snapshot
 
 
+async def test_recorded_upload_files_returns_operation_wrapper(tmp_path: Path) -> None:
+    upload = tmp_path / "photo.png"
+    upload.write_bytes(b"image")
+    hub = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await hub.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(hub)
+    task = asyncio.create_task(
+        controller.upload_files(
+            "Add photo",
+            "s11e4",
+            [str(upload)],
+            video_filename="upload.webm",
+        )
+    )
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.uploadFile"
+    assert request["params"] == {
+        "element": "Add photo",
+        "ref": "s11e4",
+        "paths": [str(upload.resolve())],
+        "videoFilename": "upload.webm",
+    }
+    snapshot = {
+        "generation": 12,
+        "url": "https://example.com/compose",
+        "title": "Compose",
+        "snapshot": '- status "1 file selected" [ref=s12e3]',
+    }
+    recording = {
+        "requestedFilename": "upload.webm",
+        "filename": "chrome-bridge/upload.webm",
+        "mimeType": "video/webm",
+        "durationMs": 2200,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 22,
+        "droppedFrameCount": 3,
+        "sizeBytes": 4096,
+    }
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {"operation": snapshot, "recording": recording},
+        }
+    )
+    assert await task == {
+        "operation": {**snapshot, "browserId": BROWSER_A},
+        "recording": {**recording, "browserId": BROWSER_A},
+    }
+
+
 @pytest.mark.parametrize("paths", [[], ["relative.png"], ["/missing.png"]])
 async def test_upload_files_rejects_invalid_paths(paths: list[str]) -> None:
     with pytest.raises(ValueError, match="paths|absolute|does not exist"):
