@@ -52,10 +52,13 @@ operation-scoped recording and Full HD screenshots remain. Follow
   2,156–2,844 ms and requires at least 24 drag frames.
 - Branded Chrome now confirms actual select/key/drag timelines contain state 1 and state
   2, with multiple intermediate cursor positions during drag. It produced 21–25 frames
-  over 2,170–2,867 ms at 1365×817 without changing the active tab. A short black lead-in
-  remains as a separate encoding-quality follow-up. Next verify mixed failure cleanup,
-  external detach, target change/tab close, immediate debugger reuse, and two-profile
-  isolation across the newly recorded actions. Add
+  over 2,170–2,867 ms at 1365×817 without changing the active tab.
+- The encoder now starts only after the first real target frame is drawn. Isolated
+  Chromium and branded Chrome both decoded timestamp 0.000 as the fixture page and
+  showed no black lead-in. The branded drag retained 24 submitted frames over 2,766 ms,
+  both operation margins, intermediate cursor positions, and the unchanged active tab.
+- Then verify mixed failure cleanup, external detach, target change/tab close, immediate
+  debugger reuse, and two-profile isolation across the newly recorded actions. Add
   upload only after file chooser cleanup tests, and navigate/back/forward only after
   renderer/target lifecycle measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared

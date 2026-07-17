@@ -314,18 +314,25 @@ After extension reload, branded Chrome recorded select, key, and drag at 1365×8
 decoded timelines visually confirmed the initial and final fixture states. Drag also
 showed the virtual cursor at multiple intermediate positions before `Drop: completed A`;
 the original active tab remained unchanged. This closes the temporal-content acceptance
-gap. A short black lead-in before the first page frame remains a separate encoder-quality
-follow-up; it does not replace or obscure the retained initial-state interval.
+gap.
+
+The short black lead-in came from starting `MediaRecorder` on the black-initialized
+offscreen canvas before the first JPEG was decoded and drawn. The encoder is now created
+and started only after that first real target frame has been painted. This changes neither
+capture scheduling nor the 500 ms pre-roll. The complete isolated E2E remained green, and
+a retained 1365×817 probe decoded timestamp 0.000 as the fixture page with no black cells
+in its full contact sheet. After extension reload, branded Chrome confirmed the same with
+a 1365×817 drag: timestamp 0.000 was the initial page, all 24 submitted frames over
+2,766 ms were free of the former lead-in, and the pre-roll, intermediate cursor positions,
+final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
 1. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
-2. Remove or reduce the short black lead-in without weakening the guarantee that a useful
-   initial-state interval is present.
-3. Add upload recording after file-chooser cleanup is proven unchanged.
-4. Add navigate/back/forward only after renderer and target lifecycle measurements.
-5. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
+2. Add upload recording after file-chooser cleanup is proven unchanged.
+3. Add navigate/back/forward only after renderer and target lifecycle measurements.
+4. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

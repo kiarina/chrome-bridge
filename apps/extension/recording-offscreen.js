@@ -27,7 +27,7 @@ async function disposeCurrent() {
   const current = recording;
   recording = undefined;
   if (!current) return;
-  if (current.recorder.state !== "inactive") {
+  if (current.recorder && current.recorder.state !== "inactive") {
     current.recorder.stop();
     try {
       await current.stopped;
@@ -35,7 +35,7 @@ async function disposeCurrent() {
       // Abort intentionally discards encoder errors with the partial recording.
     }
   }
-  for (const track of current.stream.getTracks()) track.stop();
+  for (const track of current.stream?.getTracks() || []) track.stop();
 }
 
 async function reset() {
@@ -62,15 +62,34 @@ async function start(message) {
   if (!context) throw new Error("Could not create the recording canvas context");
   context.fillStyle = "black";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  const stream = canvas.captureStream(message.frameRate);
   const mimeType = recorderMimeType();
-  const recorder = new MediaRecorder(stream, {
+  recording = {
+    id: message.id,
+    canvas,
+    chunks: [],
+    context,
+    frameCount: 0,
+    frameRate: message.frameRate,
     mimeType,
+    recorder: undefined,
+    stopped: undefined,
+    stream: undefined,
     videoBitsPerSecond: message.videoBitsPerSecond,
+  };
+  return { mimeType, width: canvas.width, height: canvas.height };
+}
+
+function startEncoder(current) {
+  // Creating the stream before the first draw makes MediaRecorder encode the canvas's
+  // black initialization. Start only after drawFrame has painted the real target.
+  const stream = current.canvas.captureStream(current.frameRate);
+  current.stream = stream;
+  const recorder = new MediaRecorder(stream, {
+    mimeType: current.mimeType,
+    videoBitsPerSecond: current.videoBitsPerSecond,
   });
-  const chunks = [];
   recorder.addEventListener("dataavailable", (event) => {
-    if (event.data.size > 0) chunks.push(event.data);
+    if (event.data.size > 0) current.chunks.push(event.data);
   });
   const stopped = new Promise((resolve, reject) => {
     recorder.addEventListener("stop", resolve, { once: true });
@@ -80,19 +99,9 @@ async function start(message) {
       { once: true },
     );
   });
-  recording = {
-    id: message.id,
-    canvas,
-    chunks,
-    context,
-    frameCount: 0,
-    mimeType,
-    recorder,
-    stopped,
-    stream,
-  };
+  current.recorder = recorder;
+  current.stopped = stopped;
   recorder.start(250);
-  return { mimeType, width: canvas.width, height: canvas.height };
 }
 
 async function drawFrame(message) {
@@ -111,6 +120,7 @@ async function drawFrame(message) {
     current.context.fillStyle = "black";
     current.context.fillRect(0, 0, current.canvas.width, current.canvas.height);
     current.context.drawImage(bitmap, x, y, width, height);
+    if (!current.recorder) startEncoder(current);
     current.frameCount += 1;
     return { frameCount: current.frameCount };
   } finally {
@@ -120,6 +130,9 @@ async function drawFrame(message) {
 
 async function stop(message) {
   const current = requireRecording(message.id);
+  if (!current.recorder) {
+    throw new Error("Recording has no submitted frames");
+  }
   current.recorder.stop();
   await current.stopped;
   for (const track of current.stream.getTracks()) track.stop();

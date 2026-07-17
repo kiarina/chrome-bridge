@@ -2,6 +2,23 @@
 
 ## 2026-07-17
 
+### Remove the recording black lead-in
+
+- Identified that the offscreen canvas was filled black and its `MediaRecorder` started
+  before the first captured Chrome frame was decoded and drawn.
+- Deferred creation of the canvas stream and encoder until after the first real target
+  frame is drawn. The first encoder-visible canvas state is therefore a page frame while
+  the existing initial-state pre-roll remains unchanged.
+- All 42 extension tests and static validation passed. The complete isolated two-profile
+  E2E also passed in 47.1 seconds, including its operation/standalone recording paths and
+  cleanup/failure checks.
+- A retained isolated 1365×817 probe decoded its frame at timestamp 0.000 seconds as the
+  fixture's initial page state, and its full contact sheet contained no black lead-in.
+- After extension reload, branded Chrome recorded a 1365×817 drag as 24 submitted frames
+  over 2,766 ms. Its decoded timestamp 0.000 was the initial fixture page, the full
+  contact sheet had no black lead-in, and the pre-roll, intermediate cursor positions,
+  final state, post-roll, and unchanged active tab all remained visible.
+
 ### Correct operation-video temporal semantics
 
 - Manual playback revealed that the initial branded acceptance was inadequate: videos
@@ -21,8 +38,8 @@
   22/21/25 frames over 2,170/2,371/2,867 ms at 1365×817. Full-frame contact sheets
   visually confirmed the pre-operation state, the final state, and multiple intermediate
   cursor positions during drag; the original active tab remained unchanged.
-- A short black lead-in remains visible before the first page frame. It does not remove
-  the captured initial state, but is retained as a separate encoding-quality follow-up.
+- The initially observed short black lead-in was addressed in the following encoder-start
+  milestone without reducing the captured initial-state interval.
 
 ### Recorded hover, type, select, key, and drag actions
 

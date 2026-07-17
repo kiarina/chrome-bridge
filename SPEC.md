@@ -252,8 +252,9 @@ New commands and result fields are backward-compatible protocol v1 extensions an
   explicitly to input and capture helpers, keep focus emulation limited to trusted input,
   and detach in `finally`; never retain or reference-count an attachment across MCP
   commands.
-- Guarantee one submitted initial-state frame and a 500 ms pre-roll before a recorded
-  operation, then retain the 500 ms post-roll. Prefer operation latency over cadence for
+- Draw the first real target frame before starting the encoder, guarantee that submitted
+  initial-state frame plus a 500 ms pre-roll before a recorded operation, then retain the
+  500 ms post-roll. Prefer operation latency over cadence for
   ordinary trusted input. Recorded drag may take at most four explicit milestone frames
   through its existing debugger session so intermediate positions remain visible; measure
   and bound that added latency. Never reroute or foreground after failure.
