@@ -2,6 +2,12 @@
 
 ## 2026-07-17
 
+### Chrome Web Store publication handoff
+
+- Selected Chrome Web Store as the extension distribution channel, with an Unlisted first release and deferred publishing. The Store submission reuses the reproducible release ZIP instead of introducing a separate build.
+- Added a Store submission runbook covering developer-account setup, listing copy and image sizes, privacy declarations, permission reasons, reviewer instructions, Store/unpacked migration, review, rollout, rollback, and later API v2 automation.
+- Added a public-ready privacy policy describing page data, interactions, screenshots, console messages, upload behavior, local identity/config storage, the user-configured WebSocket endpoint, retention boundaries, and the absence of a developer-operated cloud relay, analytics, advertising, or data sale.
+
 ### MIT licensing and Python package naming
 
 - Selected MIT for the original chrome-bridge code and added matching license text to the repository, Python distribution, and extension ZIP. Playwright-derived code remains under Apache-2.0 with its existing third-party notice and full license text.

@@ -133,6 +133,8 @@ uv run python scripts/validate_release.py
 uv run python scripts/check_release_reproducible.py
 ```
 
+The verified extension ZIP is also the Chrome Web Store submission artifact; do not create a separate Store build. See the [Chrome Web Store submission guide](docs/chrome-web-store.md) for the Unlisted-first rollout, listing assets, privacy declarations, permission justifications, reviewer instructions, and update automation. The public [privacy policy](PRIVACY.md) describes extension data handling.
+
 See [docs/development.md](docs/development.md) for detailed procedures, [docs/api.md](docs/api.md) for the tool API, [docs/architecture.md](docs/architecture.md) for design, [docs/release.md](docs/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/operations.md](docs/operations.md) is canonical for routine operation, configuration, logging, and incident response.
 
 ## License

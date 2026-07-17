@@ -9,7 +9,7 @@ The v0.1 build produces three local artifacts plus checksums:
 - `chrome_bridge_mcp-0.1.0.tar.gz`: Python MCP server source distribution.
 - `SHA256SUMS`: SHA-256 checksums for the three files above.
 
-Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The repository still has no Git remote, so do not create a GitHub Release or upload to a package index until publication destinations and credentials are configured.
+Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The repository still has no Git remote, so do not create a GitHub Release, upload to a package index, or submit to Chrome Web Store until publication destinations and credentials are configured.
 
 ## Canonical file selection
 
@@ -60,6 +60,8 @@ Set the root/server `pyproject.toml` files and manifest to the same value, then 
 
 ## Install
 
+After the Store item is approved, Chrome Web Store is the normal extension installation and update channel. Users still install and run `chrome-bridge-mcp` separately. Before Store publication and for artifact validation or emergency fallback, use the fixed-directory Load unpacked procedure below.
+
 Extract the extension ZIP into a fixed installation directory. To preserve the unpacked extension ID and `chrome.storage.local` browser identity, do not Load unpacked from a different path per version; use the same directory for upgrades and rollbacks.
 
 ```bash
@@ -80,7 +82,9 @@ Enable Developer mode at Chrome's `chrome://extensions` and Load unpacked from t
 5. Completely replace the fixed extension directory's contents with the new ZIP contents, then Reload each Chrome profile.
 6. Check `/health`, `browser_instances`, and snapshot/click on an inactive fixture.
 
-Rollback follows the same procedure, restoring the backed-up wheel and ZIP to the fixed directory. Because the extension directory does not change, Chrome's extension ID and stable browser ID in `chrome.storage.local` are preserved. If a protocol-incompatible version is introduced later, separately define a migration order that updates the server to a backward-compatible version first and Reloads the extension afterward. If health or the inactive smoke test fails, do not resume normal operation; keep new page commands stopped and roll back to the backup.
+Rollback follows the same procedure for Load unpacked installations, restoring the backed-up wheel and ZIP to the fixed directory. Because the extension directory does not change, Chrome's extension ID and stable browser ID in `chrome.storage.local` are preserved. A Store-managed installation cannot be downgraded by uploading an older manifest version; publish corrected code with a higher version or disable the Store copy and use the verified unpacked fallback while the replacement is reviewed. Never enable Store and unpacked copies in the same profile during ordinary operation because they register separate browser IDs.
+
+If a protocol-incompatible version is introduced later, separately define a migration order that updates the server to a backward-compatible version first and updates the extension afterward. If health or the inactive smoke test fails, do not resume normal operation; keep new page commands stopped and use the appropriate rollback path.
 
 ## Publishing checklist
 
@@ -90,3 +94,5 @@ Complete the following before publication:
 2. Decide the Git remote, repository visibility, and release signing/retention policies.
 3. Reserve the `chrome-bridge-mcp` project name and configure trusted publishing if publishing wheel/sdist to PyPI.
 4. Attach GitHub Actions-verified artifacts to tag `v0.1.0` and confirm SHA-256 matches a local rebuild.
+5. Publish `PRIVACY.md` and support information at stable HTTPS URLs, prepare Store listing assets, and complete the permission/data declarations in the [Chrome Web Store guide](chrome-web-store.md).
+6. Upload the same verified extension ZIP as an Unlisted item with deferred publishing, pass review, and complete the Store-specific branded-Chrome smoke test before considering Public visibility.

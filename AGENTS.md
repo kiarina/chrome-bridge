@@ -36,5 +36,7 @@ docs 以下にドキュメントを追加した際に、以下に、読む条件
   [Isolated Chrome E2E](docs/isolated-chrome-e2e.md) — headless実測、2 profile topology、cleanup、CI/manual境界。
 - extension ZIP、Python wheel/sdist、checksum、install/upgrade/rollback、release公開を扱う場合:
   [Release artifacts](docs/release.md) — file allowlist、決定的build、clean smoke、license/公開境界。
+- Chrome Web Store のlisting、privacy申告、権限説明、審査、公開・更新を扱う場合:
+  [Chrome Web Store submission](docs/chrome-web-store.md) — 同一ZIP、Unlisted初版、listing素材、reviewer手順、Store更新境界の正典。
 - setup、test、実 Chrome 検証、tool 追加を行う場合:
   [Development guide](docs/development.md) — uv、unpacked extension、validation の正典。
