@@ -147,9 +147,11 @@ fileInput.addEventListener("change", () => {
     "Files: " + [...fileInput.files].map((file) => file.name).join(", ");
   const processing = document.querySelector("#upload-processing");
   processing.textContent = "Processing: pending";
+  // Keep site-specific async work distinct from the post-operation DOM
+  // stabilization interval, including large-file assignment in branded Chrome.
   setTimeout(() => {
     processing.textContent = "Processing: complete";
-  }, 1_500);
+  }, 5_000);
 });
 const card = document.querySelector("#card");
 const dropzone = document.querySelector("#dropzone");

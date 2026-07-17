@@ -154,7 +154,7 @@ For real-Chrome upload validation, use a loopback fixture whose visible button c
 6. After failure, no file-chooser interception, focus emulation, or debugger attachment remains, and the next screenshot/click succeeds.
 7. Clean up only test files and tabs, and leave no absolute paths in results, logs, or failure artifacts.
 
-The upload-result boundary fixture synchronously writes basenames and `Processing: pending` inside the `change` handler, then transitions to `Processing: complete` on a timer. The direct result contains basenames and pending without a fixed sleep for site-specific delayed work. Confirm complete afterward with `browser_wait` + `browser_snapshot`.
+The upload-result boundary fixture synchronously writes basenames and `Processing: pending` inside the `change` handler, then transitions to `Processing: complete` after five seconds. The delay intentionally exceeds the one-second DOM-stability interval plus measured large-file assignment time in branded Chrome. The direct result contains basenames and pending without waiting for site-specific delayed work. Confirm complete afterward with `browser_wait(time=6)` + `browser_snapshot`.
 
 Chrome throttles background-tab timers, so a fixture's 200 ms timer may still not fire after 300 ms. Judge wait correctness by elapsed time and message; allow at least one second of margin in E2E that waits for DOM updates. Because `chrome.tabs.update` can replace the current history entry of a directly created tab, create successful-history fixtures through link clicks.
 

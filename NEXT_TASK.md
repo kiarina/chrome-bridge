@@ -1,13 +1,5 @@
 # Next task
 
-## P2.1: branded Chrome upload change-barrier smoke
-
-Reload the unpacked extension containing the `change` barrier and perform final verification on a background target in branded Chrome.
-
-- Assign a large image to the loopback fixture's hidden multiple input and confirm that the direct `browser_upload_file` result includes the basename written by the synchronous change handler.
-- Confirm that the direct result shows the site-specific delayed status as pending, and that a new snapshot after `browser_wait` shows it as complete.
-- Confirm that the active tab/window focus remains unchanged, debugger/interception state is cleaned up after errors, and no state leaks into another profile.
-
 ## P1.8: v0.1 publication policy and release
 
 Reproducible extension ZIP, wheel, and sdist builds and clean E2E are complete locally and in CI. Finalize the rights and repository decisions required for publication.

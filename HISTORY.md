@@ -1,5 +1,16 @@
 # History
 
+## 2026-07-17
+
+### Branded Chrome upload change-barrier smoke
+
+- Reloaded the unpacked extension in two branded Chrome profiles and connected both simultaneously to the production loopback server.
+- Assigned a 5000×5000, 678,796-byte PNG to the hidden multiple file input on an inactive fixture tab. The final direct result completed in 2.252 seconds and contained the basename plus `Processing: pending`; a snapshot after `browser_wait(time=6)` contained `Processing: complete`.
+- Increased the fixture's site-specific completion delay from 1.5 to 5 seconds because the former could expire during large-file assignment plus the required one-second DOM-stability wait in branded Chrome. The isolated E2E now waits six seconds before checking completion.
+- Disabled file-chooser interception immediately after assigning files, required the change barrier to report that it observed the event, and retained best-effort cleanup for every earlier failure path.
+- Profile B remained `Ready` with `Processing: idle` and no uploaded basename. Both profiles retained their original active tabs throughout.
+- A ref that opened no chooser returned the expected error, and an immediate screenshot succeeded afterward, confirming debugger/interception cleanup. Closed only the two fixture tabs and removed the temporary image.
+
 ## 2026-07-16
 
 ### MCP tool API reference

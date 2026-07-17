@@ -965,6 +965,7 @@ async function uploadFilesTarget(params) {
 
     const chooser = fileChooserOpened(debuggee);
     let changeBarrier;
+    let chooserIntercepted = false;
     try {
       await chrome.debugger.sendCommand(debuggee, "Page.enable", {
         enableFileChooserOpenedEvent: true,
@@ -974,6 +975,7 @@ async function uploadFilesTarget(params) {
         "Page.setInterceptFileChooserDialog",
         { enabled: true },
       );
+      chooserIntercepted = true;
       await showCursorPress(tab.id);
       await dispatchTrustedClick(debuggee, point);
       const opened = await chooser.promise;
@@ -991,18 +993,28 @@ async function uploadFilesTarget(params) {
         files: params.paths,
         backendNodeId: opened.backendNodeId,
       });
-      await changeBarrier.wait();
+      await chrome.debugger.sendCommand(
+        debuggee,
+        "Page.setInterceptFileChooserDialog",
+        { enabled: false },
+      );
+      chooserIntercepted = false;
+      if (!(await changeBarrier.wait())) {
+        throw new Error("Chrome could not observe the file input change event");
+      }
     } finally {
       chooser.cleanup();
       await changeBarrier?.cleanup();
-      try {
-        await chrome.debugger.sendCommand(
-          debuggee,
-          "Page.setInterceptFileChooserDialog",
-          { enabled: false },
-        );
-      } catch {
-        // Navigation or tab closure can invalidate the debugger session.
+      if (chooserIntercepted) {
+        try {
+          await chrome.debugger.sendCommand(
+            debuggee,
+            "Page.setInterceptFileChooserDialog",
+            { enabled: false },
+          );
+        } catch {
+          // Navigation or tab closure can invalidate the debugger session.
+        }
       }
     }
   });

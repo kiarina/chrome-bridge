@@ -206,7 +206,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     }));
     expect(uploadedA.snapshot).toContain("Files: upload-one.txt, upload-two.txt");
     expect(uploadedA.snapshot).toContain("Processing: pending");
-    await call("browser_wait", { browser_id: browserA, time: 2 });
+    await call("browser_wait", { browser_id: browserA, time: 6 });
     const processedUploadA = successful(await call("browser_snapshot", {
       browser_id: browserA,
     }));
