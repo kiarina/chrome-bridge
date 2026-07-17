@@ -71,8 +71,12 @@ operation-scoped recording and Full HD screenshots remain. Follow
   interception is active. They cover diagnostic finalization/discard, no partial download,
   target/profile isolation, and immediate debugger reuse; the full E2E passes in 56.6 s.
 - Add navigate/back/forward recording next. Measure renderer/target identity across same-
-  document history, cross-document navigation, back/forward, load failure, target change,
-  tab close, and external detach before enabling the public option.
+  document history and cross-document navigation before enabling the public option.
+  The isolated probe now shows one stable page target/frame ID, loader replacement only
+  for document loads, zero detach events, and error-free capture with 38–56 ms maxima
+  across pushState, cross-document, back, and forward. Implement the option next, then
+  inject load failure, target change, tab close, and external detach through the actual
+  recorded path before branded-Chrome playback.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,

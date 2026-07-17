@@ -331,6 +331,10 @@ Continue in this order:
 1. Add navigate/back/forward only after renderer and target lifecycle measurements.
    Upload success, rejection, target change, tab close, and external detach now preserve
    chooser cleanup, download isolation, profile routing, and immediate debugger reuse.
+   The isolated navigation probe found a stable page target/frame ID, new loader IDs only
+   for document loads, no detach events, and successful capture samples with 38–56 ms
+   maxima across same-document, cross-document, back, and forward. Implement the actual
+   recorded path next, then inject load failure and lifecycle interruptions.
 2. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.

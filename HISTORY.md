@@ -2,6 +2,22 @@
 
 ## 2026-07-17
 
+### Navigation recording lifecycle measurement
+
+- Added a test-only isolated probe that keeps one command-scoped debugger session open
+  while performing same-document `pushState`, cross-document `/a` to `/b`, back, forward,
+  and reset navigation on an inactive target.
+- Page target ID and top-frame ID remained identical across every transition; same-
+  document navigation retained its loader ID, while each cross-document/back/forward
+  renderer load produced a new loader ID.
+- No debugger detach event occurred. Continuous `Page.captureScreenshot` sampling
+  succeeded for every sample with no transient errors: maxima were 38 ms same-document,
+  56 ms cross-document, 53 ms back, and 52 ms forward.
+- The original active tab remained unchanged, the session closed normally, and the full
+  two-profile E2E passed in 56.7 seconds. These measurements support reusing the recorder
+  session for navigate/back/forward; load failure and lifecycle injection remain required
+  with the actual public recording path.
+
 ### Recorded-upload lifecycle cleanup matrix
 
 - Extended isolated E2E to hold file-chooser interception open on a strict non-chooser

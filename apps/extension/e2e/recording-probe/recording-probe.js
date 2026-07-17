@@ -109,3 +109,149 @@ export async function measureInputDelayProbe({ tabId, sampleCount = 5 }) {
     await session.close();
   }
 }
+
+async function waitForTab(tabId, predicate, label) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const tab = await chrome.tabs.get(tabId);
+    if (predicate(tab)) return tab;
+    await wait(25);
+  }
+  throw new Error(`${label} timed out`);
+}
+
+async function navigationState(session, tabId, label) {
+  const tab = await chrome.tabs.get(tabId);
+  const target = (await chrome.debugger.getTargets()).find(
+    (candidate) => candidate.tabId === tabId,
+  );
+  const frameTree = await session.run(
+    (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.getFrameTree"),
+    { emulateFocus: false },
+  );
+  const frame = frameTree?.frameTree?.frame;
+  if (!frame?.id || !frame?.loaderId) {
+    throw new Error(`Navigation probe ${label} did not receive a top frame`);
+  }
+  return {
+    attached: target?.attached === true,
+    frameId: frame.id,
+    label,
+    loaderId: frame.loaderId,
+    targetId: target?.id,
+    url: tab.url,
+  };
+}
+
+async function sampleNavigationCapture(session, action) {
+  let finished = false;
+  const samples = [];
+  const sampling = (async () => {
+    while (!finished) {
+      const startedAt = performance.now();
+      try {
+        const capture = await session.tryCapture((debuggee) =>
+          chrome.debugger.sendCommand(debuggee, "Page.captureScreenshot", {
+            format: "jpeg",
+            quality: 30,
+            fromSurface: true,
+          }),
+        );
+        samples.push({
+          captured: capture.captured,
+          durationMs: performance.now() - startedAt,
+        });
+      } catch (error) {
+        samples.push({
+          captured: false,
+          durationMs: performance.now() - startedAt,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      await wait(25);
+    }
+  })();
+  try {
+    await action();
+  } finally {
+    finished = true;
+    await sampling;
+  }
+  return {
+    failures: samples.filter((sample) => sample.error).map((sample) => sample.error),
+    maxCaptureMs: Math.max(...samples.map((sample) => sample.durationMs)),
+    sampleCount: samples.length,
+    successes: samples.filter((sample) => sample.captured).length,
+  };
+}
+
+export async function measureNavigationLifecycleProbe({ tabId, urlA, urlB }) {
+  if (!Number.isInteger(tabId)) throw new Error("tabId must be an integer");
+  const session = await openDebuggerSession(tabId);
+  let targetId;
+  const detachEvents = [];
+  const onDetach = (source, reason) => {
+    if (source.tabId === tabId || source.targetId === targetId) {
+      detachEvents.push(reason);
+    }
+  };
+  chrome.debugger.onDetach.addListener(onDetach);
+  try {
+    const initialState = await navigationState(session, tabId, "initial");
+    targetId = initialState.targetId;
+    const states = [initialState];
+    const captures = {};
+    captures.sameDocument = await sampleNavigationCapture(session, async () => {
+      await session.run(
+        (debuggee) => chrome.debugger.sendCommand(debuggee, "Runtime.evaluate", {
+          expression: 'history.pushState({}, "", "#probe")',
+        }),
+        { emulateFocus: false },
+      );
+      await waitForTab(tabId, (tab) => tab.url === `${urlA}#probe`, "same-document navigation");
+    });
+    states.push(await navigationState(session, tabId, "same-document"));
+
+    captures.crossDocument = await sampleNavigationCapture(session, async () => {
+      await chrome.tabs.update(tabId, { url: urlB });
+      await waitForTab(
+        tabId,
+        (tab) => tab.url === urlB && tab.status === "complete",
+        "cross-document navigation",
+      );
+    });
+    states.push(await navigationState(session, tabId, "cross-document"));
+
+    captures.back = await sampleNavigationCapture(session, async () => {
+      await chrome.tabs.goBack(tabId);
+      await waitForTab(
+        tabId,
+        (tab) => tab.url === `${urlA}#probe` && tab.status === "complete",
+        "back navigation",
+      );
+    });
+    states.push(await navigationState(session, tabId, "back"));
+
+    captures.forward = await sampleNavigationCapture(session, async () => {
+      await chrome.tabs.goForward(tabId);
+      await waitForTab(
+        tabId,
+        (tab) => tab.url === urlB && tab.status === "complete",
+        "forward navigation",
+      );
+    });
+    states.push(await navigationState(session, tabId, "forward"));
+
+    await chrome.tabs.update(tabId, { url: urlA });
+    await waitForTab(
+      tabId,
+      (tab) => tab.url === urlA && tab.status === "complete",
+      "probe reset navigation",
+    );
+    states.push(await navigationState(session, tabId, "reset"));
+    return { captures, detachEvents, states };
+  } finally {
+    chrome.debugger.onDetach.removeListener(onDetach);
+    await session.close();
+  }
+}

@@ -52,6 +52,11 @@ npm --prefix apps/extension run test:e2e
 
 `test:e2e` has one worker own a production server on a pre-bound random port, a loopback fixture, a temporary extension artifact containing a random URL, and two ephemeral persistent contexts. It never connects to default port 8765 or an everyday Chrome profile and cleans up processes and temporary directories after success or failure. It retains traces, fixture screenshots, server/worker logs, and a bounded MCP transcript only on failure.
 
+The temporary artifact also exposes test-only recording probes. The navigation lifecycle
+probe holds one debugger target while sampling screenshots through same-document,
+cross-document, back, and forward transitions; it never ships in the production
+extension artifact.
+
 The production manifest includes `offscreen`/`downloads`, and E2E calls the public
 `browser_record_video` tool against controlled inactive landscape and portrait fixtures.
 It also records wait, click, hover, type, select, key, and drag; verifies conditional

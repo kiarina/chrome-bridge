@@ -92,6 +92,14 @@ async function measureInputDelay(profile, tabId) {
   );
 }
 
+async function measureNavigationLifecycle(profile, tabId, urlA, urlB) {
+  return profile.worker.evaluate(
+    (params) =>
+      globalThis.__chromeBridgeRecordingProbe.measureNavigationLifecycleProbe(params),
+    { tabId, urlA, urlB },
+  );
+}
+
 async function verifyRecording(
   profile,
   recording,
@@ -287,6 +295,30 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       "recorded wait",
     );
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
+
+    const navigationLifecycle = await measureNavigationLifecycle(
+      profileA,
+      openedA.id,
+      `${fixture.baseUrl}/a`,
+      `${fixture.baseUrl}/b`,
+    );
+    expect(navigationLifecycle.detachEvents).toEqual([]);
+    expect(new Set(navigationLifecycle.states.map((state) => state.targetId)).size)
+      .toBe(1);
+    expect(navigationLifecycle.states.every((state) => state.attached)).toBe(true);
+    expect(navigationLifecycle.states[0].loaderId)
+      .toBe(navigationLifecycle.states[1].loaderId);
+    expect(navigationLifecycle.states[2].loaderId)
+      .not.toBe(navigationLifecycle.states[1].loaderId);
+    for (const capture of Object.values(navigationLifecycle.captures)) {
+      expect(capture.sampleCount).toBeGreaterThan(0);
+      expect(capture.successes).toBeGreaterThan(0);
+    }
+    expect(successful(await call("browser_tabs", { browser_id: browserA }))
+      .find((tab) => tab.active).id).toBe(activeA);
+    console.log("navigation lifecycle probe metrics", JSON.stringify(
+      navigationLifecycle,
+    ));
 
     const snapshotA = successful(await call("browser_snapshot", { browser_id: browserA }));
     const snapshotB = successful(await call("browser_snapshot", { browser_id: browserB }));
