@@ -128,18 +128,21 @@ sequenceDiagram
 
 ## Planned target video recording
 
-Target-tab video recording is designed but not implemented. It will use a debugger
-session owned only by one page-operation queue entry, explicitly passed to recording and
-input helpers. It will not introduce a global reference-counted attachment or retain a
-debugger session across MCP commands. Input commands take priority and frame capture is
-skipped under debugger backpressure so recording cannot delay page operation merely to
-maintain frame rate.
+Target-tab video recording is designed but its public API and production encoder are not
+implemented. The shared debugger-session module is implemented and existing debugger
+operations use it while retaining their attach/use/detach behavior. It serializes
+critical work, can skip opportunistic capture under contention, observes external
+detach, and owns an attachment only within one command. Future recording will pass that
+session explicitly to recording and input helpers; it will not introduce a global
+reference-counted attachment or retain a session across MCP commands.
 
 The planned pipeline repeatedly captures the exact background target, sends frames to a
 single offscreen document for canvas/MediaRecorder encoding, and downloads a silent WebM
 below the Chrome profile's Downloads directory. Screenshot and video will share
 orientation-aware Full HD bounds without cropping or upscaling. Navigation and upload
-recording remain gated on lifecycle and cleanup measurements. See
+recording remain gated on lifecycle and cleanup measurements. An isolated E2E-only
+offscreen/MediaRecorder/download probe has validated the pipeline without adding
+production permissions. See
 [Video recording design](video-recording.md) for the canonical planned API, ownership,
 dimensions, and validation order.
 

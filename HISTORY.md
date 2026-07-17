@@ -2,6 +2,26 @@
 
 ## 2026-07-17
 
+### Background target recording technical probe
+
+- Extracted debugger ownership into a command-scoped session used by all existing
+  debugger operations. It preserves attach/focus/detach ordering, serializes critical
+  work, skips opportunistic capture under contention, observes external detach, and
+  never retains an attachment across commands.
+- Added a shared orientation-aware Full HD sizing helper with landscape, portrait,
+  square, unusual-aspect, small, and invalid-input tests. The public screenshot limit is
+  intentionally still 1024×768 until the production media milestone.
+- Injected `offscreen`/`downloads` permissions and an internal recorder only into the
+  isolated E2E artifact; the production manifest, release artifact, protocol, and MCP
+  tools remain unchanged.
+- The first cold inactive 1280×720 probe produced 15 frames and a 42,639-byte WebM in
+  1,581 ms, with 43 ms mean and 289 ms maximum capture time; a warm repeat measured
+  13 ms mean and 31 ms maximum. The final 1920×1080 run produced 15 frames and a
+  56,920-byte WebM in 1,570 ms, with 21 ms mean and 63 ms maximum. No frames were skipped.
+- Verified each EBML header, deleted only the test download, preserved the active tab,
+  immediately reused the debugger for a screenshot, and passed the remaining
+  click/type/drag/upload/two-profile/restart E2E flow.
+
 ### Target video recording and Full HD media design
 
 - Selected optional `video_filename` on page-action tools plus a bounded standalone

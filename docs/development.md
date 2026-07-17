@@ -52,6 +52,13 @@ npm --prefix apps/extension run test:e2e
 
 `test:e2e` has one worker own a production server on a pre-bound random port, a loopback fixture, a temporary extension artifact containing a random URL, and two ephemeral persistent contexts. It never connects to default port 8765 or an everyday Chrome profile and cleans up processes and temporary directories after success or failure. It retains traces, fixture screenshots, server/worker logs, and a bounded MCP transcript only on failure.
 
+The temporary E2E artifact also injects `offscreen`/`downloads` permissions and an
+internal recording probe that are absent from the production manifest and public MCP
+protocol. It records only the controlled inactive fixture, verifies the downloaded WebM,
+removes that exact test download, and immediately reuses the debugger through the
+production screenshot/click path. This is technical evidence for the planned recording
+feature, not a hidden production API.
+
 `scripts/validate_static.py` checks manifest references, matching extension/server versions, protocol v1/v2 JSON Schemas, and the command catalog. The GitHub Actions [CI workflow](../.github/workflows/ci.yml) runs the same commands on Python 3.11/3.12 and Node 20, and rejects drift between canonical schemas and the tracked bundle with `git diff --exit-code -- apps/extension/dist/protocol.js` after the extension build. After earlier gates pass, the isolated E2E job installs full bundled Chromium and runs the same `test:e2e`. It then builds release artifacts, clean-installs the wheel into a temporary venv, runs E2E with the ZIP extension, and checks matching SHA-256 values across two independent builds. [Release artifacts](release.md) is canonical for artifact contents and installation.
 
 Edit `protocol_v1.schema.json` when changing protocol commands/runtime and `protocol_v2.schema.json` when changing the identity hello, then regenerate `dist/protocol.js` with `npm --prefix apps/extension run build`. Python and extension protocol tests check every command, unknown/extra fields, omissions, type mismatches, lifecycle, and success/error exclusivity against the same canonical schemas. Because the background imports `dist/protocol.js`, Reload the unpacked extension after schema or validator changes.

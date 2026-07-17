@@ -9,6 +9,7 @@ import {
   shouldReconnectForIdentityChange,
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
+import { withDebuggerSession } from "./debugger-session.js";
 import { DEFAULT_SERVER_URL } from "./runtime-config.js";
 
 const PROTOCOL_VERSION = 2;
@@ -20,8 +21,6 @@ const OPERATING_TOKEN_KEY = "operatingToken";
 const SNAPSHOT_GENERATION_KEY = "snapshotGeneration";
 const LATEST_SNAPSHOT_KEY = "latestSnapshot";
 const CONTENT_RUNTIME_FILE = "dist/content-runtime.js";
-const DEBUGGER_PROTOCOL_VERSION = "1.3";
-const DEBUGGER_LAYOUT_SETTLE_MS = 250;
 const NAVIGATION_TIMEOUT_MS = 10_000;
 const FILE_CHOOSER_TIMEOUT_MS = 3_000;
 const FILE_INPUT_CHANGE_TIMEOUT_MS = 2_000;
@@ -423,58 +422,8 @@ async function captureSnapshotForTarget(tabId) {
   );
 }
 
-async function getDebuggerTarget(tabId) {
-  const targets = await chrome.debugger.getTargets();
-  const target = targets.find(
-    (candidate) => candidate.tabId === tabId && candidate.type === "page",
-  );
-  if (!target) {
-    throw new Error(`Chrome debugger target is unavailable for tab ${tabId}`);
-  }
-  return { targetId: target.id };
-}
-
 async function runWithDebugger(tabId, operation, emulateFocus = true) {
-  const debuggee = await getDebuggerTarget(tabId);
-  try {
-    await chrome.debugger.attach(debuggee, DEBUGGER_PROTOCOL_VERSION);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Unable to operate on the target without focusing it because Chrome debugger attach failed: ${detail}`,
-    );
-  }
-
-  try {
-    if (emulateFocus) {
-      await chrome.debugger.sendCommand(
-        debuggee,
-        "Emulation.setFocusEmulationEnabled",
-        { enabled: true },
-      );
-      await new Promise((resolve) =>
-        setTimeout(resolve, DEBUGGER_LAYOUT_SETTLE_MS),
-      );
-    }
-    return await operation(debuggee);
-  } finally {
-    if (emulateFocus) {
-      try {
-        await chrome.debugger.sendCommand(
-          debuggee,
-          "Emulation.setFocusEmulationEnabled",
-          { enabled: false },
-        );
-      } catch {
-        // Navigation or tab closure can invalidate the emulation session.
-      }
-    }
-    try {
-      await chrome.debugger.detach(debuggee);
-    } catch {
-      // Navigation or tab closure can detach the debugger before cleanup.
-    }
-  }
+  return withDebuggerSession(tabId, operation, { emulateFocus });
 }
 
 async function dispatchTrustedClick(debuggee, point) {

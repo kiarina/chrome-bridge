@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { Buffer } from "node:buffer";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -82,6 +82,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       artifactDir: artifact.artifactDir,
       userDataDir: artifact.profileDir("a"),
       name: "profile-a",
+      viewport: { width: 1_920, height: 1_080 },
     });
     profiles.push(profileA);
     client = await connectMcp(server.mcpUrl);
@@ -175,6 +176,67 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expect(tabsAfterSelectB.find((tab) => tab.active).id).toBe(activeB);
     expect(tabsAfterSelectA.find((tab) => tab.targeted).id).toBe(openedA.id);
     expect(tabsAfterSelectB.find((tab) => tab.targeted).id).toBe(openedB.id);
+
+    await pageA.evaluate(() => {
+      let frame = 0;
+      globalThis.recordingProbeTimer = setInterval(() => {
+        frame += 1;
+        document.querySelector("[role=status]").textContent = `Recording frame ${frame}`;
+      }, 100);
+    });
+    const recording = await profileA.worker.evaluate(
+      async ({ tabId }) => {
+        return globalThis.__chromeBridgeRecordTargetProbe({
+          tabId,
+          durationMs: 1_500,
+          filename: "chrome-bridge/recording-probe.webm",
+        });
+      },
+      { tabId: openedA.id },
+    );
+    await pageA.evaluate(() => {
+      clearInterval(globalThis.recordingProbeTimer);
+      document.querySelector("[role=status]").textContent = "Ready";
+    });
+    expect(recording).toMatchObject({
+      mimeType: expect.stringMatching(/^video\/webm/),
+      skippedFrames: 0,
+      sourceWidth: expect.any(Number),
+      sourceHeight: expect.any(Number),
+      width: expect.any(Number),
+      height: expect.any(Number),
+    });
+    expect(recording.captureCount).toBeGreaterThanOrEqual(5);
+    expect(recording.frameCount).toBe(recording.captureCount);
+    expect(recording.blobSize).toBeGreaterThan(1_000);
+    expect(recording.width).toBeLessThanOrEqual(
+      recording.sourceWidth >= recording.sourceHeight ? 1_920 : 1_080,
+    );
+    expect(recording.height).toBeLessThanOrEqual(
+      recording.sourceWidth >= recording.sourceHeight ? 1_080 : 1_920,
+    );
+    const webm = await readFile(recording.filename);
+    expect([...webm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    console.log("recording probe metrics", JSON.stringify({
+      blobSize: recording.blobSize,
+      captureCount: recording.captureCount,
+      elapsedMs: Math.round(recording.elapsedMs),
+      maxCaptureMs: Math.round(recording.maxCaptureMs),
+      meanCaptureMs: Math.round(recording.meanCaptureMs),
+      source: `${recording.sourceWidth}x${recording.sourceHeight}`,
+      output: `${recording.width}x${recording.height}`,
+    }));
+    await profileA.worker.evaluate(async ({ downloadId }) => {
+      await chrome.downloads.removeFile(downloadId);
+      await chrome.downloads.erase({ id: downloadId });
+    }, { downloadId: recording.downloadId });
+    expect(successful(await call("browser_tabs", { browser_id: browserA }))
+      .find((tab) => tab.active).id).toBe(activeA);
+    const postRecordingScreenshot = await call("browser_screenshot", {
+      browser_id: browserA,
+    });
+    expect(postRecordingScreenshot.isError, toolText(postRecordingScreenshot))
+      .not.toBe(true);
 
     const clickedA = successful(await call("browser_click", {
       browser_id: browserA,
@@ -278,6 +340,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       artifactDir: artifact.artifactDir,
       userDataDir: artifact.profileDir("a"),
       name: "profile-a-restarted",
+      viewport: { width: 1_920, height: 1_080 },
     });
     profiles.push(profileA);
     const reconnected = await waitFor(instances, (items) => items.length === 2, "profile A reconnect");

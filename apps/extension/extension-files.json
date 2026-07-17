@@ -2,6 +2,7 @@
   "runtime": [
     "background.js",
     "connection-ui.js",
+    "debugger-session.js",
     "dist/content-runtime.js",
     "dist/protocol.js",
     "icons/disconnected/icon-128.png",

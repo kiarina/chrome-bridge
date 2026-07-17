@@ -13,6 +13,21 @@ const extensionDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 const repoDir = path.resolve(extensionDir, "../..");
 const extensionFiles = JSON.parse(await readFile(path.join(extensionDir, "extension-files.json"), "utf8"));
 const runtimeFiles = extensionFiles.runtime;
+const recordingProbeFiles = new Map([
+  ["media-sizing.js", path.join(extensionDir, "media-sizing.js")],
+  [
+    "recording-offscreen.html",
+    path.join(extensionDir, "e2e/recording-probe/offscreen.html"),
+  ],
+  [
+    "recording-offscreen.js",
+    path.join(extensionDir, "e2e/recording-probe/recording-offscreen.js"),
+  ],
+  [
+    "recording-probe.js",
+    path.join(extensionDir, "e2e/recording-probe/recording-probe.js"),
+  ],
+]);
 const runtimeSourceDir = process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR
   ? path.resolve(process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR)
   : extensionDir;
@@ -188,6 +203,25 @@ export async function prepareExtensionArtifact(serverUrl) {
       await mkdir(path.dirname(destination), { recursive: true });
       await cp(path.join(runtimeSourceDir, relative), destination);
     }
+    for (const [relative, source] of recordingProbeFiles) {
+      await cp(source, path.join(artifactDir, relative));
+    }
+    const manifestPath = path.join(artifactDir, "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.permissions = [
+      ...new Set([...manifest.permissions, "downloads", "offscreen"]),
+    ].sort();
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const backgroundPath = path.join(artifactDir, "background.js");
+    const background = await readFile(backgroundPath, "utf8");
+    await writeFile(
+      backgroundPath,
+      [
+        'import { recordTargetProbe } from "./recording-probe.js";',
+        "globalThis.__chromeBridgeRecordTargetProbe = recordTargetProbe;",
+        background,
+      ].join("\n"),
+    );
     await writeFile(
       path.join(artifactDir, "runtime-config.js"),
       `export const DEFAULT_SERVER_URL = ${JSON.stringify(serverUrl)};\n`,
@@ -213,12 +247,13 @@ export async function prepareExtensionArtifact(serverUrl) {
   };
 }
 
-export async function launchProfile({ artifactDir, userDataDir, name }) {
+export async function launchProfile({ artifactDir, userDataDir, name, viewport }) {
   const logs = [];
   let worker;
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: "chromium",
     headless: process.env.CHROME_BRIDGE_E2E_HEADED !== "1",
+    viewport,
     args: [
       `--disable-extensions-except=${artifactDir}`,
       `--load-extension=${artifactDir}`,

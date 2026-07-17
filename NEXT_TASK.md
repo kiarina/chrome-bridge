@@ -19,19 +19,18 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 The feature is designed but not implemented. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
-- Add one shared orientation-aware sizing helper and cover landscape, portrait, square,
-  small, unusual-aspect, and high-DPI inputs. The future screenshot/video bounds are
-  1920×1080 for landscape or square and 1080×1920 for portrait, preserving the complete
-  viewport without crop, stretch, or upscale.
-- Prototype a command-scoped debugger session on the existing page-operation queue. Pass
-  it explicitly, retain the current attach/detach path when recording is absent, scope
-  focus emulation to input, skip frames under contention, and prove cleanup/reuse after
-  every failure path.
-- Implement standalone bounded silent-WebM recording on an inactive target, offscreen
-  canvas/MediaRecorder encoding, and safe `Downloads/chrome-bridge/` output with
-  `uniquify` conflicts.
+- The orientation-aware sizing helper and command-scoped debugger session are complete.
+  An isolated artifact recorded 1280×720 and 1920×1080 inactive targets into verified
+  WebM files and immediately reused the debugger; production permissions and public APIs
+  remain unchanged.
+- Measure portrait Full HD and actual input delay. The landscape 1920×1080 probe encoded
+  15 frames in 1,570 ms with 21 ms mean and 63 ms maximum capture time, while the first
+  cold 1280×720 run had a 289 ms outlier; an already-running capture cannot be cancelled
+  when input arrives.
 - Fix recording result metadata and the operation-success/recording-failure error
   contract before changing public schemas.
+- Implement the production offscreen canvas/MediaRecorder/download pipeline and bounded
+  standalone tool with safe `Downloads/chrome-bridge/` output and `uniquify` conflicts.
 - Add `video_filename` to non-navigation page actions first. Add upload only after file
   chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
   measurements.

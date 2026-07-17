@@ -11,6 +11,7 @@ export default [
         Blob: "readonly",
         FileReader: "readonly",
         Image: "readonly",
+        MediaRecorder: "readonly",
         OffscreenCanvas: "readonly",
         URL: "readonly",
         WebSocket: "readonly",

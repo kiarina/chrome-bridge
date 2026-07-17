@@ -164,6 +164,29 @@ guards against a fallback to foregrounding `{tabId}` attach.
 One optional slow test may wait beyond the MV3 idle interval and then call `browser_tabs`, but it should not block the
 initial harness or every pull request until its runtime/flakiness is measured.
 
+## Recording technical probe
+
+The harness augments only its temporary extension artifact with `offscreen` and
+`downloads` permissions and three internal recording-probe files. It statically imports
+the probe from the copied service worker because dynamic `import()` is disallowed in a
+service-worker global scope. The production manifest, release archive, extension
+protocol, and MCP tool catalog do not expose this probe.
+
+On the inactive profile-A fixture, the probe owns one command-scoped debugger session,
+captures JPEG viewport frames, encodes them in an offscreen canvas/MediaRecorder, and
+downloads a WebM into the ephemeral profile. The test verifies an EBML header, records
+bounded timing/size metrics, removes that exact download, confirms the original active
+tab is unchanged, and immediately calls the production debugger-backed screenshot path.
+The rest of the two-profile scenario then covers click/type/drag/upload, isolation,
+cleanup, and restart after the refactor.
+
+The first cold 1280×720, 1.5-second run produced 15 frames and a 42,639-byte WebM in
+1,581 ms, with 43 ms mean and 289 ms maximum `Page.captureScreenshot` time. A warm repeat
+measured 13 ms mean and 31 ms maximum. The final 1920×1080 run produced 15 frames and a
+56,920-byte WebM in 1,570 ms, with 21 ms mean and 63 ms maximum capture time. No frames
+were dropped in these uncontended probes. Portrait Full HD and actual input-delay
+measurements remain required before the production frame-rate contract is fixed.
+
 ## Failure artifacts and diagnostics
 
 Diagnostics must explain failures without retaining entire browser profiles:
@@ -221,7 +244,7 @@ Suggested public helper signatures:
 async function startServer({ outputDir }) -> ServerHandle;
 async function startFixtureServer() -> FixtureHandle;
 async function prepareExtensionArtifact({ rootDir, serverUrl }) -> ArtifactHandle;
-async function launchProfile({ artifactDir, userDataDir, tracePath }) -> ProfileHandle;
+async function launchProfile({ artifactDir, userDataDir, tracePath, viewport }) -> ProfileHandle;
 async function waitForInstances(client, predicate, timeoutMs) -> BrowserInstance[];
 async function closeHarness(resources, testInfo) -> void;
 ```

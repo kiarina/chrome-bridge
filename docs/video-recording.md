@@ -3,9 +3,11 @@
 ## Status and goal
 
 This document is the canonical design for planned target-tab video recording. The
-feature and the API described here are not implemented yet. The existing 20-tool API
-and the current 1024×768 screenshot limit remain in effect until the implementation,
-protocol, tests, and user documentation land together.
+public feature and API described here are not implemented yet. A command-scoped
+debugger-session abstraction, orientation-aware sizing helper, and isolated recording
+probe are implemented as groundwork. The existing 20-tool API and the current 1024×768
+screenshot limit remain in effect until the production implementation, protocol, tests,
+permissions, and user documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -127,7 +129,7 @@ landscape_or_square = source_width >= source_height
 max_width  = 1920 if landscape_or_square else 1080
 max_height = 1080 if landscape_or_square else 1920
 scale = min(1, max_width / source_width, max_height / source_height)
-output = floor(source * scale)
+output = round(source * scale)
 ```
 
 Examples:
@@ -153,18 +155,47 @@ Retain PNG for the screenshot contract, then measure image size, resize time, an
 transfer time with complex pages and high-DPI displays before declaring the new limit
 implemented.
 
+## Technical probe evidence
+
+On 2026-07-17, the isolated two-profile Chromium E2E artifact injected test-only
+`offscreen` and `downloads` permissions plus an internal recorder. The production
+manifest and public protocol remained unchanged. The probe:
+
+- recorded inactive 1280×720 and 1920×1080 targets for 1.5 seconds without changing
+  the active tab;
+- captured and encoded 15 JPEG frames per run; the Full HD WebM was 56,920 bytes and
+  completed in 1,570 ms;
+- measured 21 ms mean and 63 ms maximum Full HD screenshot capture time;
+- dropped no frames in the standalone, uncontended case;
+- downloaded the Blob, verified its EBML/WebM header, and deleted only that test file;
+- immediately reused the target for a debugger-backed screenshot and continued through
+  click, type, drag, upload, screenshot, profile isolation, and restart E2E checks.
+
+The first cold 1280×720 run had a 289 ms maximum capture; a repeated warm run measured
+13 ms mean and 31 ms maximum, while the Full HD run measured 21 ms mean and 63 ms
+maximum. Input priority prevents a new capture from starting after critical work is
+pending, but a capture that is already in flight cannot be cancelled. Measure the delay
+seen by real input and portrait Full HD before fixing frame rate and pre-roll behavior.
+
 ## Implementation and validation order
 
-1. Introduce and unit-test the orientation-aware shared sizing helper without changing
-   the published screenshot limit prematurely.
-2. Prototype command-scoped debugger ownership and standalone recording on an inactive
-   target tab.
-3. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
-4. Verify failure cleanup, frame backpressure, extension reload, tab close, target
+The first two steps are complete: the shared sizing helper has landscape, portrait,
+square, unusual-aspect, small, and invalid-input coverage; the debugger session preserves
+existing attach/focus/detach semantics, serializes critical work, skips capture under
+contention, and avoids a second detach after an external detach; and the isolated
+standalone recorder probe succeeds on an inactive target.
+
+Continue in this order:
+
+1. Measure portrait Full HD capture and actual input-delay behavior.
+2. Fix public result metadata and mixed operation/recording failure semantics.
+3. Add the production offscreen/download pipeline and bounded standalone tool.
+4. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
+5. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
-5. Add upload recording after file-chooser cleanup is proven unchanged.
-6. Add navigate/back/forward only after renderer and target lifecycle measurements.
-7. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
+6. Add upload recording after file-chooser cleanup is proven unchanged.
+7. Add navigate/back/forward only after renderer and target lifecycle measurements.
+8. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 
