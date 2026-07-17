@@ -532,6 +532,65 @@ async def test_wait_routes_and_returns_browser_mcp_message() -> None:
     assert await task == "Waited for 0.25 seconds"
 
 
+async def test_wait_with_video_returns_operation_wrapper_and_recording() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(controller.wait(0.25, video_filename="wait.webm"))
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.wait"
+    assert request["params"] == {
+        "time": 0.25,
+        "videoFilename": "wait.webm",
+    }
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {
+                "operation": {"waited": True, "time": 0.25},
+                "recording": {
+                    "requestedFilename": "wait.webm",
+                    "filename": "chrome-bridge/wait.webm",
+                    "mimeType": "video/webm",
+                    "durationMs": 756,
+                    "width": 1920,
+                    "height": 1080,
+                    "frameCount": 7,
+                    "droppedFrameCount": 0,
+                    "sizeBytes": 2048,
+                },
+            },
+        }
+    )
+    assert await task == {
+        "operation": "Waited for 0.25 seconds",
+        "recording": {
+            "requestedFilename": "wait.webm",
+            "filename": "chrome-bridge/wait.webm",
+            "mimeType": "video/webm",
+            "durationMs": 756,
+            "width": 1920,
+            "height": 1080,
+            "frameCount": 7,
+            "droppedFrameCount": 0,
+            "sizeBytes": 2048,
+            "browserId": BROWSER_A,
+        },
+    }
+
+
+async def test_wait_rejects_unsafe_video_filename_before_sending() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    await registry.attach(socket)
+    with pytest.raises(ValueError, match="filename"):
+        await BrowserController(registry).wait(0.25, video_filename="../escape.webm")
+    assert socket.sent == []
+
+
 async def test_record_video_routes_and_validates_metadata() -> None:
     registry = BridgeHub(timeout_seconds=1)
     socket = FakeSocket()

@@ -265,7 +265,23 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     await expect.poll(() => pageA.evaluate(() =>
       document.querySelector("#chrome-bridge-agent-indicator")?.shadowRoot?.querySelector(".label")?.textContent,
     )).toBe("Agent operating");
-    successful(await waitingA);
+    expect(successful(await waitingA)).toBe("Waited for 0.5 seconds");
+    await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
+
+    const recordedWait = successful(await call("browser_wait", {
+      browser_id: browserA,
+      time: 10,
+      video_filename: "recorded-wait.webm",
+    }));
+    expect(recordedWait.operation).toBe("Waited for 10 seconds");
+    await verifyRecording(
+      profileA,
+      recordedWait.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      10.4,
+      "recorded wait",
+    );
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
 
     const snapshotA = successful(await call("browser_snapshot", { browser_id: browserA }));
@@ -316,14 +332,13 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       pageB,
       browserB,
       "recording-production-portrait.webm",
-      10,
     );
     await verifyRecording(
       profileB,
       portraitRecording,
       { width: 1_080, height: 1_920 },
       browserB,
-      10,
+      1.5,
       "portrait",
     );
     const downloadsBeforeInvalid = await profileA.worker.evaluate(async () =>
@@ -468,6 +483,54 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     }))).toMatchObject({ closed: true, tabId: restartedFixtureA.id, browserId: browserA });
     expect(successful(await call("browser_tabs", { browser_id: browserB })))
       .toEqual(expect.arrayContaining([expect.objectContaining({ id: openedB.id })]));
+
+    const interruptedTab = successful(await call("browser_tab_open", {
+      browser_id: browserB,
+      url: `${fixture.baseUrl}/a`,
+      active: false,
+    }));
+    successful(await call("browser_tab_select", {
+      browser_id: browserB,
+      tab_id: interruptedTab.id,
+    }));
+    const interruptedPage = await fixturePage(profileB, `${fixture.baseUrl}/a`);
+    const downloadsBeforeInterruption = await profileB.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    );
+    const interruptedWait = call("browser_wait", {
+      browser_id: browserB,
+      time: 1,
+      video_filename: "interrupted-wait.webm",
+    });
+    await expect.poll(() => interruptedPage.title()).toBe("● Chrome Bridge E2E");
+    await profileB.worker.evaluate(async ({ tabId }) => {
+      const target = (await chrome.debugger.getTargets()).find(
+        (candidate) => candidate.tabId === tabId && candidate.attached,
+      );
+      if (!target) throw new Error("Recorded wait debugger target is not attached");
+      await chrome.debugger.detach({ targetId: target.id });
+    }, { tabId: interruptedTab.id });
+    const interruptedResult = await interruptedWait;
+    expect(interruptedResult.isError).toBe(true);
+    expect(toolText(interruptedResult)).toContain(
+      "Operation completed, but recording failed:",
+    );
+    expect(toolText(interruptedResult)).toContain(
+      "Do not retry the operation automatically.",
+    );
+    expect(await profileB.worker.evaluate(async () =>
+      (await chrome.downloads.search({})).length,
+    )).toBe(downloadsBeforeInterruption);
+    expect((await call("browser_screenshot", { browser_id: browserB })).isError)
+      .not.toBe(true);
+    expect(successful(await call("browser_tab_close", {
+      browser_id: browserB,
+      tab_id: interruptedTab.id,
+    }))).toMatchObject({ closed: true, tabId: interruptedTab.id });
+    successful(await call("browser_tab_select", {
+      browser_id: browserB,
+      tab_id: openedB.id,
+    }));
     expect(successful(await call("browser_tab_close", {
       browser_id: browserB,
       tab_id: openedB.id,

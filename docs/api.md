@@ -298,9 +298,13 @@ Waits for a specified duration while retaining the target. This is a real-time s
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `time` | number | yes | Finite number of seconds from 0 through 10 |
+| `video_filename` | string | no | Record the wait and 500 ms post-roll to this validated `.webm` basename |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** Text content `Waited for <time> seconds`. The latest refs are cleared. Call `browser_snapshot` to read the DOM after waiting.
+**Returns:** Without `video_filename`, text content `Waited for <time> seconds` exactly as
+before. With it, returns `{ "operation": "Waited for <time> seconds", "recording":
+<metadata> }` after the download completes. The latest refs are cleared in both cases;
+call `browser_snapshot` to read the DOM afterward.
 
 ## Diagnostic and media tools
 
@@ -375,10 +379,11 @@ recording. If encoding or download fails, the command returns an MCP error begin
 
 ## Planned operation-scoped recording API
 
-Adding optional `video_filename` to page-action tools remains planned. Tab-management
-and information tools do not initially receive the option. The authoritative ownership
-constraints, rollout order, and mixed operation/recording result and error contract are
-in [Video recording design](video-recording.md).
+`browser_wait` implements the first optional `video_filename` slice. Adding it to the
+remaining page-action tools remains planned. Tab-management and information tools do not
+receive the option. The authoritative ownership constraints, rollout order, and mixed
+operation/recording result and error contract are in
+[Video recording design](video-recording.md).
 
 The planned recorded-operation success value is `{ "operation": <existing success
 value>, "recording": <metadata> }`; omitting `video_filename` preserves the current

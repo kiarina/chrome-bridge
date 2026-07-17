@@ -54,9 +54,11 @@ npm --prefix apps/extension run test:e2e
 
 The production manifest includes `offscreen`/`downloads`, and E2E calls the public
 `browser_record_video` tool against controlled inactive landscape and portrait fixtures.
-It verifies each downloaded WebM, removes that exact test download, and immediately
-reuses the debugger through screenshot/click. A small test-only input-contention probe
-remains injected. Because Playwright stores accepted downloads under UUID filenames, the
+It also calls `browser_wait(video_filename=...)`, verifies the conditional result wrapper
+and post-roll WebM, and forces an external debugger detach to verify the mixed-failure
+warning, absent partial download, and immediate screenshot reuse. Each successful test
+download is removed exactly. A small test-only input-contention probe remains injected.
+Because Playwright stores accepted downloads under UUID filenames, the
 ephemeral artifact substitutes only the returned relative filename conversion; the
 production conversion has cross-platform unit coverage and remains unchanged.
 

@@ -4,9 +4,10 @@
 
 This document is the canonical design and rollout record for target-tab video recording.
 The production offscreen/download pipeline and bounded standalone tool are implemented.
-Operation-scoped `video_filename` and Full HD screenshot output remain planned. The
-current 21-tool API includes standalone recording, while screenshot remains limited to
-1024×768 until its production tests and documentation land together.
+Operation-scoped `browser_wait(video_filename=...)` is also implemented; other operation
+options and Full HD screenshot output remain planned. The current 21-tool API includes
+both recording modes, while screenshot remains limited to 1024×768 until its production
+tests and documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -15,7 +16,8 @@ routing, strict refs, debugger cleanup, or operation ordering.
 
 ## Public API and planned operation options
 
-Add optional `video_filename: string | null = null` to these page-operation tools:
+`browser_wait` now accepts optional `video_filename: string | null = null`. Add the same
+option to these remaining page-operation tools:
 
 - `browser_click`
 - `browser_hover`
@@ -26,7 +28,6 @@ Add optional `video_filename: string | null = null` to these page-operation tool
 - `browser_navigate`
 - `browser_go_back`
 - `browser_go_forward`
-- `browser_wait`
 - `browser_drag`
 
 Omitting the argument preserves the current behavior and must not add a persistent
@@ -262,9 +263,16 @@ contention, and avoids a second detach after an external detach; the standalone 
 succeeds on inactive targets; and the same path is now in the production extension and
 public MCP tool.
 
+The first operation-scoped slice is also complete. A maximum ten-second recorded wait
+plus 500 ms post-roll produced 106 frames, approximately 110 KB, and a 10,550 ms timeline
+without drops or exceeding the server timeout. Omitting the option retained the exact
+completion string. An external debugger detach during the wait returned the operation-
+completed/recording-failed retry warning, created no download, and allowed an immediate
+screenshot reattach.
+
 Continue in this order:
 
-1. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
+1. Add trusted-input and DOM operations such as click, hover, type, select, key, and drag.
 2. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
 3. Add upload recording after file-chooser cleanup is proven unchanged.

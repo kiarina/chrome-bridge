@@ -173,6 +173,14 @@ removes that exact download, confirms the original active tab is unchanged, and
 immediately calls the debugger-backed screenshot path. The rest of the two-profile
 scenario covers click/type/drag/upload, isolation, cleanup, and restart.
 
+E2E also records the maximum `browser_wait(time=10, video_filename=...)` through its
+existing completion boundary plus 500 ms post-roll. It produced 106 frames and
+approximately 110 KB on a 10,550 ms timeline without drops or server timeout, then
+verified the conditional wrapper, unchanged active tab, exact deletion, and later
+operations. A second recorded wait is externally detached while the tab remains
+targeted: wait completes, recording returns the do-not-retry warning, no partial download
+appears, and screenshot immediately reattaches to the same tab.
+
 Playwright configures accepted downloads with `allowAndName`, which replaces Chrome's
 chosen filesystem basename with a UUID. The ephemeral artifact therefore substitutes
 only the result's Downloads-relative filename conversion. Production uses and validates

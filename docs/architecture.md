@@ -128,10 +128,10 @@ sequenceDiagram
 
 ## Target video recording
 
-Bounded standalone target-tab recording and its production encoder are implemented;
-operation-scoped `video_filename` remains planned. The shared debugger-session module is
-used by existing debugger operations and recording while retaining attach/use/detach
-behavior. It serializes
+Bounded standalone target-tab recording, operation-scoped `browser_wait` recording, and
+their production encoder are implemented; remaining operation `video_filename` options
+are planned. The shared debugger-session module is used by existing debugger operations
+and recording while retaining attach/use/detach behavior. It serializes
 critical work, can skip opportunistic capture under contention, observes external
 detach, and owns an attachment only within one command. There is no global
 reference-counted attachment or retained session across MCP commands.
@@ -147,6 +147,12 @@ capture already in flight added 18 ms mean and at most 30 ms queue delay to a re
 mouse-move input in the final cold-path run. See
 [Video recording design](video-recording.md) for the canonical planned API, ownership,
 dimensions, and validation order.
+
+Recorded wait starts a capture loop before clearing refs and waiting, continues through
+the existing wait completion boundary, then records 500 ms of post-roll. Its success
+result is wrapped only when requested. An external debugger detach after wait starts
+produces the documented operation-completed/recording-failed warning, creates no partial
+download, and leaves the target immediately reusable by another debugger command.
 
 ## Security decisions
 

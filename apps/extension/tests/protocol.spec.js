@@ -53,6 +53,11 @@ test("accepts every protocol v1 command with exact params", () => {
     { id, type: "page.goBack", params: {} },
     { id, type: "page.goForward", params: {} },
     { id, type: "page.wait", params: { time: 1 } },
+    {
+      id,
+      type: "page.wait",
+      params: { time: 1, videoFilename: "wait.webm" },
+    },
     { id, type: "page.screenshot", params: {} },
     { id, type: "page.getConsoleLogs", params: {} },
     {
@@ -62,7 +67,7 @@ test("accepts every protocol v1 command with exact params", () => {
     },
   ];
 
-  expect(messages).toHaveLength(20);
+  expect(messages).toHaveLength(21);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });

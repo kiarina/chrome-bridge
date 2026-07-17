@@ -451,7 +451,12 @@ class BrowserController:
             raise ExtensionCommandError("page.goForward returned an invalid response")
         return self._with_browser_id(result, connection)
 
-    async def wait(self, time: float, browser_id: str | None = None) -> str:
+    async def wait(
+        self,
+        time: float,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> str | dict[str, Any]:
         if (
             isinstance(time, bool)
             or not isinstance(time, (int, float))
@@ -460,15 +465,39 @@ class BrowserController:
             or time > 10
         ):
             raise ValueError("time must be between 0 and 10 seconds")
+        if video_filename is not None:
+            _validate_recording_filename(video_filename)
         connection = self._connection(browser_id)
-        result = await connection.request("page.wait", {"time": time})
+        params: dict[str, Any] = {"time": time}
+        if video_filename is not None:
+            params["videoFilename"] = video_filename
+        result = await connection.request("page.wait", params)
+        completion = f"Waited for {time:g} seconds"
+        if video_filename is not None:
+            if not (
+                isinstance(result, dict)
+                and set(result) == {"operation", "recording"}
+                and isinstance(result["operation"], dict)
+                and result["operation"].get("waited") is True
+                and result["operation"].get("time") == time
+                and _is_recording_result(
+                    result["recording"], requested_filename=video_filename
+                )
+            ):
+                raise ExtensionCommandError(
+                    "page.wait returned an invalid recorded response"
+                )
+            return {
+                "operation": completion,
+                "recording": self._with_browser_id(result["recording"], connection),
+            }
         if not (
             isinstance(result, dict)
             and result.get("waited") is True
             and result.get("time") == time
         ):
             raise ExtensionCommandError("page.wait returned an invalid response")
-        return f"Waited for {time:g} seconds"
+        return completion
 
     async def record_video(
         self, filename: str, duration: float, browser_id: str | None = None

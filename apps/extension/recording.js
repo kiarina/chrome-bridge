@@ -4,6 +4,7 @@ import { fitWithinMediaBounds } from "./media-sizing.js";
 const MESSAGE_TARGET = "chrome-bridge-recording-offscreen";
 const OFFSCREEN_PATH = "recording-offscreen.html";
 const CAPTURE_INTERVAL_MS = 100;
+const OPERATION_POST_ROLL_MS = 500;
 const DOWNLOAD_TIMEOUT_MS = 3_000;
 const DOWNLOAD_PREFIX = "chrome-bridge/";
 const MIN_DURATION_SECONDS = 0.5;
@@ -56,6 +57,47 @@ export function validateRecordingDuration(duration) {
 
 export function recordingDownloadPath(filename) {
   return `${DOWNLOAD_PREFIX}${validateRecordingFilename(filename)}`;
+}
+
+export function recordingFilenameFromDownload(download) {
+  const absolute = typeof download?.filename === "string" ? download.filename : "";
+  const parts = absolute.split(/[\\/]/);
+  const basename = parts.at(-1);
+  if (
+    parts.at(-2) !== "chrome-bridge" ||
+    !basename ||
+    !basename.endsWith(".webm")
+  ) {
+    throw new Error(
+      `Chrome returned an invalid completed download basename: ${JSON.stringify(basename)}`,
+    );
+  }
+  return `${DOWNLOAD_PREFIX}${basename}`;
+}
+
+export function settleRecordedOperation({
+  operationResult,
+  operationError,
+  recordingResult,
+  recordingError,
+}) {
+  if (operationError) {
+    const operationDetail = errorDetail(operationError);
+    if (recordingResult) {
+      throw new Error(
+        `${operationDetail} Recording saved: ${recordingResult.filename}`,
+      );
+    }
+    throw new Error(
+      `${operationDetail} Recording also failed: ${errorDetail(recordingError)}`,
+    );
+  }
+  if (recordingError) {
+    throw new Error(
+      `Operation completed, but recording failed: ${errorDetail(recordingError)} Do not retry the operation automatically.`,
+    );
+  }
+  return { operation: operationResult, recording: recordingResult };
 }
 
 async function ensureOffscreenDocument() {
@@ -163,37 +205,19 @@ async function captureFrame(debuggee, sourceWidth, sourceHeight) {
   return result.data;
 }
 
-export function recordingFilenameFromDownload(download) {
-  const absolute = typeof download?.filename === "string" ? download.filename : "";
-  const parts = absolute.split(/[\\/]/);
-  const basename = parts.at(-1);
-  if (
-    parts.at(-2) !== "chrome-bridge" ||
-    !basename ||
-    !basename.endsWith(".webm")
-  ) {
-    throw new Error(
-      `Chrome returned an invalid completed download basename: ${JSON.stringify(basename)}`,
-    );
-  }
-  return `${DOWNLOAD_PREFIX}${basename}`;
-}
-
-export async function recordTargetVideo({ tabId, filename, duration }) {
+async function createTargetRecorder({ tabId, filename }) {
   if (!Number.isInteger(tabId)) throw new Error("tabId must be an integer");
   const requestedFilename = validateRecordingFilename(filename);
-  const durationSeconds = validateRecordingDuration(duration);
   const downloadPath = recordingDownloadPath(requestedFilename);
   const id = crypto.randomUUID();
-  const session = await openDebuggerSession(tabId);
-  let downloadId;
-  let objectUrl;
-  let recordingStarted = false;
-  let recordingStopped = false;
+  let session;
+  let offscreenReady = false;
   try {
+    session = await openDebuggerSession(tabId);
     const { sourceHeight, sourceWidth } = await targetViewport(session);
     const output = fitWithinMediaBounds(sourceWidth, sourceHeight);
     await ensureOffscreenDocument();
+    offscreenReady = true;
     await sendOffscreen({
       type: "start",
       id,
@@ -202,82 +226,191 @@ export async function recordTargetVideo({ tabId, filename, duration }) {
       frameRate: 10,
       videoBitsPerSecond: 6_000_000,
     });
-    recordingStarted = true;
+
     const recordingStartedAt = performance.now();
-    const durationMs = durationSeconds * 1_000;
-    let droppedFrameCount = 0;
-    let nextFrameAt = recordingStartedAt;
-    while (performance.now() - recordingStartedAt < durationMs) {
-      const capture = await session.tryCapture((debuggee) =>
-        captureFrame(debuggee, sourceWidth, sourceHeight),
-      );
-      if (capture.captured) {
-        await sendOffscreen({ type: "frame", id, data: capture.value });
-      } else {
-        droppedFrameCount += 1;
-      }
-      nextFrameAt += CAPTURE_INTERVAL_MS;
-      await wait(Math.max(0, nextFrameAt - performance.now()));
-    }
-    const encoded = await sendOffscreen({ type: "stop", id });
-    recordingStopped = true;
-    const elapsedMs = Math.max(
-      1,
-      Math.round(performance.now() - recordingStartedAt),
-    );
-    objectUrl = encoded.url;
-    downloadId = await chrome.downloads.download({
-      url: objectUrl,
-      filename: downloadPath,
-      conflictAction: "uniquify",
-      saveAs: false,
+    let stopRequested = false;
+    let resolveStop;
+    const stopSignal = new Promise((resolve) => {
+      resolveStop = resolve;
     });
-    const download = await waitForDownload(downloadId);
-    if (
-      !Number.isInteger(encoded.blobSize) ||
-      encoded.blobSize <= 0 ||
-      !Number.isInteger(encoded.frameCount) ||
-      encoded.frameCount <= 0
-    ) {
-      throw new Error("Offscreen encoder returned invalid recording metadata");
+    let droppedFrameCount = 0;
+    const captureLoop = (async () => {
+      let nextFrameAt = recordingStartedAt;
+      while (!stopRequested) {
+        const capture = await session.tryCapture((debuggee) =>
+          captureFrame(debuggee, sourceWidth, sourceHeight),
+        );
+        if (capture.captured) {
+          await sendOffscreen({ type: "frame", id, data: capture.value });
+        } else {
+          droppedFrameCount += 1;
+        }
+        nextFrameAt += CAPTURE_INTERVAL_MS;
+        await Promise.race([
+          wait(Math.max(0, nextFrameAt - performance.now())),
+          stopSignal,
+        ]);
+      }
+    })().then(
+      () => ({ error: undefined }),
+      (error) => ({ error }),
+    );
+
+    let finished = false;
+    let encoderStopped = false;
+    let objectUrl;
+    let downloadId;
+    async function requestCaptureStop() {
+      if (stopRequested) return;
+      stopRequested = true;
+      resolveStop();
     }
-    if (
-      Number.isInteger(download.fileSize) &&
-      download.fileSize >= 0 &&
-      download.fileSize !== encoded.blobSize
-    ) {
-      throw new Error("Completed download size did not match the encoded recording");
-    }
+
     return {
-      requestedFilename,
-      filename: recordingFilenameFromDownload(download),
-      mimeType: "video/webm",
-      durationMs: elapsedMs,
-      width: output.width,
-      height: output.height,
-      frameCount: encoded.frameCount,
-      droppedFrameCount,
-      sizeBytes: encoded.blobSize,
+      session,
+      async finish(postRollMs = 0) {
+        if (finished) throw new Error("Recording is already finalized");
+        finished = true;
+        if (postRollMs > 0) {
+          const earlyCaptureEnd = await Promise.race([
+            wait(postRollMs).then(() => null),
+            captureLoop,
+          ]);
+          if (earlyCaptureEnd?.error) {
+            await requestCaptureStop();
+            throw earlyCaptureEnd.error;
+          }
+        }
+        await requestCaptureStop();
+        const captureOutcome = await captureLoop;
+        if (captureOutcome.error) throw captureOutcome.error;
+        const encoded = await sendOffscreen({ type: "stop", id });
+        encoderStopped = true;
+        const elapsedMs = Math.max(
+          1,
+          Math.round(performance.now() - recordingStartedAt),
+        );
+        objectUrl = encoded.url;
+        try {
+          downloadId = await chrome.downloads.download({
+            url: objectUrl,
+            filename: downloadPath,
+            conflictAction: "uniquify",
+            saveAs: false,
+          });
+          const download = await waitForDownload(downloadId);
+          if (
+            !Number.isInteger(encoded.blobSize) ||
+            encoded.blobSize <= 0 ||
+            !Number.isInteger(encoded.frameCount) ||
+            encoded.frameCount <= 0
+          ) {
+            throw new Error("Offscreen encoder returned invalid recording metadata");
+          }
+          if (
+            Number.isInteger(download.fileSize) &&
+            download.fileSize >= 0 &&
+            download.fileSize !== encoded.blobSize
+          ) {
+            throw new Error(
+              "Completed download size did not match the encoded recording",
+            );
+          }
+          return {
+            requestedFilename,
+            filename: recordingFilenameFromDownload(download),
+            mimeType: "video/webm",
+            durationMs: elapsedMs,
+            width: output.width,
+            height: output.height,
+            frameCount: encoded.frameCount,
+            droppedFrameCount,
+            sizeBytes: encoded.blobSize,
+          };
+        } catch (error) {
+          if (downloadId !== undefined) await removeCommandDownload(downloadId);
+          throw error;
+        }
+      },
+      async close() {
+        await requestCaptureStop();
+        await captureLoop;
+        if (!encoderStopped) {
+          try {
+            await sendOffscreen({ type: "abort", id });
+          } catch {
+            // Extension reload and offscreen failure can make abort unavailable.
+          }
+        }
+        if (objectUrl) {
+          try {
+            await sendOffscreen({ type: "revoke", id, url: objectUrl });
+          } catch {
+            // Closing the offscreen document also releases its object URLs.
+          }
+        }
+        await closeOffscreenDocument();
+        await session.close();
+      },
     };
   } catch (error) {
-    if (downloadId !== undefined) await removeCommandDownload(downloadId);
-    throw new Error(errorDetail(error));
-  } finally {
-    if (recordingStarted && !recordingStopped) {
+    if (offscreenReady) {
       try {
         await sendOffscreen({ type: "abort", id });
       } catch {
-        // Extension reload and offscreen failure can make explicit abort unavailable.
+        // Failed startup is cleaned up best-effort.
       }
+      await closeOffscreenDocument();
     }
-    if (objectUrl) {
-      try {
-        await sendOffscreen({ type: "revoke", id, url: objectUrl });
-      } catch {
-        // Closing the offscreen document also releases its object URLs.
-      }
-    }
-    await closeOffscreenDocument();
-    await session.close();
+    if (session) await session.close();
+    throw error;
   }
+}
+
+export async function recordTargetVideo({ tabId, filename, duration }) {
+  const durationSeconds = validateRecordingDuration(duration);
+  let recorder;
+  try {
+    recorder = await createTargetRecorder({ tabId, filename });
+    await wait(durationSeconds * 1_000);
+    return await recorder.finish();
+  } finally {
+    if (recorder) await recorder.close();
+  }
+}
+
+export async function recordTargetOperation({ tabId, filename, operation }) {
+  let recorder;
+  try {
+    recorder = await createTargetRecorder({ tabId, filename });
+  } catch (error) {
+    throw new Error(
+      `Recording did not start: ${errorDetail(error)}. The operation was not run.`,
+    );
+  }
+
+  let operationResult;
+  let operationError;
+  let recordingResult;
+  let recordingError;
+  try {
+    try {
+      operationResult = await operation(recorder.session);
+    } catch (error) {
+      operationError = error;
+    }
+    try {
+      recordingResult = await recorder.finish(OPERATION_POST_ROLL_MS);
+    } catch (error) {
+      recordingError = error;
+    }
+  } finally {
+    await recorder.close();
+  }
+  return settleRecordedOperation({
+    operationResult,
+    operationError,
+    recordingResult,
+    recordingError,
+  });
 }

@@ -158,9 +158,13 @@ def create_app(settings: Settings) -> Any:
         return await controller.go_forward(browser_id)
 
     @mcp.tool(name="browser_wait")
-    async def browser_wait(time: float, browser_id: str | None = None) -> str:
-        """Wait up to 10 seconds for the selected target page."""
-        return await controller.wait(time, browser_id)
+    async def browser_wait(
+        time: float,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> str | dict[str, Any]:
+        """Wait up to 10 seconds, optionally recording the target to a WebM."""
+        return await controller.wait(time, browser_id, video_filename)
 
     @mcp.tool(name="browser_record_video")
     async def browser_record_video(

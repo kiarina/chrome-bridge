@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   recordingDownloadPath,
   recordingFilenameFromDownload,
+  settleRecordedOperation,
   validateRecordingDuration,
   validateRecordingFilename,
 } from "../recording.js";
@@ -14,6 +15,42 @@ test("accepts a bounded WebM basename and builds the fixed download path", () =>
   );
   expect(validateRecordingDuration(0.5)).toBe(0.5);
   expect(validateRecordingDuration(10)).toBe(10);
+});
+
+test("settles recorded operation success without changing its operation value", () => {
+  const recording = { filename: "chrome-bridge/wait.webm" };
+  expect(
+    settleRecordedOperation({
+      operationResult: { waited: true, time: 1 },
+      recordingResult: recording,
+    }),
+  ).toEqual({
+    operation: { waited: true, time: 1 },
+    recording,
+  });
+});
+
+test("keeps operation outcome primary across mixed recording failures", () => {
+  expect(() =>
+    settleRecordedOperation({
+      operationResult: { waited: true },
+      recordingError: new Error("download interrupted"),
+    }),
+  ).toThrow(
+    "Operation completed, but recording failed: download interrupted Do not retry the operation automatically.",
+  );
+  expect(() =>
+    settleRecordedOperation({
+      operationError: new Error("wait failed"),
+      recordingResult: { filename: "chrome-bridge/failure.webm" },
+    }),
+  ).toThrow("wait failed Recording saved: chrome-bridge/failure.webm");
+  expect(() =>
+    settleRecordedOperation({
+      operationError: new Error("wait failed"),
+      recordingError: new Error("encoder failed"),
+    }),
+  ).toThrow("wait failed Recording also failed: encoder failed");
 });
 
 test("rejects paths, controls, missing suffixes, and oversized UTF-8 names", () => {

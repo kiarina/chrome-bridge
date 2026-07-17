@@ -10,7 +10,10 @@ import {
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
 import { withDebuggerSession } from "./debugger-session.js";
-import { recordTargetVideo } from "./recording.js";
+import {
+  recordTargetOperation,
+  recordTargetVideo,
+} from "./recording.js";
 import { DEFAULT_SERVER_URL } from "./runtime-config.js";
 
 const PROTOCOL_VERSION = 2;
@@ -1492,7 +1495,24 @@ async function executeCommand(type, params) {
       return runPageOperation(() => goForwardTarget());
     }
     case "page.wait": {
-      return runPageOperation(() => waitTarget(params));
+      return runPageOperation(async () => {
+        if (params.videoFilename === undefined) return waitTarget(params);
+        let selectedTab;
+        try {
+          selectedTab = await getTargetTab();
+          await requireUnchangedTarget(selectedTab.id);
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Recording did not start: ${detail}. The operation was not run.`,
+          );
+        }
+        return recordTargetOperation({
+          tabId: selectedTab.id,
+          filename: params.videoFilename,
+          operation: () => waitTarget(params),
+        });
+      });
     }
     case "page.screenshot": {
       return runPageOperation(() => screenshotTarget());

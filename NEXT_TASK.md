@@ -16,8 +16,8 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 
 ## P2: target-tab video recording and Full HD media sizing
 
-Standalone recording is implemented; operation-scoped recording and Full HD screenshots
-remain. Follow
+Standalone and wait recording are implemented; remaining operation-scoped recording and
+Full HD screenshots remain. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
 - The orientation-aware sizing helper and command-scoped debugger session are complete.
@@ -31,13 +31,14 @@ remain. Follow
   unmeasured, so operation-scoped recording must retain the one-frame-at-a-time drop
   policy and repeat latency measurements.
 - Recording result metadata and mixed operation/recording failure semantics are fixed in
-  the design. Preserve existing values when recording is omitted; implement the recorded
-  `{operation, recording}` wrapper and documented retry warnings without absolute paths.
+  the design and implemented by recorded wait. It preserves the old string when omitted,
+  returns `{operation, recording}` when requested, and emits the documented retry warning
+  after external debugger detach without creating a partial download.
 - The production offscreen canvas/MediaRecorder/download pipeline and bounded standalone
   tool are implemented with safe `Downloads/chrome-bridge/` output, completed-download
   validation, partial-download cleanup, and `uniquify` conflicts. Branded Chrome still
   needs to confirm the actual returned uniquified name and heavier-page measurements.
-- Add `video_filename` to non-navigation page actions first. Add upload only after file
+- Add `video_filename` to trusted-input and DOM actions next. Add upload only after file
   chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
   measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared

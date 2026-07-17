@@ -184,6 +184,11 @@ def test_tools_include_non_focusing_tab_select() -> None:
             "browser_id"
         }
         assert set(tools["browser_wait"]["inputSchema"]["required"]) == {"time"}
+        assert set(tools["browser_wait"]["inputSchema"]["properties"]) == {
+            "time",
+            "video_filename",
+            "browser_id",
+        }
         assert set(tools["browser_record_video"]["inputSchema"]["required"]) == {
             "filename",
             "duration",

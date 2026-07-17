@@ -44,14 +44,15 @@ var protocol_v1_schema_default = {
       required: ["element", "ref", "paths"],
       additionalProperties: false
     },
+    recordingFilename: {
+      type: "string",
+      minLength: 1,
+      maxLength: 200
+    },
     recordVideoParams: {
       type: "object",
       properties: {
-        filename: {
-          type: "string",
-          minLength: 1,
-          maxLength: 200
-        },
+        filename: { $ref: "#/$defs/recordingFilename" },
         duration: {
           type: "number",
           minimum: 0.5,
@@ -286,7 +287,8 @@ var protocol_v1_schema_default = {
               params: {
                 type: "object",
                 properties: {
-                  time: { type: "number", minimum: 0, maximum: 10 }
+                  time: { type: "number", minimum: 0, maximum: 10 },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
                 },
                 required: ["time"],
                 additionalProperties: false

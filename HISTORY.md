@@ -2,6 +2,22 @@
 
 ## 2026-07-17
 
+### First operation-scoped recording: browser_wait
+
+- Added optional `video_filename` to `browser_wait`. Omission preserves its exact text
+  result and adds no recording work; presence returns `{operation, recording}` with
+  stable browser provenance after the WebM download completes.
+- Refactored standalone capture into a command-scoped recorder that runs frames alongside
+  an operation, shares one debugger session, stops without waiting for the next frame
+  interval, and adds a fixed 500 ms post-roll before encoding.
+- Implemented the mixed outcome matrix so operation success plus recording failure warns
+  against automatic retry, while operation failure always remains primary and reports a
+  saved diagnostic recording or secondary recording failure.
+- Isolated E2E recorded the ten-second maximum wait plus post-roll as 106 Full HD frames
+  and about 110 KB on a 10,550 ms timeline without drops or timeout. External debugger
+  detach returned the retry warning, produced no partial download, and allowed immediate
+  screenshot reattachment to the same target.
+
 ### Production standalone target recording
 
 - Added public `browser_record_video(filename, duration, browser_id)` and

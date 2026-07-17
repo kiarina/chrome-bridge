@@ -29,7 +29,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_navigate` | Navigate the target tab to an HTTP(S) URL and return a post-operation snapshot |
 | `browser_go_back` | Go back in the target tab's history and return a post-operation snapshot |
 | `browser_go_forward` | Go forward in the target tab's history and return a post-operation snapshot |
-| `browser_wait` | Wait for a specified number of seconds while retaining the target tab |
+| `browser_wait` | Wait for a specified number of seconds, optionally recording the target during the wait |
 | `browser_record_video` | Record the target tab as a bounded silent WebM below Downloads/chrome-bridge |
 | `browser_screenshot` | Capture the target tab's viewport as PNG image content |
 | `browser_get_console_logs` | Retrieve up to 100 console entries and exceptions from the target tab |

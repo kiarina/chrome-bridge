@@ -26,7 +26,7 @@ The following 12 page-operation tools operate on the persistent target; they do 
 | `browser_navigate` | `url` | Post-operation snapshot |
 | `browser_go_back` | None | Post-operation snapshot |
 | `browser_go_forward` | None | Post-operation snapshot |
-| `browser_wait` | `time` | Completion message |
+| `browser_wait` | `time`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_press_key` | `key` | Completion message |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
 | `browser_click` | `element`, `ref` | Post-operation snapshot |
@@ -123,7 +123,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.navigate {url: string}`
 - `page.goBack {}`
 - `page.goForward {}`
-- `page.wait {time: number}`
+- `page.wait {time: number, videoFilename?: string}`
 - `page.screenshot {}`
 - `page.getConsoleLogs {}`
 - `page.recordVideo {filename: string, duration: number}`
@@ -231,11 +231,11 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshots include only the cursor, and the status indicator is restored after capture.
 - Screenshots and console logs preserve their MCP content types.
 
-### Target video recording milestone (standalone recording implemented)
+### Target video recording milestone (standalone and wait recording implemented)
 
 - The bounded `browser_record_video(filename, duration, browser_id)` tool is implemented
-  for the current target. Adding optional `video_filename` to page-action tools remains
-  planned.
+  for the current target. `browser_wait` implements the first optional `video_filename`
+  operation slice; adding it to the remaining page-action tools remains planned.
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.

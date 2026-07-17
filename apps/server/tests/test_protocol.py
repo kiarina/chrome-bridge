@@ -86,6 +86,11 @@ def test_protocol_v2_requires_stable_browser_identity() -> None:
             "type": "page.recordVideo",
             "params": {"filename": "fixture.webm", "duration": 1.5},
         },
+        {
+            "id": ID,
+            "type": "page.wait",
+            "params": {"time": 1, "videoFilename": "wait.webm"},
+        },
         {"type": "pong"},
     ],
 )
