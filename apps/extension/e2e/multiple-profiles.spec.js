@@ -99,17 +99,21 @@ async function verifyRecording(
   expectedBrowserId,
   expectedDuration,
   label,
+  maxDroppedFrameCount = 0,
 ) {
   expect(recording).toMatchObject({
     requestedFilename: expect.stringMatching(/\.webm$/),
     filename: expect.stringMatching(/^chrome-bridge\/.+\.webm$/),
     mimeType: "video/webm",
-    droppedFrameCount: 0,
     width: expectedSize.width,
     height: expectedSize.height,
     browserId: expectedBrowserId,
   });
   expect(recording.frameCount).toBeGreaterThanOrEqual(expectedDuration * 5);
+  expect(recording.droppedFrameCount).toBeGreaterThanOrEqual(0);
+  expect(recording.droppedFrameCount).toBeLessThanOrEqual(
+    maxDroppedFrameCount,
+  );
   expect(recording.sizeBytes).toBeGreaterThan(1_000);
   expect(recording.durationMs).toBeGreaterThanOrEqual(
     expectedDuration * 1_000 - 100,
@@ -364,12 +368,23 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expect(postRecordingScreenshot.isError, toolText(postRecordingScreenshot))
       .not.toBe(true);
 
-    const clickedA = successful(await call("browser_click", {
+    const recordedClick = successful(await call("browser_click", {
       browser_id: browserA,
       element: "Update button",
       ref: refA,
+      video_filename: "recorded-click.webm",
     }));
+    const clickedA = recordedClick.operation;
     expectStatus(clickedA, "Updated A");
+    await verifyRecording(
+      profileA,
+      recordedClick.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      0.5,
+      "recorded click",
+      10,
+    );
     const typedA = successful(await call("browser_type", {
       browser_id: browserA,
       element: "Name field",

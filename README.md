@@ -20,7 +20,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_tab_select` | Select the page-operation target without foregrounding Chrome UI |
 | `browser_tab_activate` | Select the page-operation target and foreground its window |
 | `browser_snapshot` | Capture an accessibility snapshot of the target tab |
-| `browser_click` | Click the element identified by a snapshot ref and return a post-operation snapshot |
+| `browser_click` | Click a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_hover` | Move the pointer to the element identified by a snapshot ref and return a post-operation snapshot |
 | `browser_type` | Type into the editable element identified by a snapshot ref and return a post-operation snapshot |
 | `browser_upload_file` | Assign local files to the file chooser opened by a snapshot ref and return a snapshot after the change completes |

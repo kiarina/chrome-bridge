@@ -29,7 +29,7 @@ The following 12 page-operation tools operate on the persistent target; they do 
 | `browser_wait` | `time`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_press_key` | `key` | Completion message |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
-| `browser_click` | `element`, `ref` | Post-operation snapshot |
+| `browser_click` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_hover` | `element`, `ref` | Post-operation snapshot |
 | `browser_type` | `element`, `ref`, `text`, `submit` | Post-operation snapshot |
 | `browser_select_option` | `element`, `ref`, `values` | Post-operation snapshot |
@@ -115,7 +115,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `tabs.select {tabId: integer}`: changes only the target tab and does not foreground Chrome UI.
 - `tabs.activate {tabId: integer}`
 - `page.snapshot {}`
-- `page.click {element: string, ref: string}`
+- `page.click {element: string, ref: string, videoFilename?: string}`
 - `page.hover {element: string, ref: string}`
 - `page.type {element: string, ref: string, text: string, submit: boolean}`
 - `page.selectOption {element: string, ref: string, values: string[]}`
@@ -231,11 +231,11 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 - Screenshots include only the cursor, and the status indicator is restored after capture.
 - Screenshots and console logs preserve their MCP content types.
 
-### Target video recording milestone (standalone and wait recording implemented)
+### Target video recording milestone (standalone, wait, and click recording implemented)
 
 - The bounded `browser_record_video(filename, duration, browser_id)` tool is implemented
-  for the current target. `browser_wait` implements the first optional `video_filename`
-  operation slice; adding it to the remaining page-action tools remains planned.
+  for the current target. `browser_wait` and `browser_click` accept optional
+  `video_filename`; adding it to the remaining page-action tools remains planned.
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.

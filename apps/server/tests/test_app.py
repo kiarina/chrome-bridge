@@ -149,6 +149,12 @@ def test_tools_include_non_focusing_tab_select() -> None:
         assert "browser_click" in tools
         click_schema = tools["browser_click"]["inputSchema"]
         assert set(click_schema["required"]) == {"element", "ref"}
+        assert set(click_schema["properties"]) == {
+            "element",
+            "ref",
+            "video_filename",
+            "browser_id",
+        }
         assert set(tools["browser_drag"]["inputSchema"]["required"]) == {
             "startElement",
             "startRef",

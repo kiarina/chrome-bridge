@@ -2,6 +2,25 @@
 
 ## 2026-07-17
 
+### First recorded trusted-input action: browser_click
+
+- Added optional `video_filename` to `browser_click` and `page.click`. Omission preserves
+  the existing Snapshot response and avoids recording setup; presence returns the exact
+  post-click Snapshot under `operation` plus completed recording metadata.
+- Made click borrow the recorder's command-scoped debugger session, preventing a second
+  attach while retaining focus emulation only around trusted input and prioritizing input
+  over frame capture.
+- Added protocol, MCP schema, filename, response-wrapper, and provenance validation.
+  Unsafe filenames are rejected before a command is sent.
+- Isolated two-profile E2E recorded an inactive 1920×1080 click as 17 frames and about
+  57 KB over 1,829 ms. Two capture opportunities were skipped during input as designed;
+  the DOM update, active-tab preservation, download validation, and immediate
+  type/drag/upload/screenshot continuation all passed.
+- Branded Chrome then recorded an inactive 1365×817 click as 16 frames and 44,451 bytes
+  over 1,873 ms, skipping three capture opportunities. The VP9 stream had 15 distinct
+  decoded frame hashes, the fixture update appeared in the returned snapshot, the active
+  tab remained unchanged, and an immediate screenshot succeeded.
+
 ### First operation-scoped recording: browser_wait
 
 - Added optional `video_filename` to `browser_wait`. Omission preserves its exact text

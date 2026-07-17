@@ -313,16 +313,39 @@ class BrowserController:
         return self._with_browser_id(result, connection)
 
     async def click(
-        self, element: str, ref: str, browser_id: str | None = None
+        self,
+        element: str,
+        ref: str,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
     ) -> dict[str, Any]:
         if not element.strip():
             raise ValueError("element must be a non-empty description")
         if not ref.strip():
             raise ValueError("ref must be returned by browser_snapshot")
+        if video_filename is not None:
+            _validate_recording_filename(video_filename)
         connection = self._connection(browser_id)
-        result = await connection.request(
-            "page.click", {"element": element, "ref": ref}
-        )
+        params = {"element": element, "ref": ref}
+        if video_filename is not None:
+            params["videoFilename"] = video_filename
+        result = await connection.request("page.click", params)
+        if video_filename is not None:
+            if not (
+                isinstance(result, dict)
+                and set(result) == {"operation", "recording"}
+                and _is_snapshot_result(result["operation"])
+                and _is_recording_result(
+                    result["recording"], requested_filename=video_filename
+                )
+            ):
+                raise ExtensionCommandError(
+                    "page.click returned an invalid recorded response"
+                )
+            return {
+                "operation": self._with_browser_id(result["operation"], connection),
+                "recording": self._with_browser_id(result["recording"], connection),
+            }
         if not _is_snapshot_result(result):
             raise ExtensionCommandError("page.click returned an invalid response")
         return self._with_browser_id(result, connection)

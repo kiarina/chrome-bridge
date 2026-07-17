@@ -82,10 +82,13 @@ def create_app(settings: Settings) -> Any:
 
     @mcp.tool(name="browser_click")
     async def browser_click(
-        element: str, ref: str, browser_id: str | None = None
+        element: str,
+        ref: str,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Click the exact target snapshot ref without focusing its Chrome tab."""
-        return await controller.click(element, ref, browser_id)
+        """Click an exact target ref, optionally recording it to a WebM."""
+        return await controller.click(element, ref, browser_id, video_filename)
 
     @mcp.tool(name="browser_drag")
     async def browser_drag(

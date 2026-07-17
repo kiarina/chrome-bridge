@@ -187,9 +187,14 @@ Clicks the element identified by a snapshot ref using trusted mouse input, witho
 | --- | --- | --- | --- |
 | `element` | string | yes | Non-empty human-readable element description |
 | `ref` | string | yes | Ref from the latest snapshot |
+| `video_filename` | string | no | Record the click through its post-operation snapshot and 500 ms post-roll to this `.webm` basename |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** A post-operation `Snapshot`.
+**Returns:** Without `video_filename`, a post-operation `Snapshot` exactly as before.
+With it, `{ "operation": <post-operation Snapshot>, "recording": <metadata> }` after
+the download completes. Capture frames may be dropped while trusted input owns the
+shared command-scoped debugger session; the click is never delayed to maintain frame
+rate.
 
 ### `browser_hover`
 
@@ -377,15 +382,15 @@ Landscape or square recordings fit inside 1920×1080 and portrait recordings ins
 recording. If encoding or download fails, the command returns an MCP error beginning
 `Recording failed:` and removes only its own partial download when known.
 
-## Planned operation-scoped recording API
+## Operation-scoped recording API
 
-`browser_wait` implements the first optional `video_filename` slice. Adding it to the
+`browser_wait` and `browser_click` implement optional `video_filename`. Adding it to the
 remaining page-action tools remains planned. Tab-management and information tools do not
 receive the option. The authoritative ownership constraints, rollout order, and mixed
 operation/recording result and error contract are in
 [Video recording design](video-recording.md).
 
-The planned recorded-operation success value is `{ "operation": <existing success
+The recorded-operation success value is `{ "operation": <existing success
 value>, "recording": <metadata> }`; omitting `video_filename` preserves the current
 success value and content type exactly. Metadata reports the requested name, actual
 Downloads-relative uniquified name, WebM type, elapsed duration, fixed dimensions,

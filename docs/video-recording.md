@@ -4,10 +4,11 @@
 
 This document is the canonical design and rollout record for target-tab video recording.
 The production offscreen/download pipeline and bounded standalone tool are implemented.
-Operation-scoped `browser_wait(video_filename=...)` is also implemented; other operation
-options and Full HD screenshot output remain planned. The current 21-tool API includes
-both recording modes, while screenshot remains limited to 1024×768 until its production
-tests and documentation land together.
+Operation-scoped `browser_wait(video_filename=...)` and
+`browser_click(video_filename=...)` are also implemented; other operation options and
+Full HD screenshot output remain planned. The current 21-tool API includes these
+recording modes, while screenshot remains limited to 1024×768 until its production tests
+and documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -16,10 +17,10 @@ routing, strict refs, debugger cleanup, or operation ordering.
 
 ## Public API and planned operation options
 
-`browser_wait` now accepts optional `video_filename: string | null = null`. Add the same
-option to these remaining page-operation tools:
+`browser_wait` and `browser_click` now accept optional
+`video_filename: string | null = null`. Add the same option to these remaining
+page-operation tools:
 
-- `browser_click`
 - `browser_hover`
 - `browser_type`
 - `browser_upload_file`
@@ -263,16 +264,29 @@ contention, and avoids a second detach after an external detach; the standalone 
 succeeds on inactive targets; and the same path is now in the production extension and
 public MCP tool.
 
-The first operation-scoped slice is also complete. A maximum ten-second recorded wait
+The first operation-scoped slices are also complete. A maximum ten-second recorded wait
 plus 500 ms post-roll produced 106 frames, approximately 110 KB, and a 10,550 ms timeline
 without drops or exceeding the server timeout. Omitting the option retained the exact
 completion string. An external debugger detach during the wait returned the operation-
 completed/recording-failed retry warning, created no download, and allowed an immediate
 screenshot reattach.
 
+A recorded click borrows the recorder's command-scoped debugger session instead of
+attaching a second debugger. Isolated 1920×1080 E2E captured the cursor movement, trusted
+click, updated DOM, post-operation snapshot, and 500 ms post-roll as 17 frames over
+1,829 ms. It skipped two capture opportunities while trusted input owned the session,
+preserved the inactive target, and continued immediately through type, drag, upload, and
+screenshot operations.
+
+After reloading the unpacked extension, branded Chrome recorded the same inactive click
+at 1365×817 as 16 frames and 44,451 bytes over 1,873 ms. Three capture opportunities
+were skipped during trusted input, the encoded VP9 stream contained 15 distinct decoded
+frame hashes, the post-click snapshot contained the fixture update, the original active
+tab remained unchanged, and an immediate screenshot successfully reattached.
+
 Continue in this order:
 
-1. Add trusted-input and DOM operations such as click, hover, type, select, key, and drag.
+1. Add the same session-borrowing path to hover, type, select, key, and drag.
 2. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
 3. Add upload recording after file-chooser cleanup is proven unchanged.

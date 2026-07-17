@@ -237,6 +237,83 @@ async def test_click_routes_element_and_ref_and_returns_snapshot() -> None:
     assert await task == snapshot
 
 
+async def test_click_with_video_returns_operation_wrapper_and_recording() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(
+        controller.click("Save button", "s8e12", video_filename="click.webm")
+    )
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.click"
+    assert request["params"] == {
+        "element": "Save button",
+        "ref": "s8e12",
+        "videoFilename": "click.webm",
+    }
+
+    snapshot = {
+        "generation": 9,
+        "url": "https://example.com/saved",
+        "title": "Saved",
+        "snapshot": '- status "Saved" [ref=s9e4]',
+    }
+    recording = {
+        "requestedFilename": "click.webm",
+        "filename": "chrome-bridge/click.webm",
+        "mimeType": "video/webm",
+        "durationMs": 1250,
+        "width": 1920,
+        "height": 1080,
+        "frameCount": 12,
+        "droppedFrameCount": 1,
+        "sizeBytes": 4096,
+    }
+    connection.receive(
+        {
+            "id": request["id"],
+            "ok": True,
+            "result": {"operation": snapshot, "recording": recording},
+        }
+    )
+    assert await task == {
+        "operation": {**snapshot, "browserId": BROWSER_A},
+        "recording": {**recording, "browserId": BROWSER_A},
+    }
+
+
+async def test_click_rejects_unsafe_video_filename_before_sending() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    await registry.attach(socket)
+    with pytest.raises(ValueError, match="filename"):
+        await BrowserController(registry).click(
+            "Save", "s1e2", video_filename="../escape.webm"
+        )
+    assert socket.sent == []
+
+
+async def test_click_rejects_invalid_recorded_extension_response() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    connection = await registry.attach(socket)
+    task = asyncio.create_task(
+        BrowserController(registry).click("Save", "s1e2", video_filename="click.webm")
+    )
+    await asyncio.sleep(0)
+    connection.receive(
+        {
+            "id": socket.sent[0]["id"],
+            "ok": True,
+            "result": {"operation": {}, "recording": {}},
+        }
+    )
+    with pytest.raises(ExtensionCommandError, match="invalid recorded response"):
+        await task
+
+
 async def test_drag_routes_both_element_refs_and_returns_snapshot() -> None:
     hub = BridgeHub(timeout_seconds=1)
     socket = FakeSocket()

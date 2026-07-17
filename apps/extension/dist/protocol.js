@@ -29,6 +29,16 @@ var protocol_v1_schema_default = {
       required: ["element", "ref"],
       additionalProperties: false
     },
+    recordedElementParams: {
+      type: "object",
+      properties: {
+        element: { type: "string", minLength: 1 },
+        ref: { type: "string", pattern: "^s[0-9]+e[0-9]+$" },
+        videoFilename: { $ref: "#/$defs/recordingFilename" }
+      },
+      required: ["element", "ref"],
+      additionalProperties: false
+    },
     uploadParams: {
       type: "object",
       properties: {
@@ -155,7 +165,16 @@ var protocol_v1_schema_default = {
         },
         {
           if: {
-            properties: { type: { enum: ["page.click", "page.hover"] } },
+            properties: { type: { const: "page.click" } },
+            required: ["type"]
+          },
+          then: {
+            properties: { params: { $ref: "#/$defs/recordedElementParams" } }
+          }
+        },
+        {
+          if: {
+            properties: { type: { const: "page.hover" } },
             required: ["type"]
           },
           then: {

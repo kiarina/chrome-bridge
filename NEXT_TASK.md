@@ -16,8 +16,8 @@ MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selec
 
 ## P2: target-tab video recording and Full HD media sizing
 
-Standalone and wait recording are implemented; remaining operation-scoped recording and
-Full HD screenshots remain. Follow
+Standalone, wait, and click recording are implemented; remaining operation-scoped
+recording and Full HD screenshots remain. Follow
 [`docs/video-recording.md`](docs/video-recording.md) as the canonical contract.
 
 - The orientation-aware sizing helper and command-scoped debugger session are complete.
@@ -38,7 +38,10 @@ Full HD screenshots remain. Follow
   tool are implemented with safe `Downloads/chrome-bridge/` output, completed-download
   validation, partial-download cleanup, and `uniquify` conflicts. Branded Chrome still
   needs to confirm the actual returned uniquified name and heavier-page measurements.
-- Add `video_filename` to trusted-input and DOM actions next. Add upload only after file
+- Add `video_filename` to hover, type, select, key, and drag next, reusing the recorder's
+  command-scoped debugger session for trusted input. Recorded click produced 17 frames
+  over 1,829 ms in isolated E2E and 16 frames over 1,873 ms in branded Chrome, deliberately
+  skipping two and three capture opportunities during input. Add upload only after file
   chooser cleanup tests, and navigate/back/forward only after renderer/target lifecycle
   measurements.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared

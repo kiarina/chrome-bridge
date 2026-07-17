@@ -426,7 +426,13 @@ async function captureSnapshotForTarget(tabId) {
   );
 }
 
-async function runWithDebugger(tabId, operation, emulateFocus = true) {
+async function runWithDebugger(
+  tabId,
+  operation,
+  emulateFocus = true,
+  session = undefined,
+) {
+  if (session) return session.run(operation, { emulateFocus });
   return withDebuggerSession(tabId, operation, { emulateFocus });
 }
 
@@ -737,7 +743,7 @@ async function waitAfterPageOperation(tabId) {
   await waitForContentRuntimeTab(tabId);
 }
 
-async function clickTarget(params) {
+async function clickTarget(params, session = undefined) {
   if (typeof params.element !== "string" || !params.element.trim()) {
     throw new Error("element must be a non-empty human-readable description");
   }
@@ -759,7 +765,7 @@ async function clickTarget(params) {
     await waitMilliseconds(point.settleMs);
     await showCursorPress(tab.id);
     await dispatchTrustedClick(debuggee, point);
-  });
+  }, true, session);
   await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tab.id);
   await requireUnchangedTarget(tab.id);
@@ -1468,7 +1474,24 @@ async function executeCommand(type, params) {
       });
     }
     case "page.click": {
-      return runPageOperation(() => clickTarget(params));
+      return runPageOperation(async () => {
+        if (params.videoFilename === undefined) return clickTarget(params);
+        let selectedTab;
+        try {
+          selectedTab = await getTargetTab();
+          await requireUnchangedTarget(selectedTab.id);
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Recording did not start: ${detail}. The operation was not run.`,
+          );
+        }
+        return recordTargetOperation({
+          tabId: selectedTab.id,
+          filename: params.videoFilename,
+          operation: (session) => clickTarget(params, session),
+        });
+      });
     }
     case "page.hover": {
       return runPageOperation(() => hoverTarget(params));
