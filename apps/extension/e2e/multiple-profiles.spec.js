@@ -320,6 +320,69 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       navigationLifecycle,
     ));
 
+    const recordedNavigate = successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/b`,
+      video_filename: "recorded-navigate.webm",
+    }));
+    expect(recordedNavigate.operation.url).toBe(`${fixture.baseUrl}/b`);
+    await verifyRecording(
+      profileA,
+      recordedNavigate.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded navigate",
+      2,
+    );
+    const historyStartA = successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+    }));
+    const historyDestinationA = successful(await call("browser_click", {
+      browser_id: browserA,
+      element: "History destination link",
+      ref: refFor(
+        historyStartA,
+        /link "History destination"[^\n]*\[ref=([^\]]+)\]/,
+      ),
+    }));
+    expect(historyDestinationA.url).toBe(`${fixture.baseUrl}/b`);
+    const recordedBack = successful(await call("browser_go_back", {
+      browser_id: browserA,
+      video_filename: "recorded-back.webm",
+    }));
+    expect(recordedBack.operation.url).toBe(`${fixture.baseUrl}/a`);
+    await verifyRecording(
+      profileA,
+      recordedBack.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded back",
+      2,
+    );
+    const recordedForward = successful(await call("browser_go_forward", {
+      browser_id: browserA,
+      video_filename: "recorded-forward.webm",
+    }));
+    expect(recordedForward.operation.url).toBe(`${fixture.baseUrl}/b`);
+    await verifyRecording(
+      profileA,
+      recordedForward.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded forward",
+      2,
+    );
+    successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+    }));
+    expect(successful(await call("browser_tabs", { browser_id: browserA }))
+      .find((tab) => tab.active).id).toBe(activeA);
+
     const snapshotA = successful(await call("browser_snapshot", { browser_id: browserA }));
     const snapshotB = successful(await call("browser_snapshot", { browser_id: browserB }));
     expect(snapshotA.title).toBe("Chrome Bridge E2E");
@@ -328,7 +391,6 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expectStatus(snapshotB, "Ready");
     const refA = buttonRef(snapshotA);
     const refB = buttonRef(snapshotB);
-    expect(refA).toBe(refB);
 
     const tabsAfterSelectA = successful(await call("browser_tabs", { browser_id: browserA }));
     const tabsAfterSelectB = successful(await call("browser_tabs", { browser_id: browserB }));

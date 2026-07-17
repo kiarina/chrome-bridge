@@ -23,9 +23,9 @@ The following 12 page-operation tools operate on the persistent target; they do 
 
 | Tool | Main arguments | Result |
 | --- | --- | --- |
-| `browser_navigate` | `url` | Post-operation snapshot |
-| `browser_go_back` | None | Post-operation snapshot |
-| `browser_go_forward` | None | Post-operation snapshot |
+| `browser_navigate` | `url`, optional `video_filename` | Snapshot, or operation/recording wrapper |
+| `browser_go_back` | optional `video_filename` | Snapshot, or operation/recording wrapper |
+| `browser_go_forward` | optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_wait` | `time`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_press_key` | `key`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
@@ -120,9 +120,9 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.type {element: string, ref: string, text: string, submit: boolean, videoFilename?: string}`
 - `page.selectOption {element: string, ref: string, values: string[], videoFilename?: string}`
 - `page.pressKey {key: string, videoFilename?: string}`
-- `page.navigate {url: string}`
-- `page.goBack {}`
-- `page.goForward {}`
+- `page.navigate {url: string, videoFilename?: string}`
+- `page.goBack {videoFilename?: string}`
+- `page.goForward {videoFilename?: string}`
 - `page.wait {time: number, videoFilename?: string}`
 - `page.screenshot {}`
 - `page.getConsoleLogs {}`
@@ -235,7 +235,7 @@ New commands and result fields are backward-compatible protocol v1 extensions an
 
 - The bounded `browser_record_video(filename, duration, browser_id)` tool is implemented
   for the current target. `browser_wait`, click, hover, type, select, key, and drag accept
-  optional `video_filename`; upload and history/navigation actions remain planned.
+  optional `video_filename`.
 - Save silent WebM recordings below `Downloads/chrome-bridge/`, reject unsafe relative
   names, never overwrite an existing file, and do not expose recording through
   tab-management or information-only tools initially.

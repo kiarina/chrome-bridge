@@ -2,6 +2,22 @@
 
 ## 2026-07-17
 
+### First recorded navigation and history operations
+
+- Added optional `video_filename` to navigate, back, and forward across MCP schemas,
+  server response validation, extension protocol/handlers, tests, and documentation.
+- The operations retain their existing webNavigation commit/history/fragment monitoring
+  and post-load snapshot boundary while the common recorded-operation wrapper owns one
+  debugger session; navigation itself does not open a second debugger.
+- Added a controlled history link to the isolated fixture. Recorded cross-document
+  navigate, back, and forward each returned the expected destination snapshot as 13-frame
+  recordings over 1,231–1,239 ms with zero dropped captures.
+- The original active tab remained unchanged and all later recorded input/upload and
+  lifecycle tests continued successfully. All 127 Python and 43 extension tests, static
+  validation, and the full 1.0-minute two-profile E2E passed.
+- Load failure, target change, tab close, and external detach remain to be injected through
+  the actual navigation recording path before branded-Chrome playback acceptance.
+
 ### Navigation recording lifecycle measurement
 
 - Added a test-only isolated probe that keeps one command-scoped debugger session open

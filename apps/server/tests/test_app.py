@@ -197,11 +197,16 @@ def test_tools_include_non_focusing_tab_select() -> None:
         )
         assert set(tools["browser_navigate"]["inputSchema"]["required"]) == {"url"}
         assert set(tools["browser_go_back"]["inputSchema"]["properties"]) == {
-            "browser_id"
+            "video_filename",
+            "browser_id",
         }
         assert set(tools["browser_go_forward"]["inputSchema"]["properties"]) == {
-            "browser_id"
+            "video_filename",
+            "browser_id",
         }
+        assert "video_filename" in tools["browser_navigate"]["inputSchema"][
+            "properties"
+        ]
         assert set(tools["browser_wait"]["inputSchema"]["required"]) == {"time"}
         assert set(tools["browser_wait"]["inputSchema"]["properties"]) == {
             "time",

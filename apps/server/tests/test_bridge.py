@@ -590,6 +590,14 @@ async def test_element_operation_routes_and_returns_snapshot(
                 "endRef": "s10e6",
             },
         ),
+        (
+            "navigate",
+            ("https://example.com/next",),
+            "page.navigate",
+            {"url": "https://example.com/next"},
+        ),
+        ("go_back", (), "page.goBack", {}),
+        ("go_forward", (), "page.goForward", {}),
     ],
 )
 async def test_recorded_snapshot_operation_returns_wrapper(

@@ -93,8 +93,15 @@ test("accepts every protocol v1 command with exact params", () => {
       params: { key: "Enter", videoFilename: "key.webm" },
     },
     { id, type: "page.navigate", params: { url: "https://example.com" } },
+    {
+      id,
+      type: "page.navigate",
+      params: { url: "https://example.com", videoFilename: "navigate.webm" },
+    },
     { id, type: "page.goBack", params: {} },
+    { id, type: "page.goBack", params: { videoFilename: "back.webm" } },
     { id, type: "page.goForward", params: {} },
+    { id, type: "page.goForward", params: { videoFilename: "forward.webm" } },
     { id, type: "page.wait", params: { time: 1 } },
     {
       id,
@@ -110,7 +117,7 @@ test("accepts every protocol v1 command with exact params", () => {
     },
   ];
 
-  expect(messages).toHaveLength(23);
+  expect(messages).toHaveLength(26);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });

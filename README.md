@@ -26,9 +26,9 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_upload_file` | Assign local files to the chooser opened by a snapshot ref, optionally recording through the resulting snapshot |
 | `browser_select_option` | Select values in a snapshot ref, optionally record, and return a post-operation snapshot |
 | `browser_press_key` | Send a key or chord to the target tab, optionally recording the operation |
-| `browser_navigate` | Navigate the target tab to an HTTP(S) URL and return a post-operation snapshot |
-| `browser_go_back` | Go back in the target tab's history and return a post-operation snapshot |
-| `browser_go_forward` | Go forward in the target tab's history and return a post-operation snapshot |
+| `browser_navigate` | Navigate to an HTTP(S) URL, optionally recording through the post-operation snapshot |
+| `browser_go_back` | Go back in history, optionally recording through the post-operation snapshot |
+| `browser_go_forward` | Go forward in history, optionally recording through the post-operation snapshot |
 | `browser_wait` | Wait for a specified number of seconds, optionally recording the target during the wait |
 | `browser_record_video` | Record the target tab as a bounded silent WebM below Downloads/chrome-bridge |
 | `browser_screenshot` | Capture the target tab's viewport as PNG image content |

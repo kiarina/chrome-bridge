@@ -14,6 +14,13 @@ var protocol_v1_schema_default = {
       properties: {},
       additionalProperties: false
     },
+    recordedEmptyParams: {
+      type: "object",
+      properties: {
+        videoFilename: { $ref: "#/$defs/recordingFilename" }
+      },
+      additionalProperties: false
+    },
     tabIdParams: {
       type: "object",
       properties: { tabId: { type: "integer", minimum: 0 } },
@@ -151,8 +158,6 @@ var protocol_v1_schema_default = {
               type: {
                 enum: [
                   "page.snapshot",
-                  "page.goBack",
-                  "page.goForward",
                   "page.screenshot",
                   "page.getConsoleLogs"
                 ]
@@ -162,6 +167,17 @@ var protocol_v1_schema_default = {
           },
           then: {
             properties: { params: { $ref: "#/$defs/emptyParams" } }
+          }
+        },
+        {
+          if: {
+            properties: {
+              type: { enum: ["page.goBack", "page.goForward"] }
+            },
+            required: ["type"]
+          },
+          then: {
+            properties: { params: { $ref: "#/$defs/recordedEmptyParams" } }
           }
         },
         {
@@ -296,7 +312,10 @@ var protocol_v1_schema_default = {
             properties: {
               params: {
                 type: "object",
-                properties: { url: { type: "string", minLength: 1 } },
+                properties: {
+                  url: { type: "string", minLength: 1 },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
+                },
                 required: ["url"],
                 additionalProperties: false
               }

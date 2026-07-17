@@ -174,20 +174,28 @@ def create_app(settings: Settings) -> Any:
 
     @mcp.tool(name="browser_navigate")
     async def browser_navigate(
-        url: str, browser_id: str | None = None
+        url: str,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Navigate the target tab to an HTTP(S) URL and return its snapshot."""
-        return await controller.navigate(url, browser_id)
+        """Navigate to an HTTP(S) URL, optionally recording through the snapshot."""
+        return await controller.navigate(url, browser_id, video_filename)
 
     @mcp.tool(name="browser_go_back")
-    async def browser_go_back(browser_id: str | None = None) -> dict[str, Any]:
-        """Navigate the target tab backward and return its snapshot."""
-        return await controller.go_back(browser_id)
+    async def browser_go_back(
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Navigate backward, optionally recording through the snapshot."""
+        return await controller.go_back(browser_id, video_filename)
 
     @mcp.tool(name="browser_go_forward")
-    async def browser_go_forward(browser_id: str | None = None) -> dict[str, Any]:
-        """Navigate the target tab forward and return its snapshot."""
-        return await controller.go_forward(browser_id)
+    async def browser_go_forward(
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Navigate forward, optionally recording through the snapshot."""
+        return await controller.go_forward(browser_id, video_filename)
 
     @mcp.tool(name="browser_wait")
     async def browser_wait(

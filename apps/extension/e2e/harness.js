@@ -126,6 +126,7 @@ export async function startFixtureServer() {
 <html><head><title>Chrome Bridge E2E</title></head>
 <body><main>
 <h1>Isolated fixture</h1>
+<a id="history-link" href="${request.url === "/a" ? "/b" : "/a"}">History destination</a>
 <button id="update">Update</button>
 <button id="hover">Hover target</button>
 <button id="upload">Choose files</button>

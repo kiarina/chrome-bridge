@@ -1683,13 +1683,21 @@ async function executeCommand(type, params) {
       );
     }
     case "page.navigate": {
-      return runPageOperation(() => navigateTarget(params));
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, () =>
+          navigateTarget(params),
+        ),
+      );
     }
     case "page.goBack": {
-      return runPageOperation(() => goBackTarget());
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, () => goBackTarget()),
+      );
     }
     case "page.goForward": {
-      return runPageOperation(() => goForwardTarget());
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, () => goForwardTarget()),
+      );
     }
     case "page.wait": {
       return runPageOperation(async () => {

@@ -74,9 +74,13 @@ operation-scoped recording and Full HD screenshots remain. Follow
   document history and cross-document navigation before enabling the public option.
   The isolated probe now shows one stable page target/frame ID, loader replacement only
   for document loads, zero detach events, and error-free capture with 38–56 ms maxima
-  across pushState, cross-document, back, and forward. Implement the option next, then
-  inject load failure, target change, tab close, and external detach through the actual
-  recorded path before branded-Chrome playback.
+  across pushState, cross-document, back, and forward. The public options are now
+  implemented; isolated navigate/back/forward each produced 13 frames over
+  1,231–1,239 ms with zero drops and correct destination snapshots.
+- Inject load failure, target change, tab close, and external detach through the actual
+  recorded navigation path next. Confirm unknown-outcome classification, diagnostic or
+  partial-download cleanup, profile isolation, and immediate debugger reuse before
+  branded-Chrome playback.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,

@@ -18,13 +18,8 @@ routing, strict refs, debugger cleanup, or operation ordering.
 
 `browser_wait`, `browser_click`, `browser_hover`, `browser_type`,
 `browser_select_option`, `browser_press_key`, `browser_drag`, and
-`browser_upload_file` now accept optional
-`video_filename: string | null = null`. Add the same option to these remaining
-page-operation tools:
-
-- `browser_navigate`
-- `browser_go_back`
-- `browser_go_forward`
+`browser_upload_file`, `browser_navigate`, `browser_go_back`, and
+`browser_go_forward` now accept optional `video_filename: string | null = null`.
 
 Omitting the argument preserves the current behavior and must not add a persistent
 debugger attachment or recording overhead. When it is present, recording begins before
@@ -328,13 +323,14 @@ final state, post-roll, and unchanged active tab remained visible.
 
 Continue in this order:
 
-1. Add navigate/back/forward only after renderer and target lifecycle measurements.
+1. Complete navigate/back/forward lifecycle failure injection.
    Upload success, rejection, target change, tab close, and external detach now preserve
    chooser cleanup, download isolation, profile routing, and immediate debugger reuse.
    The isolated navigation probe found a stable page target/frame ID, new loader IDs only
    for document loads, no detach events, and successful capture samples with 38–56 ms
-   maxima across same-document, cross-document, back, and forward. Implement the actual
-   recorded path next, then inject load failure and lifecycle interruptions.
+   maxima across same-document, cross-document, back, and forward. The actual recorded
+   paths now produce correct destination snapshots with 13 frames, 1,231–1,239 ms, and
+   zero drops; inject load failure, target change, tab close, and external detach next.
 2. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.

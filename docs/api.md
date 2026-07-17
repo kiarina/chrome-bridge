@@ -293,21 +293,34 @@ Navigates the target tab to a URL and captures a snapshot after load completes. 
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `url` | string | yes | `http://` or `https://` URL |
+| `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the destination snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** A post-navigation `Snapshot`.
+**Returns:** A post-navigation `Snapshot`, or `{operation, recording}` when recorded.
 
 ### `browser_go_back`
 
-Goes back one entry in the target tab's history. Has no arguments other than `browser_id`.
+Goes back one entry in the target tab's history.
 
-**Returns:** A post-navigation `Snapshot`. Returns an error when there is no back history.
+| Argument | Type | Required | Description |
+| --- | --- | --- | --- |
+| `video_filename` | string | no | Record through the resulting history snapshot |
+| `browser_id` | string | no | Browser to route to |
+
+**Returns:** A post-navigation `Snapshot`, or `{operation, recording}` when recorded.
+Returns an error when there is no back history.
 
 ### `browser_go_forward`
 
-Goes forward one entry in the target tab's history. Has no arguments other than `browser_id`.
+Goes forward one entry in the target tab's history.
 
-**Returns:** A post-navigation `Snapshot`. Returns an error when there is no forward history.
+| Argument | Type | Required | Description |
+| --- | --- | --- | --- |
+| `video_filename` | string | no | Record through the resulting history snapshot |
+| `browser_id` | string | no | Browser to route to |
+
+**Returns:** A post-navigation `Snapshot`, or `{operation, recording}` when recorded.
+Returns an error when there is no forward history.
 
 ### `browser_wait`
 
@@ -397,8 +410,8 @@ recording. If encoding or download fails, the command returns an MCP error begin
 
 ## Operation-scoped recording API
 
-Wait, click, hover, type, select, key, drag, and upload implement optional
-`video_filename`. History/navigation actions remain planned. Tab-management and information
+Wait, click, hover, type, select, key, drag, upload, navigate, back, and forward implement
+optional `video_filename`. Tab-management and information
 tools do not receive the option. The authoritative ownership constraints, rollout order,
 and mixed operation/recording result and error contract are in
 [Video recording design](video-recording.md).

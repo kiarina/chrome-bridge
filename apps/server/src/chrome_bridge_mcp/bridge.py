@@ -499,28 +499,38 @@ class BrowserController:
             raise ExtensionCommandError("page.pressKey returned an invalid response")
         return completion
 
-    async def navigate(self, url: str, browser_id: str | None = None) -> dict[str, Any]:
+    async def navigate(
+        self,
+        url: str,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
         if not _is_http_url(url):
             raise ValueError("url must use http:// or https://")
         connection = self._connection(browser_id)
-        result = await connection.request("page.navigate", {"url": url})
-        if not _is_snapshot_result(result):
-            raise ExtensionCommandError("page.navigate returned an invalid response")
-        return self._with_browser_id(result, connection)
+        return await self._snapshot_operation(
+            "page.navigate", {"url": url}, connection, video_filename
+        )
 
-    async def go_back(self, browser_id: str | None = None) -> dict[str, Any]:
+    async def go_back(
+        self,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
         connection = self._connection(browser_id)
-        result = await connection.request("page.goBack", {})
-        if not _is_snapshot_result(result):
-            raise ExtensionCommandError("page.goBack returned an invalid response")
-        return self._with_browser_id(result, connection)
+        return await self._snapshot_operation(
+            "page.goBack", {}, connection, video_filename
+        )
 
-    async def go_forward(self, browser_id: str | None = None) -> dict[str, Any]:
+    async def go_forward(
+        self,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
         connection = self._connection(browser_id)
-        result = await connection.request("page.goForward", {})
-        if not _is_snapshot_result(result):
-            raise ExtensionCommandError("page.goForward returned an invalid response")
-        return self._with_browser_id(result, connection)
+        return await self._snapshot_operation(
+            "page.goForward", {}, connection, video_filename
+        )
 
     async def wait(
         self,
