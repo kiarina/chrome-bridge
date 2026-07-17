@@ -14,8 +14,7 @@
   in 108 ms, while portrait returned 1080×1920 at 87,221 bytes / 116,296 characters in
   125 ms. The complete two-profile E2E passed in 1.2 minutes.
 - All 43 extension tests and lint passed. No public argument, PNG response type,
-  permission, runtime file, release allowlist, or retained-data disclosure changed;
-  branded portrait-window validation remains.
+  permission, runtime file, release allowlist, or retained-data disclosure changed.
 - After extension reload, branded Chrome at DPR 2 returned the 1365×817 CSS viewport as
   an exact 1365×817 PNG rather than a 2× physical-pixel image, confirming the canvas
   enforces the no-upscale contract on high-DPI output. A controlled high-entropy page
@@ -26,6 +25,16 @@
   RSS rise from 1,948,960 to 2,083,760 KiB and server RSS from 110,560 to 114,368 KiB.
   These totals include all existing Chrome processes and are a conservative observation,
   not per-command retained-memory attribution.
+- A temporary Chrome-control viewport provided a controlled 1080×1920 portrait tab
+  without resizing the user's normal window. chrome-bridge discovered that inactive tab
+  and returned three exact 1080×1920 PNGs in 1,329–1,402 ms at about 1.31 MB / 1.74 M
+  base64 characters. Visual inspection confirmed the complete frame and bottom-right
+  marker, the original active tab remained unchanged, and consecutive calls reused the
+  debugger cleanly. The viewport override was reset and the temporary tab was closed.
+- Landscape, high-DPI/no-upscale, portrait, full framing, transfer size/duration,
+  repeated debugger reuse, and coarse resource observations are now complete. The P2
+  recording and shared media-sizing milestone is closed; remaining work is release and
+  publication setup.
 
 ### Branded upload and navigation timeline acceptance
 

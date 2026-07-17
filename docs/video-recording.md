@@ -208,8 +208,8 @@ transfer time with controlled complex pages and high-DPI displays as rollout evi
 The isolated two-profile production path returned a 1920×1080 PNG as 92,259 bytes
 (123,012 base64 characters) in 108 ms and a 1080×1920 PNG as 87,221 bytes (116,296
 base64 characters) in 125 ms. These controlled fixtures establish exact dimensions and
-bounded local transfer behavior; branded landscape/high-DPI evidence follows, while the
-branded portrait window remains a manual boundary.
+bounded local transfer behavior; branded landscape/high-DPI and portrait evidence
+follows.
 
 After extension reload, branded Chrome at DPR 2 returned its 1365×817 CSS viewport as an
 exact 1365×817 PNG, confirming the content canvas bounds the physical-pixel capture and
@@ -218,9 +218,16 @@ does not upscale. On a controlled high-entropy landscape fixture, five identical
 preserved the active tab, and reattached successfully on every call. Three additional
 calls produced a coarse aggregate Chrome RSS peak about 132 MiB over the open-tab
 baseline and a server peak about 3.7 MiB over baseline; the Chrome figure includes all
-existing processes and is not per-command retained-memory attribution. Branded portrait
-window validation remains because the available user window was landscape; isolated
-Chrome already enforces the 1080×1920 path.
+existing processes and is not per-command retained-memory attribution.
+
+A temporary Chrome-control viewport then provided a controlled 1080×1920 branded tab
+without resizing the user's normal window. chrome-bridge discovered it as an inactive
+target and returned three exact 1080×1920 PNGs in 1,329–1,402 ms at about 1.31 MB / 1.74
+M base64 characters. The complete frame and bottom-right edge marker were visible, the
+original active tab remained unchanged, and consecutive calls reattached successfully.
+The override was reset and the temporary tab closed. This completes the shared Full HD
+screenshot rollout across isolated landscape/portrait, branded high-DPI landscape, and
+branded portrait paths.
 
 ## Technical probe evidence
 
