@@ -4,7 +4,7 @@
 
 Chrome Web Store is the canonical distribution channel for the Chrome extension. PyPI distributes the separate `chrome-bridge-mcp` local server, and GitHub Releases provide source, checksums, and the same verified artifacts.
 
-The initial Store release should be **Unlisted** with deferred publishing. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. Do not submit until the Git remote, public privacy-policy URL, support URL, reviewer-accessible server package, and publisher account are ready.
+The initial Store release should be **Unlisted** with deferred publishing. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. The publisher account is registered and currently declared Non-Trader for the present personal, non-commercial open-source distribution; update and verify that declaration if the publishing activity becomes related to a trade, business, craft, or profession. Do not submit until the public privacy-policy URL, support URL, and reviewer-accessible server package are ready.
 
 Official references:
 
@@ -32,7 +32,7 @@ Confirm the ZIP checksum against `release/SHA256SUMS`. Chrome Web Store requires
 
 ## Developer account and public URLs
 
-1. Register a dedicated Chrome Web Store developer account, pay the one-time registration fee shown by the dashboard, verify its email, and select the publisher name.
+1. Keep the registered Chrome Web Store publisher account, email, trader declaration, and publisher name current. Trader contact information is verified and displayed publicly; reassess the declaration if the nature of the publishing activity changes.
 2. Publish [the privacy policy](../PRIVACY.md) at a stable public HTTPS URL. The Store dashboard privacy-policy field must use that public URL, not a local or unpublished path.
 3. Provide stable public product and support URLs. The support destination must be monitored for review questions, security reports, and user issues.
 4. Keep publisher credentials, OAuth tokens, service-account keys, and signing keys outside the repository and release artifacts.

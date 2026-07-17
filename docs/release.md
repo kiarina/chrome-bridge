@@ -9,7 +9,7 @@ The v0.1 build produces three local artifacts plus checksums:
 - `chrome_bridge_mcp-0.1.0.tar.gz`: Python MCP server source distribution.
 - `SHA256SUMS`: SHA-256 checksums for the three files above.
 
-Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The repository still has no Git remote, so do not create a GitHub Release, upload to a package index, or submit to Chrome Web Store until publication destinations and credentials are configured.
+Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI has a pending trusted publisher for `chrome-bridge-mcp`, `.github/workflows/release-pypi.yml`, and the `pypi` GitHub environment. A pending publisher does not reserve the project name before the first successful upload.
 
 ## Canonical file selection
 
@@ -91,8 +91,8 @@ If a protocol-incompatible version is introduced later, separately define a migr
 Complete the following before publication:
 
 1. Confirm the root, extension ZIP, wheel, and sdist carry the MIT license while retaining Playwright's Apache-2.0 notice and license.
-2. Decide the Git remote, repository visibility, and release signing/retention policies.
-3. Reserve the `chrome-bridge-mcp` project name and configure trusted publishing if publishing wheel/sdist to PyPI.
-4. Attach GitHub Actions-verified artifacts to tag `v0.1.0` and confirm SHA-256 matches a local rebuild.
+2. Use the public `kiarina/chrome-bridge` repository; its owner authorizes tag and GitHub Release creation.
+3. Keep the pending `chrome-bridge-mcp` trusted publisher aligned with workflow `release-pypi.yml` and GitHub environment `pypi`. The first successful upload creates the project and claims the name.
+4. Push tag `v0.1.0` only after the version commit is on `main`. The release workflow rebuilds, clean-installs, runs artifact E2E, checks reproducibility, attaches the verified assets to the GitHub Release, and publishes the same wheel/sdist to PyPI. Confirm its SHA-256 values match a local rebuild.
 5. Publish `PRIVACY.md` and support information at stable HTTPS URLs, prepare Store listing assets, and complete the permission/data declarations in the [Chrome Web Store guide](chrome-web-store.md).
 6. Upload the same verified extension ZIP as an Unlisted item with deferred publishing, pass review, and complete the Store-specific branded-Chrome smoke test before considering Public visibility.
