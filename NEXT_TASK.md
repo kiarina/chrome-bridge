@@ -77,10 +77,15 @@ operation-scoped recording and Full HD screenshots remain. Follow
   across pushState, cross-document, back, and forward. The public options are now
   implemented; isolated navigate/back/forward each produced 13 frames over
   1,231–1,239 ms with zero drops and correct destination snapshots.
-- Inject load failure, target change, tab close, and external detach through the actual
-  recorded navigation path next. Confirm unknown-outcome classification, diagnostic or
-  partial-download cleanup, profile isolation, and immediate debugger reuse before
-  branded-Chrome playback.
+- Actual recorded navigation now covers load failure, target change, tab close, and
+  external detach. It verifies known/unknown outcome classification, diagnostic
+  finalization or discard (including either capturable or detached Chrome error pages),
+  no partial download, profile isolation, cleared dead targets, and immediate debugger
+  reuse; the full E2E passes in 1.2 minutes.
+- Branded Chrome now confirms the upload, navigate, back, and forward timelines. The
+  11–23-frame 1365×817 WebMs ran for 1,073–2,570 ms, began on real page frames, showed
+  `Files: none → README.md`, `/a → /b`, `/b → /a`, and `/a → /b`, and retained the
+  inactive target, original active tab, and immediate screenshot reuse.
 - Change `browser_screenshot` from the currently implemented 1024×768 bound to the shared
   Full HD policy in the same milestone as tests and documentation; measure PNG size,
   resize latency, base64/MCP transfer cost, recording CPU/memory, effective frame rate,

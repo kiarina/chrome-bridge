@@ -81,6 +81,25 @@ async function removeProbeDownload(profile, downloadId) {
   }, { id: downloadId });
 }
 
+async function downloadState(profile) {
+  return profile.worker.evaluate(async () => ({
+    count: (await chrome.downloads.search({})).length,
+    latest: (await chrome.downloads.search({
+      state: "complete",
+      orderBy: ["-startTime"],
+      limit: 1,
+    })).map((item) => ({ filename: item.filename, id: item.id }))[0],
+  }));
+}
+
+async function verifyAndRemoveDiagnostic(profile, previousCount) {
+  const downloads = await downloadState(profile);
+  expect(downloads.count).toBe(previousCount + 1);
+  const webm = await readFile(downloads.latest.filename);
+  expect([...webm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+  await removeProbeDownload(profile, downloads.latest.id);
+}
+
 async function measureInputDelay(profile, tabId) {
   return profile.worker.evaluate(
     ({ currentTabId }) =>
@@ -380,6 +399,157 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       browser_id: browserA,
       url: `${fixture.baseUrl}/a`,
     }));
+
+    const downloadsBeforeFailedNavigation = (await downloadState(profileA)).count;
+    const failedNavigation = await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/fail`,
+      video_filename: "failed-navigation.webm",
+    });
+    expect(failedNavigation.isError).toBe(true);
+    expect(toolText(failedNavigation)).toContain("Target navigation failed:");
+    if (toolText(failedNavigation).includes("Recording saved:")) {
+      await verifyAndRemoveDiagnostic(profileA, downloadsBeforeFailedNavigation);
+    } else {
+      expect(toolText(failedNavigation)).toContain("Recording also failed:");
+      expect(toolText(failedNavigation)).toContain("Not attached to an active page");
+      expect((await downloadState(profileA)).count)
+        .toBe(downloadsBeforeFailedNavigation);
+    }
+    successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+    }));
+
+    const navigationTargetChangeTab = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/b`,
+      active: false,
+    }));
+    const downloadsBeforeNavigationTargetChange = (await downloadState(profileA)).count;
+    const targetChangedNavigation = call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/slow-a`,
+      video_filename: "target-changed-navigation.webm",
+    });
+    await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: openedA.id })).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: navigationTargetChangeTab.id,
+    }));
+    const targetChangedNavigationResult = await targetChangedNavigation;
+    expect(targetChangedNavigationResult.isError).toBe(true);
+    expect(toolText(targetChangedNavigationResult)).toContain(
+      "Operation outcome unknown:",
+    );
+    expect(toolText(targetChangedNavigationResult)).toContain("Recording saved:");
+    await verifyAndRemoveDiagnostic(
+      profileA,
+      downloadsBeforeNavigationTargetChange,
+    );
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: openedA.id,
+    }));
+    successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+    }));
+    expect(successful(await call("browser_tab_close", {
+      browser_id: browserA,
+      tab_id: navigationTargetChangeTab.id,
+    }))).toMatchObject({ closed: true, tabId: navigationTargetChangeTab.id });
+
+    const downloadsBeforeDetachedNavigation = (await downloadState(profileA)).count;
+    const detachedNavigation = call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/slow-a`,
+      video_filename: "externally-detached-navigation.webm",
+    });
+    await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: openedA.id })).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    await profileA.worker.evaluate(async ({ tabId }) => {
+      const target = (await chrome.debugger.getTargets()).find(
+        (candidate) => candidate.tabId === tabId && candidate.attached,
+      );
+      if (!target) throw new Error("Recorded navigation debugger is not attached");
+      await chrome.debugger.detach({ targetId: target.id });
+    }, { tabId: openedA.id });
+    const detachedNavigationResult = await detachedNavigation;
+    expect(detachedNavigationResult.isError).toBe(true);
+    expect(toolText(detachedNavigationResult)).toContain(
+      "Operation completed, but recording failed:",
+    );
+    expect(toolText(detachedNavigationResult)).toContain(
+      "Do not retry the operation automatically.",
+    );
+    expect((await downloadState(profileA)).count)
+      .toBe(downloadsBeforeDetachedNavigation);
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+    successful(await call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+    }));
+
+    const closingNavigationTab = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/a`,
+      active: false,
+    }));
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: closingNavigationTab.id,
+    }));
+    const downloadsBeforeClosedNavigation = (await downloadState(profileA)).count;
+    const closingNavigation = call("browser_navigate", {
+      browser_id: browserA,
+      url: `${fixture.baseUrl}/slow-a`,
+      video_filename: "tab-closed-navigation.webm",
+    });
+    await expect.poll(() => profileA.worker.evaluate(async ({ tabId }) =>
+      (await chrome.debugger.getTargets()).some(
+        (target) => target.tabId === tabId && target.attached,
+      ),
+    { tabId: closingNavigationTab.id })).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    successful(await call("browser_tab_close", {
+      browser_id: browserA,
+      tab_id: closingNavigationTab.id,
+    }));
+    const closingNavigationResult = await closingNavigation;
+    expect(closingNavigationResult.isError).toBe(true);
+    expect(toolText(closingNavigationResult)).toContain(
+      "Operation outcome unknown:",
+    );
+    expect(toolText(closingNavigationResult)).toContain(
+      "Inspect current page state before retrying.",
+    );
+    const closedNavigationDownloads = await downloadState(profileA);
+    if (toolText(closingNavigationResult).includes("Recording saved:")) {
+      await verifyAndRemoveDiagnostic(profileA, downloadsBeforeClosedNavigation);
+    } else {
+      expect(toolText(closingNavigationResult)).toContain("Recording also failed:");
+      expect(closedNavigationDownloads.count).toBe(downloadsBeforeClosedNavigation);
+    }
+    successful(await call("browser_tab_select", {
+      browser_id: browserA,
+      tab_id: openedA.id,
+    }));
+    expect((await call("browser_screenshot", { browser_id: browserA })).isError)
+      .not.toBe(true);
+
     expect(successful(await call("browser_tabs", { browser_id: browserA }))
       .find((tab) => tab.active).id).toBe(activeA);
 

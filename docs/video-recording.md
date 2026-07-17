@@ -4,10 +4,10 @@
 
 This document is the canonical design and rollout record for target-tab video recording.
 The production offscreen/download pipeline and bounded standalone tool are implemented.
-Operation-scoped wait, click, hover, type, select, key, and drag recording are also
-implemented; upload/history/navigation options and Full HD screenshot output remain
-planned. The current 21-tool API includes these recording modes, while screenshot remains
-limited to 1024×768 until its production tests and documentation land together.
+Operation-scoped wait, click, hover, type, select, key, drag, upload, navigation, and
+history recording are also implemented. Full HD screenshot output remains planned. The
+current 21-tool API includes these recording modes, while screenshot remains limited to
+1024×768 until its production tests and documentation land together.
 
 The goal is to record the target tab while chrome-bridge performs an operation without
 foregrounding that tab, then save a WebM file below the Chrome profile's default
@@ -147,10 +147,10 @@ measured; they never reorder input or attach another debugger. Any detach, tab c
 target change, protocol failure, or cancellation must stop capture and execute best-effort
 final cleanup without attaching to a different tab or target.
 
-Navigation, back/forward, and file upload are later implementation stages. Navigation
-can replace renderer state, while upload combines debugger use with file-chooser
-interception. Do not enable recording for them until branded-Chrome and isolated tests
-demonstrate that detach, interception, and target identity remain correct.
+Navigation, back/forward, and file upload use the same command-scoped session. Navigation
+may replace loader/renderer state while retaining target identity; upload combines the
+session with file-chooser interception. Isolated lifecycle injection and branded-Chrome
+playback now cover their detach, cleanup, routing, and temporal behavior.
 
 ## Capture and encoding
 
@@ -321,17 +321,17 @@ a 1365×817 drag: timestamp 0.000 was the initial page, all 24 submitted frames 
 2,766 ms were free of the former lead-in, and the pre-roll, intermediate cursor positions,
 final state, post-roll, and unchanged active tab remained visible.
 
+After the final extension reload, branded Chrome recorded upload, navigate, back, and
+forward on an inactive 1365×817 fixture as 23, 12, 11, and 11 frames over 2,570, 1,184,
+1,073, and 1,104 ms. First/last-frame and contact-sheet inspection showed no black
+lead-in and visibly confirmed `Files: none → README.md`, `/a → /b`, `/b → /a`, and
+`/a → /b`. Upload dropped four scheduled captures while its critical input path had
+priority; navigation dropped none. The active tab remained unchanged, the diagnostic
+fixture tab was closed, and an immediate screenshot reattached successfully.
+
 Continue in this order:
 
-1. Complete navigate/back/forward lifecycle failure injection.
-   Upload success, rejection, target change, tab close, and external detach now preserve
-   chooser cleanup, download isolation, profile routing, and immediate debugger reuse.
-   The isolated navigation probe found a stable page target/frame ID, new loader IDs only
-   for document loads, no detach events, and successful capture samples with 38–56 ms
-   maxima across same-document, cross-document, back, and forward. The actual recorded
-   paths now produce correct destination snapshots with 13 frames, 1,231–1,239 ms, and
-   zero drops; inject load failure, target change, tab close, and external detach next.
-2. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
+1. Change screenshot dimensions, remaining public tool schemas, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

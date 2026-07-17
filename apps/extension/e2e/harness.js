@@ -117,16 +117,24 @@ export async function startFixtureServer() {
       response.writeHead(204).end();
       return;
     }
-    if (request.url !== "/a" && request.url !== "/b") {
+    if (request.url === "/fail") {
+      request.socket.destroy();
+      return;
+    }
+    const fixturePath = request.url === "/slow-a" ? "/a" : request.url;
+    if (fixturePath !== "/a" && fixturePath !== "/b") {
       response.writeHead(404).end("Not found");
       return;
     }
-    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(`<!doctype html>
+    const sendFixture = () => {
+      if (response.destroyed) return;
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(`<!doctype html>
 <html><head><title>Chrome Bridge E2E</title></head>
 <body><main>
 <h1>Isolated fixture</h1>
-<a id="history-link" href="${request.url === "/a" ? "/b" : "/a"}">History destination</a>
+<p id="route-status">Route: ${fixturePath}</p>
+<a id="history-link" href="${fixturePath === "/a" ? "/b" : "/a"}">History destination</a>
 <button id="update">Update</button>
 <button id="hover">Hover target</button>
 <button id="upload">Choose files</button>
@@ -182,6 +190,12 @@ dropzone.addEventListener("drop", (event) => {
   document.querySelector("#drop-status").textContent = "Drop: completed " + label;
 });
 </script></body></html>`);
+    };
+    if (request.url === "/slow-a") {
+      setTimeout(sendFixture, 2_000);
+    } else {
+      sendFixture();
+    }
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);

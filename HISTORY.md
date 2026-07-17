@@ -2,6 +2,38 @@
 
 ## 2026-07-17
 
+### Branded upload and navigation timeline acceptance
+
+- Reloaded the unpacked extension and restarted the local server so branded Chrome used
+  the current upload/navigation tool signatures. A controlled inactive fixture tab
+  recorded upload, navigate, back, and forward without changing the active tab.
+- The 1365×817 WebMs produced 23, 12, 11, and 11 frames over 2,570, 1,184, 1,073, and
+  1,104 ms. Upload intentionally dropped four scheduled captures while its critical
+  input work had priority; all navigation captures completed without drops.
+- First/last-frame and full contact-sheet inspection found no black lead-in and confirmed
+  `Files: none → README.md`, `/a → /b`, `/b → /a`, and `/a → /b`, including the
+  initial-state and final-state margins. The fixture now renders its route so document
+  transitions are visually distinguishable.
+- The immediate post-recording screenshot succeeded, the original active tab was
+  preserved, and the disposable target tab was closed after validation.
+
+### Recorded-navigation lifecycle failure matrix
+
+- Added controlled `/slow-a` and connection-reset `/fail` fixture routes, then injected
+  load failure, target change, external debugger detach, and tab close through the actual
+  recorded navigation path after first-frame startup and pre-roll.
+- `net::ERR_EMPTY_RESPONSE` preserves the navigation error. Depending on whether Chrome
+  keeps the error document capturable through finalization, it saves one valid diagnostic
+  WebM or reports the secondary capture failure; neither path leaves a partial download.
+- Target change during the delayed load returned an unknown outcome plus one valid
+  diagnostic WebM, did not reroute, and immediately reused the replacement target.
+- External detach let navigation and its destination snapshot complete, returned the
+  operation-completed/recording-failed retry warning, created no download, and immediately
+  reattached for screenshot.
+- Tab close returned an unknown outcome, finalized or discarded only its own diagnostic,
+  cleared the dead target, preserved the other profile, and immediately reused the
+  original background fixture. The complete two-profile E2E passed in 1.2 minutes.
+
 ### First recorded navigation and history operations
 
 - Added optional `video_filename` to navigate, back, and forward across MCP schemas,

@@ -57,9 +57,16 @@ probe holds one debugger target while sampling screenshots through same-document
 cross-document, back, and forward transitions; it never ships in the production
 extension artifact.
 
+The fixture renders its `/a` or `/b` route and also owns deterministic delayed
+(`/slow-a`) and connection-reset (`/fail`) routes. The visible route makes playback
+transitions testable; recorded-navigation E2E uses the controlled failures to inject
+target change, tab close, and external detach without external networks or variable
+remote servers.
+
 The production manifest includes `offscreen`/`downloads`, and E2E calls the public
 `browser_record_video` tool against controlled inactive landscape and portrait fixtures.
-It also records wait, click, hover, type, select, key, and drag; verifies conditional
+It also records wait, click, hover, type, select, key, drag, upload, navigate, back, and
+forward; verifies conditional
 result wrappers, visible operation outcomes, guaranteed initial frame/pre-roll,
 input-priority frame dropping, bounded drag milestone capture, and post-roll WebM output;
 and forces an external debugger detach to verify the mixed-failure warning,
