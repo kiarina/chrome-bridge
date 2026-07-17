@@ -166,16 +166,23 @@ manifest and public protocol remained unchanged. The probe:
 - captured and encoded 15 JPEG frames per run; the Full HD WebM was 56,920 bytes and
   completed in 1,570 ms;
 - measured 21 ms mean and 63 ms maximum Full HD screenshot capture time;
+- recorded portrait 1080×1920 as 15 frames and approximately 57 KB with no drops;
+- requested real CDP `Input.dispatchMouseEvent` immediately after a Full HD capture
+  started; five cold-path samples per orientation waited 18 ms on average, with 27 ms
+  landscape and 30 ms portrait maxima, while the input command itself took at most 7 ms;
 - dropped no frames in the standalone, uncontended case;
 - downloaded the Blob, verified its EBML/WebM header, and deleted only that test file;
 - immediately reused the target for a debugger-backed screenshot and continued through
   click, type, drag, upload, screenshot, profile isolation, and restart E2E checks.
 
-The first cold 1280×720 run had a 289 ms maximum capture; a repeated warm run measured
-13 ms mean and 31 ms maximum, while the Full HD run measured 21 ms mean and 63 ms
-maximum. Input priority prevents a new capture from starting after critical work is
-pending, but a capture that is already in flight cannot be cancelled. Measure the delay
-seen by real input and portrait Full HD before fixing frame rate and pre-roll behavior.
+The first cold 1280×720 run had a 289 ms maximum capture; later warm and deliberately
+cold contention runs stayed at or below 32 ms queue delay, and Full HD recording runs
+stayed at or below 63 ms capture time. Input priority prevents a new capture from
+starting after critical work is pending, but a capture already in flight cannot be
+cancelled. The controlled Chromium evidence supports the command-scoped design; branded
+Chrome and heavier pages still require measurement before the frame-rate contract is
+fixed. The input probe uses a non-clicking mouse-move command without focus emulation so
+that it isolates added queue delay from the existing 250 ms focus-emulation settle.
 
 ## Implementation and validation order
 
@@ -187,15 +194,14 @@ standalone recorder probe succeeds on an inactive target.
 
 Continue in this order:
 
-1. Measure portrait Full HD capture and actual input-delay behavior.
-2. Fix public result metadata and mixed operation/recording failure semantics.
-3. Add the production offscreen/download pipeline and bounded standalone tool.
-4. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
-5. Verify failure cleanup, frame backpressure, extension reload, tab close, target
+1. Fix public result metadata and mixed operation/recording failure semantics.
+2. Add the production offscreen/download pipeline and bounded standalone tool.
+3. Add non-navigation operations such as click, hover, type, select, key, drag, and wait.
+4. Verify failure cleanup, frame backpressure, extension reload, tab close, target
    change, two-profile isolation, and immediate debugger reuse.
-6. Add upload recording after file-chooser cleanup is proven unchanged.
-7. Add navigate/back/forward only after renderer and target lifecycle measurements.
-8. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
+5. Add upload recording after file-chooser cleanup is proven unchanged.
+6. Add navigate/back/forward only after renderer and target lifecycle measurements.
+7. Change screenshot dimensions, public tool schemas, permissions, Store disclosures,
    release allowlists, and all user-facing documentation in the same implementation
    milestone.
 

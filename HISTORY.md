@@ -2,6 +2,23 @@
 
 ## 2026-07-17
 
+### Portrait Full HD and input-contention recording measurements
+
+- Added a portrait 1080×1920 isolated profile and encoded 15 frames into approximately
+  57 KB WebM files without drops, matching the landscape Full HD pipeline and preserving
+  the profile's original active tab.
+- Added a five-sample contention probe per orientation that begins a real Full HD
+  `Page.captureScreenshot`, immediately requests `Input.dispatchMouseEvent` on the same
+  command-scoped session, and separates capture time, queue delay, and input-command
+  duration.
+- In the final cold-path run, landscape input queue delay was 18 ms mean and 27 ms
+  maximum; portrait was 18 ms mean and 30 ms maximum. The mouse-move command itself took
+  at most 7 ms. Two preceding warm runs had at most 32 ms queue delay.
+- Kept the probe non-clicking and disabled focus emulation so the measurement isolates
+  recording-added serialization delay from the existing 250 ms focus-emulation settle.
+  The controlled evidence supports the lease design; branded Chrome and heavier pages
+  remain validation boundaries.
+
 ### Background target recording technical probe
 
 - Extracted debugger ownership into a command-scoped session used by all existing

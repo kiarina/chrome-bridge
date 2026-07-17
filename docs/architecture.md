@@ -142,7 +142,9 @@ below the Chrome profile's Downloads directory. Screenshot and video will share
 orientation-aware Full HD bounds without cropping or upscaling. Navigation and upload
 recording remain gated on lifecycle and cleanup measurements. An isolated E2E-only
 offscreen/MediaRecorder/download probe has validated the pipeline without adding
-production permissions. See
+production permissions. Full HD landscape and portrait probes dropped no frames, and a
+capture already in flight added 18 ms mean and at most 30 ms queue delay to a real CDP
+mouse-move input in the final cold-path run. See
 [Video recording design](video-recording.md) for the canonical planned API, ownership,
 dimensions, and validation order.
 

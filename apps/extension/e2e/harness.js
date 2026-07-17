@@ -217,8 +217,8 @@ export async function prepareExtensionArtifact(serverUrl) {
     await writeFile(
       backgroundPath,
       [
-        'import { recordTargetProbe } from "./recording-probe.js";',
-        "globalThis.__chromeBridgeRecordTargetProbe = recordTargetProbe;",
+        'import { measureInputDelayProbe, recordTargetProbe } from "./recording-probe.js";',
+        "globalThis.__chromeBridgeRecordingProbe = { measureInputDelayProbe, recordTargetProbe };",
         background,
       ].join("\n"),
     );

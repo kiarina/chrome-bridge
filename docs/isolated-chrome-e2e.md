@@ -181,11 +181,18 @@ The rest of the two-profile scenario then covers click/type/drag/upload, isolati
 cleanup, and restart after the refactor.
 
 The first cold 1280×720, 1.5-second run produced 15 frames and a 42,639-byte WebM in
-1,581 ms, with 43 ms mean and 289 ms maximum `Page.captureScreenshot` time. A warm repeat
-measured 13 ms mean and 31 ms maximum. The final 1920×1080 run produced 15 frames and a
-56,920-byte WebM in 1,570 ms, with 21 ms mean and 63 ms maximum capture time. No frames
-were dropped in these uncontended probes. Portrait Full HD and actual input-delay
-measurements remain required before the production frame-rate contract is fixed.
+1,581 ms, with 43 ms mean and 289 ms maximum `Page.captureScreenshot` time. Later
+1920×1080 and 1080×1920 runs each produced 15 frames and approximately 57 KB WebM files
+without drops. Landscape capture measured 17–21 ms mean and up to 63 ms; portrait
+measured 17–33 ms mean, with one 249 ms recording outlier and a 27 ms repeat maximum.
+
+For input contention, each profile starts with five samples before recording: begin a
+Full HD screenshot capture, immediately request a non-clicking
+`Input.dispatchMouseEvent`, then separate queue delay from command duration. The cold
+landscape run measured 18 ms mean and 27 ms maximum queue delay; portrait measured 18 ms
+mean and 30 ms maximum. Input commands took at most 7 ms. This isolates recording-added
+delay from the production focus-emulation settle. Branded Chrome and heavier pages remain
+manual validation boundaries.
 
 ## Failure artifacts and diagnostics
 

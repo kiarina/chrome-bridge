@@ -50,6 +50,97 @@ async function fixturePage(profile, url) {
   );
 }
 
+async function recordFixture(profile, page, tabId, filename) {
+  await page.evaluate(() => {
+    let frame = 0;
+    globalThis.recordingProbeTimer = setInterval(() => {
+      frame += 1;
+      document.querySelector("[role=status]").textContent = `Recording frame ${frame}`;
+    }, 100);
+  });
+  try {
+    return await profile.worker.evaluate(
+      async ({ currentTabId, currentFilename }) => {
+        return globalThis.__chromeBridgeRecordingProbe.recordTargetProbe({
+          tabId: currentTabId,
+          durationMs: 1_500,
+          filename: currentFilename,
+        });
+      },
+      { currentTabId: tabId, currentFilename: filename },
+    );
+  } finally {
+    await page.evaluate(() => {
+      clearInterval(globalThis.recordingProbeTimer);
+      document.querySelector("[role=status]").textContent = "Ready";
+    });
+  }
+}
+
+async function removeProbeDownload(profile, downloadId) {
+  await profile.worker.evaluate(async ({ id }) => {
+    await chrome.downloads.removeFile(id);
+    await chrome.downloads.erase({ id });
+  }, { id: downloadId });
+}
+
+async function measureInputDelay(profile, tabId) {
+  return profile.worker.evaluate(
+    ({ currentTabId }) =>
+      globalThis.__chromeBridgeRecordingProbe.measureInputDelayProbe({
+        tabId: currentTabId,
+        sampleCount: 5,
+      }),
+    { currentTabId: tabId },
+  );
+}
+
+async function verifyRecording(profile, recording, expectedSize, label) {
+  expect(recording).toMatchObject({
+    mimeType: expect.stringMatching(/^video\/webm/),
+    skippedFrames: 0,
+    sourceWidth: expectedSize.width,
+    sourceHeight: expectedSize.height,
+    width: expectedSize.width,
+    height: expectedSize.height,
+  });
+  expect(recording.captureCount).toBeGreaterThanOrEqual(5);
+  expect(recording.frameCount).toBe(recording.captureCount);
+  expect(recording.blobSize).toBeGreaterThan(1_000);
+  const webm = await readFile(recording.filename);
+  expect([...webm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+  console.log(`${label} recording probe metrics`, JSON.stringify({
+    blobSize: recording.blobSize,
+    captureCount: recording.captureCount,
+    elapsedMs: Math.round(recording.elapsedMs),
+    maxCaptureMs: Math.round(recording.maxCaptureMs),
+    meanCaptureMs: Math.round(recording.meanCaptureMs),
+    source: `${recording.sourceWidth}x${recording.sourceHeight}`,
+    output: `${recording.width}x${recording.height}`,
+  }));
+  await removeProbeDownload(profile, recording.downloadId);
+}
+
+function verifyInputDelay(measurement, expectedSize, label) {
+  expect(measurement).toMatchObject({
+    sampleCount: 5,
+    sourceWidth: expectedSize.width,
+    sourceHeight: expectedSize.height,
+  });
+  expect(measurement.samples).toHaveLength(5);
+  expect(measurement.maxInputQueueDelayMs).toBeLessThan(1_000);
+  expect(measurement.maxInputCommandMs).toBeLessThan(500);
+  console.log(`${label} input-delay probe metrics`, JSON.stringify({
+    maxCaptureMs: Math.round(measurement.maxCaptureMs),
+    maxInputCommandMs: Math.round(measurement.maxInputCommandMs),
+    maxInputQueueDelayMs: Math.round(measurement.maxInputQueueDelayMs),
+    meanCaptureMs: Math.round(measurement.meanCaptureMs),
+    meanInputCommandMs: Math.round(measurement.meanInputCommandMs),
+    meanInputQueueDelayMs: Math.round(measurement.meanInputQueueDelayMs),
+    source: `${measurement.sourceWidth}x${measurement.sourceHeight}`,
+  }));
+}
+
 test("routes two isolated Chrome profiles and preserves identity across restart", async ({}, testInfo) => {
   const transcript = [];
   const profiles = [];
@@ -95,6 +186,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       artifactDir: artifact.artifactDir,
       userDataDir: artifact.profileDir("b"),
       name: "profile-b",
+      viewport: { width: 1_080, height: 1_920 },
     });
     profiles.push(profileB);
 
@@ -147,6 +239,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     }))).toMatchObject({ id: openedB.id, active: false, targeted: true, browserId: browserB });
 
     const pageA = await fixturePage(profileA, `${fixture.baseUrl}/a`);
+    const pageB = await fixturePage(profileB, `${fixture.baseUrl}/b`);
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
     await expect.poll(() => pageA.evaluate(() =>
       document.querySelector("#chrome-bridge-agent-indicator")?.shadowRoot?.querySelector(".label")?.textContent,
@@ -177,61 +270,46 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expect(tabsAfterSelectA.find((tab) => tab.targeted).id).toBe(openedA.id);
     expect(tabsAfterSelectB.find((tab) => tab.targeted).id).toBe(openedB.id);
 
-    await pageA.evaluate(() => {
-      let frame = 0;
-      globalThis.recordingProbeTimer = setInterval(() => {
-        frame += 1;
-        document.querySelector("[role=status]").textContent = `Recording frame ${frame}`;
-      }, 100);
-    });
-    const recording = await profileA.worker.evaluate(
-      async ({ tabId }) => {
-        return globalThis.__chromeBridgeRecordTargetProbe({
-          tabId,
-          durationMs: 1_500,
-          filename: "chrome-bridge/recording-probe.webm",
-        });
-      },
-      { tabId: openedA.id },
+    const landscapeInputDelay = await measureInputDelay(profileA, openedA.id);
+    const portraitInputDelay = await measureInputDelay(profileB, openedB.id);
+    verifyInputDelay(
+      landscapeInputDelay,
+      { width: 1_920, height: 1_080 },
+      "landscape cold",
     );
-    await pageA.evaluate(() => {
-      clearInterval(globalThis.recordingProbeTimer);
-      document.querySelector("[role=status]").textContent = "Ready";
-    });
-    expect(recording).toMatchObject({
-      mimeType: expect.stringMatching(/^video\/webm/),
-      skippedFrames: 0,
-      sourceWidth: expect.any(Number),
-      sourceHeight: expect.any(Number),
-      width: expect.any(Number),
-      height: expect.any(Number),
-    });
-    expect(recording.captureCount).toBeGreaterThanOrEqual(5);
-    expect(recording.frameCount).toBe(recording.captureCount);
-    expect(recording.blobSize).toBeGreaterThan(1_000);
-    expect(recording.width).toBeLessThanOrEqual(
-      recording.sourceWidth >= recording.sourceHeight ? 1_920 : 1_080,
+    verifyInputDelay(
+      portraitInputDelay,
+      { width: 1_080, height: 1_920 },
+      "portrait cold",
     );
-    expect(recording.height).toBeLessThanOrEqual(
-      recording.sourceWidth >= recording.sourceHeight ? 1_080 : 1_920,
+    const recording = await recordFixture(
+      profileA,
+      pageA,
+      openedA.id,
+      "chrome-bridge/recording-probe-landscape.webm",
     );
-    const webm = await readFile(recording.filename);
-    expect([...webm.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
-    console.log("recording probe metrics", JSON.stringify({
-      blobSize: recording.blobSize,
-      captureCount: recording.captureCount,
-      elapsedMs: Math.round(recording.elapsedMs),
-      maxCaptureMs: Math.round(recording.maxCaptureMs),
-      meanCaptureMs: Math.round(recording.meanCaptureMs),
-      source: `${recording.sourceWidth}x${recording.sourceHeight}`,
-      output: `${recording.width}x${recording.height}`,
-    }));
-    await profileA.worker.evaluate(async ({ downloadId }) => {
-      await chrome.downloads.removeFile(downloadId);
-      await chrome.downloads.erase({ id: downloadId });
-    }, { downloadId: recording.downloadId });
+    await verifyRecording(
+      profileA,
+      recording,
+      { width: 1_920, height: 1_080 },
+      "landscape",
+    );
+    const portraitRecording = await recordFixture(
+      profileB,
+      pageB,
+      openedB.id,
+      "chrome-bridge/recording-probe-portrait.webm",
+    );
+    await verifyRecording(
+      profileB,
+      portraitRecording,
+      { width: 1_080, height: 1_920 },
+      "portrait",
+    );
     expect(successful(await call("browser_tabs", { browser_id: browserA }))
       .find((tab) => tab.active).id).toBe(activeA);
+    expect(successful(await call("browser_tabs", { browser_id: browserB }))
+      .find((tab) => tab.active).id).toBe(activeB);
     const postRecordingScreenshot = await call("browser_screenshot", {
       browser_id: browserA,
     });
@@ -322,7 +400,6 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     });
     expect(staleB.isError).toBe(true);
     expect(toolText(staleB)).toMatch(/stale/i);
-    const pageB = await fixturePage(profileB, `${fixture.baseUrl}/b`);
     await expect.poll(() => pageB.title()).toBe("◉ Chrome Bridge E2E");
     const clickedB = successful(await call("browser_click", {
       browser_id: browserB,

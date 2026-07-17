@@ -23,10 +23,10 @@ The feature is designed but not implemented. Follow
   An isolated artifact recorded 1280×720 and 1920×1080 inactive targets into verified
   WebM files and immediately reused the debugger; production permissions and public APIs
   remain unchanged.
-- Measure portrait Full HD and actual input delay. The landscape 1920×1080 probe encoded
-  15 frames in 1,570 ms with 21 ms mean and 63 ms maximum capture time, while the first
-  cold 1280×720 run had a 289 ms outlier; an already-running capture cannot be cancelled
-  when input arrives.
+- Portrait 1080×1920 also encoded 15 frames into an approximately 57 KB WebM without
+  drops. In the final five-sample cold contention runs, Full HD capture added 18 ms mean
+  input queue delay in both orientations, with 27 ms landscape and 30 ms portrait
+  maxima; branded Chrome and heavier pages remain unmeasured.
 - Fix recording result metadata and the operation-success/recording-failure error
   contract before changing public schemas.
 - Implement the production offscreen canvas/MediaRecorder/download pipeline and bounded
