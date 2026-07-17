@@ -12,6 +12,7 @@ import { connectionActionPresentation } from "./connection-ui.js";
 import { withDebuggerSession } from "./debugger-session.js";
 import { fitWithinMediaBounds } from "./media-sizing.js";
 import {
+  currentViewportScreenshotParams,
   OperationOutcomeUnknownError,
   recordTargetOperation,
   recordTargetVideo,
@@ -1327,12 +1328,9 @@ async function screenshotTarget() {
         const result = await chrome.debugger.sendCommand(
           debuggee,
           "Page.captureScreenshot",
-          {
+          currentViewportScreenshotParams({
             format: "png",
-            fromSurface: true,
-            captureBeyondViewport: true,
-            clip: { x: 0, y: 0, width, height, scale: 1 },
-          },
+          }),
         );
         if (typeof result?.data !== "string" || !result.data) {
           throw new Error("Chrome returned an invalid PNG screenshot");

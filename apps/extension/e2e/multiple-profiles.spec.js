@@ -331,6 +331,116 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     );
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
 
+    await pageA.evaluate(() => {
+      const spacer = document.createElement("section");
+      spacer.id = "scroll-recording-fixture";
+      spacer.style.cssText = [
+        "height: 4000px",
+        "background: linear-gradient(#2255aa, #22aa66)",
+        "position: relative",
+      ].join(";");
+      spacer.innerHTML = [
+        '<p style="position:absolute;top:2600px;color:white;font-size:48px">',
+        "Scrolled recording viewport",
+        "</p>",
+      ].join("");
+      document.body.append(spacer);
+      globalThis.scrollTo(0, 2800);
+    });
+    await expect.poll(() => pageA.evaluate(() => globalThis.scrollY))
+      .toBeGreaterThan(2_000);
+    await pageA.evaluate(async () => {
+      await new Promise((resolve) => {
+        globalThis.requestAnimationFrame(() => {
+          globalThis.requestAnimationFrame(resolve);
+        });
+      });
+      const initial = globalThis.scrollY;
+      globalThis.scrollRecordingProbe = {
+        initial,
+        min: initial,
+        max: initial,
+        events: 0,
+        active: true,
+      };
+      globalThis.scrollRecordingListener = () => {
+        globalThis.scrollRecordingProbe.events += 1;
+      };
+      globalThis.addEventListener("scroll", globalThis.scrollRecordingListener);
+      const sample = () => {
+        const probe = globalThis.scrollRecordingProbe;
+        if (!probe?.active) return;
+        probe.min = Math.min(probe.min, globalThis.scrollY);
+        probe.max = Math.max(probe.max, globalThis.scrollY);
+        globalThis.scrollRecordingFrame = globalThis.requestAnimationFrame(sample);
+      };
+      globalThis.scrollRecordingFrame = globalThis.requestAnimationFrame(sample);
+    });
+    const scrolledScreenshot = await call("browser_screenshot", {
+      browser_id: browserA,
+    });
+    expect(scrolledScreenshot.isError, toolText(scrolledScreenshot)).not.toBe(true);
+    const scrolledScreenshotImage = scrolledScreenshot.content.find(
+      (item) => item.type === "image",
+    );
+    expect(scrolledScreenshotImage).toMatchObject({ mimeType: "image/png" });
+    const scrolledCenterPixel = await pageA.evaluate(async (data) => {
+      const response = await globalThis.fetch(`data:image/png;base64,${data}`);
+      const bitmap = await globalThis.createImageBitmap(await response.blob());
+      try {
+        const canvas = globalThis.document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext("2d");
+        context.drawImage(bitmap, 0, 0);
+        return [...context.getImageData(
+          Math.floor(bitmap.width / 2),
+          Math.floor(bitmap.height / 2),
+          1,
+          1,
+        ).data];
+      } finally {
+        bitmap.close();
+      }
+    }, scrolledScreenshotImage.data);
+    expect(scrolledCenterPixel[0]).toBeLessThan(100);
+    expect(scrolledCenterPixel[3]).toBe(255);
+    const scrolledRecordedWait = successful(await call("browser_wait", {
+      browser_id: browserA,
+      time: 0.5,
+      video_filename: "scrolled-recorded-wait.webm",
+    }));
+    expect(scrolledRecordedWait.operation).toBe("Waited for 0.5 seconds");
+    await verifyRecording(
+      profileA,
+      scrolledRecordedWait.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1.4,
+      "scrolled recorded wait",
+    );
+    const scrollRecordingProbe = await pageA.evaluate(() => {
+      globalThis.scrollRecordingProbe.active = false;
+      globalThis.cancelAnimationFrame(globalThis.scrollRecordingFrame);
+      globalThis.removeEventListener("scroll", globalThis.scrollRecordingListener);
+      return { ...globalThis.scrollRecordingProbe, final: globalThis.scrollY };
+    });
+    expect(scrollRecordingProbe).toEqual({
+      initial: scrollRecordingProbe.initial,
+      min: scrollRecordingProbe.initial,
+      max: scrollRecordingProbe.initial,
+      final: scrollRecordingProbe.initial,
+      events: 0,
+      active: false,
+    });
+    await pageA.evaluate(() => {
+      document.querySelector("#scroll-recording-fixture")?.remove();
+      globalThis.scrollTo(0, 0);
+      delete globalThis.scrollRecordingProbe;
+      delete globalThis.scrollRecordingListener;
+      delete globalThis.scrollRecordingFrame;
+    });
+
     const navigationLifecycle = await measureNavigationLifecycle(
       profileA,
       openedA.id,

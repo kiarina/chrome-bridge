@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  currentViewportScreenshotParams,
   OperationOutcomeUnknownError,
   recordingDownloadPath,
   recordingFilenameFromDownload,
@@ -8,6 +9,20 @@ import {
   validateRecordingDuration,
   validateRecordingFilename,
 } from "../recording.js";
+
+test("captures only the current viewport without a document-origin clip", () => {
+  expect(currentViewportScreenshotParams({
+    format: "jpeg",
+    quality: 75,
+    captureBeyondViewport: true,
+    clip: { x: 0, y: 0, width: 100, height: 100, scale: 1 },
+  })).toEqual({
+    format: "jpeg",
+    quality: 75,
+    fromSurface: true,
+    captureBeyondViewport: false,
+  });
+});
 
 test("accepts a bounded WebM basename and builds the fixed download path", () => {
   expect(validateRecordingFilename("操作記録.webm")).toBe("操作記録.webm");

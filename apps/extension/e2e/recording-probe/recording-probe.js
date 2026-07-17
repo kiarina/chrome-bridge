@@ -1,4 +1,5 @@
 import { openDebuggerSession } from "./debugger-session.js";
+import { currentViewportScreenshotParams } from "./recording.js";
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -19,20 +20,15 @@ async function targetViewport(session) {
   return { sourceHeight, sourceWidth };
 }
 
-function captureScreenshot(debuggee, sourceWidth, sourceHeight) {
-  return chrome.debugger.sendCommand(debuggee, "Page.captureScreenshot", {
-    format: "jpeg",
-    quality: 75,
-    fromSurface: true,
-    captureBeyondViewport: true,
-    clip: {
-      x: 0,
-      y: 0,
-      width: sourceWidth,
-      height: sourceHeight,
-      scale: 1,
-    },
-  });
+function captureScreenshot(debuggee) {
+  return chrome.debugger.sendCommand(
+    debuggee,
+    "Page.captureScreenshot",
+    currentViewportScreenshotParams({
+      format: "jpeg",
+      quality: 75,
+    }),
+  );
 }
 
 export async function measureInputDelayProbe({ tabId, sampleCount = 5 }) {
@@ -52,7 +48,7 @@ export async function measureInputDelayProbe({ tabId, sampleCount = 5 }) {
       const captureStartedAt = performance.now();
       const capturePromise = session.tryCapture(async (debuggee) => {
         markCaptureStarted();
-        return captureScreenshot(debuggee, sourceWidth, sourceHeight);
+        return captureScreenshot(debuggee);
       });
       await captureStarted;
       const inputRequestedAt = performance.now();

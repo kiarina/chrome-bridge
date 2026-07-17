@@ -105,7 +105,8 @@ actual image to fit 1920×1080 for landscape/square sources or 1080×1920 for po
 sources without crop, stretch, or upscale. Because CDP `clip.scale` does not reliably
 limit actual pixels on high-DPI displays, metadata width/height alone are not treated as
 proof of downscaling. The server validates base64 and the PNG signature, then converts it
-to MCP image content.
+to MCP image content. Capture omits a document-coordinate clip and explicitly disables
+capture beyond the viewport, so a scrolled target stays at its current visual viewport.
 
 Console logs have no persistent global collector. Only during a tool call, attach to the same page `targetId` and call `Runtime.enable`; receive for 100 ms the buffered `Runtime.consoleAPICalled` and `Runtime.exceptionThrown` events Chrome replays for the current document, strictly filter by source target ID, and cap at 100. This contract returns current-document entries retained by Chrome Runtime and does not guarantee independent history across calls. Screenshot and console both detach in `finally` and never auto-activate the target.
 
@@ -153,6 +154,10 @@ capture already in flight added 18 ms mean and at most 30 ms queue delay to a re
 mouse-move input in the final cold-path run. See
 [Video recording design](video-recording.md) for the canonical API, ownership,
 dimensions, and validation order.
+
+Scheduled and milestone frames use the same current-viewport capture parameters as
+screenshot: no document-coordinate clip and `captureBeyondViewport: false`. This avoids
+document-top capture and scroll oscillation when the target is already scrolled.
 
 Recorded wait starts a capture loop before clearing refs and waiting, continues through
 the existing wait completion boundary, then records 500 ms of post-roll. Its success

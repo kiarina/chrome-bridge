@@ -142,6 +142,9 @@ fits within 1080×1920, preserving the complete viewport without crop, stretch, 
 It returns `{data: base64, mimeType: "image/png", width, height}`. It temporarily attaches
 the debugger to the page `targetId` without branching on foreground/background and does
 not alter Chrome UI's active state. MCP returns image content rather than base64 JSON.
+CDP capture must omit a document-coordinate `clip` and set
+`captureBeyondViewport: false`; a scrolled target is captured at its current visual
+viewport without moving `scrollY` or substituting document-top content.
 
 `page.getConsoleLogs` enables the target's Runtime domain only for the call and returns up to 100 `Runtime.consoleAPICalled` and `Runtime.exceptionThrown` events replayed by Chrome for the current document. Each entry has `type`, `timestamp`, and `message`, and is strictly filtered by page `targetId`. Entries from other tabs are never mixed in; MCP returns one JSON text entry per line.
 
@@ -266,6 +269,12 @@ not alter Chrome UI's active state. MCP returns image content rather than base64
   ordinary trusted input. Recorded drag may take at most four explicit milestone frames
   through its existing debugger session so intermediate positions remain visible; measure
   and bound that added latency. Never reroute or foreground after failure.
+- Capture each video and milestone frame from the current visual viewport with no
+  document-coordinate clip and `captureBeyondViewport: false`. Recording must never
+  scroll to the document origin and restore it between frames.
+- An element operation may intentionally scroll its exact target into view once; this is
+  operation behavior, not capture behavior. Frame capture must follow that resulting
+  viewport without adding further scroll movement.
 - Update screenshot and video output together to preserve the entire CSS visual viewport
   without crop, stretch, or upscale. Landscape or square output fits within 1920×1080;
   portrait output fits within 1080×1920.

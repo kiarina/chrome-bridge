@@ -159,6 +159,15 @@ has already demonstrated background-target capture. Send frames to a single MV3
 offscreen document, draw them to a canvas, encode video with `MediaRecorder`, and pass
 the resulting Blob to `chrome.downloads` from the service worker.
 
+Every frame captures the current visual viewport. Do not provide a document-coordinate
+`clip`, and explicitly set `captureBeyondViewport: false`. A `(0, 0)` clip with capture
+beyond the viewport selects the document origin on a scrolled page and can make Chrome
+jump to the top and back for every frame. The same current-viewport parameter helper is
+used by scheduled recording frames, explicit drag milestones, and normal screenshots.
+An element operation may still scroll its strict-ref target into view once. Recording
+follows that operation-driven viewport change; capture itself must never add scroll
+movement or oscillate between the viewport and document origin.
+
 Target approximately 10 frames per second. Preserve ordinary operation latency by dropping
 scheduled frames under debugger backpressure, while retaining the bounded drag milestones
 defined above. Measure CPU, memory, encoded size, capture latency, and MCP command duration
@@ -353,6 +362,18 @@ fixture tab was closed, and an immediate screenshot reattached successfully.
 The shared Full HD screenshot implementation changes no input schema, response media
 type, permission, runtime file, or retained-data category. Protocol schemas, release
 allowlists, and Chrome Web Store disclosures therefore require no structural change.
+
+After the initial rollout, a scrolled-page report exposed the former document-origin
+clip. The corrected isolated regression held `scrollY` at 2800 through normal screenshot
+and a 16-frame recorded wait, observed no scroll events, and sampled the lower fixture's
+blue/green center pixel rather than document-top white.
+
+After extension reload, branded Chrome recorded a controlled click from 2800 px down the
+page. Normal screenshot and all 21 frames over 2,371 ms contained only the lower
+blue/green region; the red document top never appeared. The one scroll event moved from
+2800 to 2534 px when the click helper intentionally centered its strict-ref target, after
+which every frame stayed there. The virtual cursor, before/after states, both margins,
+active-tab preservation, and immediate debugger reuse all passed.
 
 Acceptance requires unit tests, isolated two-profile Chromium E2E, and branded-Chrome
 manual measurements on background targets. Recording must never foreground the target,

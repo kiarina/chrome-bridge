@@ -27,6 +27,16 @@ export class OperationOutcomeUnknownError extends Error {
   }
 }
 
+export function currentViewportScreenshotParams(options = {}) {
+  const params = { ...options };
+  delete params.clip;
+  return {
+    ...params,
+    fromSurface: true,
+    captureBeyondViewport: false,
+  };
+}
+
 export function validateRecordingFilename(filename) {
   if (typeof filename !== "string" || filename.length === 0) {
     throw new Error("filename must be a non-empty .webm basename");
@@ -197,23 +207,14 @@ async function targetViewport(session) {
   return { sourceHeight, sourceWidth };
 }
 
-async function captureFrame(debuggee, sourceWidth, sourceHeight) {
+async function captureFrame(debuggee) {
   const result = await chrome.debugger.sendCommand(
     debuggee,
     "Page.captureScreenshot",
-    {
+    currentViewportScreenshotParams({
       format: "jpeg",
       quality: 75,
-      fromSurface: true,
-      captureBeyondViewport: true,
-      clip: {
-        x: 0,
-        y: 0,
-        width: sourceWidth,
-        height: sourceHeight,
-        scale: 1,
-      },
-    },
+    }),
   );
   if (typeof result?.data !== "string" || result.data.length === 0) {
     throw new Error("Chrome returned an invalid recording frame");
@@ -259,7 +260,7 @@ async function createTargetRecorder({ tabId, filename }) {
       let nextFrameAt = recordingStartedAt;
       while (!stopRequested) {
         const capture = await session.tryCapture((debuggee) =>
-          captureFrame(debuggee, sourceWidth, sourceHeight),
+          captureFrame(debuggee),
         );
         if (capture.captured) {
           await sendOffscreen({ type: "frame", id, data: capture.value });
@@ -300,11 +301,7 @@ async function createTargetRecorder({ tabId, filename }) {
       session,
       async captureOperationFrame(debuggee) {
         try {
-          const data = await captureFrame(
-            debuggee,
-            sourceWidth,
-            sourceHeight,
-          );
+          const data = await captureFrame(debuggee);
           await sendOffscreen({ type: "frame", id, data });
           return true;
         } catch {

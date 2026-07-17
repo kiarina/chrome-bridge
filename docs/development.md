@@ -148,10 +148,16 @@ For real-Chrome screenshot/console validation, create two inactive loopback tabs
    On high-DPI Chrome, record `devicePixelRatio` and CSS viewport dimensions in the
    controlled fixture and confirm the decoded PNG follows the CSS sizing contract rather
    than returning an unbounded physical-pixel image.
-2. Use `browser_get_console_logs` to confirm normal logs, warnings, delayed errors, and uncaught exceptions. Wait at least one second for delayed entries because background-tab timers are throttled.
-3. Confirm the target result lacks the other tab's identifying log and, after switching targets, no data leaks in the opposite direction.
-4. The original active tab ID remains unchanged across select, screenshot, console, and target changes.
-5. Close only test tabs and clean up even after intermediate errors.
+2. On a long controlled page, scroll well below the top and monitor `scrollY` plus scroll
+   events while calling screenshot and a recorded operation. Confirm the position never
+   changes and decoded output shows the visible lower-page marker rather than page-top
+   content.
+   For click/type/drag, distinguish one expected strict-ref scroll-into-view adjustment
+   from the rejected capture behavior: repeated jumps to the document origin and back.
+3. Use `browser_get_console_logs` to confirm normal logs, warnings, delayed errors, and uncaught exceptions. Wait at least one second for delayed entries because background-tab timers are throttled.
+4. Confirm the target result lacks the other tab's identifying log and, after switching targets, no data leaks in the opposite direction.
+5. The original active tab ID remains unchanged across select, screenshot, console, and target changes.
+6. Close only test tabs and clean up even after intermediate errors.
 
 After changing the target indicator or virtual cursor, also verify on the same inactive fixture:
 

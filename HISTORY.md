@@ -2,6 +2,35 @@
 
 ## 2026-07-17
 
+### Fix document-top capture on scrolled pages
+
+- A user report exposed that recording a vertically scrolled page repeatedly jumped to
+  the document top and back, while the WebM kept showing top-of-page content instead of
+  the viewport containing the virtual cursor.
+- Root cause was the shared CDP screenshot request: every frame set
+  `captureBeyondViewport: true` with a document-origin `(0, 0)` clip. CDP defines `clip`
+  as a specific region and `captureBeyondViewport` as viewport-external capture, so the
+  request explicitly selected the document top rather than the current viewport.
+- Added one shared current-viewport parameter helper for recording frames, drag
+  milestones, screenshot, and the test-only contention probe. It strips any clip and
+  forces `captureBeyondViewport: false` while retaining surface capture and format/quality.
+- A new isolated regression scrolled to 2800 px, monitored every animation frame and
+  scroll event, called normal screenshot, then recorded wait. `min`, `max`, and final
+  `scrollY` all remained 2800 with zero events; the PNG center pixel matched the lower
+  blue/green fixture rather than the white document top. The WebM contained 16 frames
+  over about 1.58 seconds without drops.
+- All 44 extension tests and lint passed, and the complete two-profile E2E passed in
+  1.2 minutes.
+- After extension reload, branded Chrome recorded a click from a controlled page initially
+  scrolled to 2800 px. Normal screenshot and all 21 WebM frames showed only the lower
+  blue/green viewport; the red document top never appeared. The first frame retained
+  `State: before`, the last retained the virtual cursor and `State: after`, and the
+  2,371 ms timeline kept both operation margins.
+- Click produced one intentional element-centering scroll from 2800 to 2534 px. The page
+  observed no oscillation and never approached zero. The original active tab was
+  unchanged, immediate screenshot reuse succeeded, and only the controlled tab was
+  closed. This completes the branded regression gate.
+
 ### Shared Full HD screenshot sizing
 
 - Replaced the screenshot-only 1024×768 constants with the same orientation-aware sizing
