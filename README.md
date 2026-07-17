@@ -9,6 +9,32 @@ It operates your existing Chrome through accessibility snapshots, strict element
 - Use Streamable HTTP, rather than stdio, as the MCP transport.
 - Implement the MCP server in Python with uv.
 
+## Record individual operations
+
+chrome-bridge can record one requested operation from its initial page state through
+its visible result, without foregrounding the target tab. Add `video_filename` to a
+wait, input, upload, or navigation/history tool and the extension saves a silent WebM
+below `Downloads/chrome-bridge/`, including 500 ms before and after the operation.
+
+[![Watch the chrome-bridge operation-recording showcase](docs/assets/operation-recording-showcase.png)](https://youtu.be/pwjgqNSmTsI)
+
+The 27-second showcase uses the self-contained, fictional
+[Kiteframe demo](examples/recording-demo/README.md); it contains no real user, browser,
+account, or machine data. For example, after taking a current snapshot and obtaining
+the button ref:
+
+```text
+browser_click(
+    element="Create my workspace button",
+    ref="s12e7",
+    video_filename="signup-submit.webm",
+)
+```
+
+Omit `video_filename` to preserve the tool's original return value and avoid recording
+overhead. The standalone `browser_record_video` tool records a bounded hold without
+performing another page action.
+
 The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 21 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
 
 | Tool | Function |
@@ -37,7 +63,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 
 ## Comparison with similar tools
 
-This feature comparison is based on public documentation available as of 2026-07-16. Because each project has a different scope, the table is intended as a guide for choosing a tool, not as a simple ranking.
+This feature comparison is based on public documentation available as of 2026-07-18. Because each project has a different scope, the table is intended as a guide for choosing a tool, not as a simple ranking.
 
 | Item | chrome-bridge | [Browser MCP](https://docs.browsermcp.io/) | [mcp-chrome](https://github.com/hangwin/mcp-chrome) |
 | --- | --- | --- | --- |
@@ -48,6 +74,7 @@ This feature comparison is based on public documentation available as of 2026-07
 | Simultaneous routing to multiple Chrome profiles | Stable ID per installation | Not mentioned in public setup documentation | Not mentioned in public README |
 | Element discovery and operation | Accessibility YAML and generation-scoped strict refs | Accessibility snapshot and element specification | Accessibility-like tree, refs, selectors, and coordinates |
 | Local file upload | 1–20 files to the chooser opened by a strict ref | Not mentioned in public tool documentation | Not mentioned in public tool documentation |
+| Operation-scoped video recording | Standalone bounded recording plus optional recording around wait, input, upload, and navigation/history operations | Not mentioned in public documentation or changelog | Not listed in the current public tool reference |
 | Screenshot | Target viewport, orientation-aware Full HD bound | Connected tab | Viewport/full page/element, configurable size |
 | Console logs | Up to 100 console entries/exceptions from the target | Supported | Supported |
 | Network monitoring/arbitrary requests | Out of scope | Not mentioned in public tool documentation | Supported |

@@ -1,5 +1,28 @@
 # History
 
+## 2026-07-18
+
+### Publish the operation-recording showcase
+
+- Re-recorded the deterministic twelve-clip Kiteframe journey after removal of the
+  legacy in-page operating badge, then joined it into a 26.5-second 1366×818 WebM and
+  H.264 MP4. The current landing, operation, and completion frames contain only
+  controlled fixture data and no injected status badge.
+- Published the current MP4 to the `@kiarina` YouTube channel as an Unlisted video at
+  `https://youtu.be/pwjgqNSmTsI`, with a synthetic-data disclosure, not-made-for-kids
+  setting, and a completed copyright check with no issue detected. The first superseded
+  Unlisted upload remains available and was not deleted.
+- Generated `docs/assets/operation-recording-showcase.png` from the current before,
+  operation, and after frames. YouTube rejected the custom-thumbnail upload until the
+  channel completes phone verification, so the dedicated poster is used directly in
+  the README and YouTube retains an automatically generated thumbnail.
+- Added the recording feature and minimal `video_filename` example before the complete
+  tool inventory, linking the poster to the showcase. Rechecked Browser MCP and
+  mcp-chrome public documentation as of 2026-07-18 and added a narrowly worded
+  operation-recording comparison row without claiming exclusivity.
+- Python tests (127), Ruff lint/format, static manifest/protocol validation, extension
+  lint, and all 44 extension tests passed after the README and formatting updates.
+
 ## 2026-07-17
 
 ### Unobstructed agent state and recorded-navigation timeout recovery

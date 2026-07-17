@@ -1,42 +1,5 @@
 # Next task
 
-## P2.1: Operation-recording showcase and README positioning
-
-Make operation-scoped recording a clearly visible product feature by producing a
-reproducible, synthetic end-to-end signup demo and presenting it near the top of the
-README.
-
-Current implementation progress:
-
-- Added the self-contained fictional Kiteframe LP, signup form, and completion
-  screen under `examples/recording-demo`, including one locally generated hero
-  image and no runtime network dependencies.
-- Added a deterministic MCP client script for the 12-clip journey and an
-  `ffprobe`/`ffmpeg` validation and concatenation script. A branded-Chrome run
-  produced all clips and a reviewed 25.6-second 1366×818 WebM/MP4 presentation;
-  generated media remains ignored from Git.
-- Removed the in-page Target/Operating badge while retaining title prefixes and popup
-  state, so site controls and recordings are not obscured. Recorded navigation now has
-  an extension-side deadline with pending-load cancellation; an isolated regression
-  confirmed that another recording starts on the same tab immediately afterward.
-
-Remaining showcase work:
-
-- Add a concise recording section near the top of `README.md`, a minimal
-  `video_filename` example, and a comparison-table row after rechecking the cited tools'
-  current public documentation. Describe the differentiator precisely without claiming
-  unsupported exclusivity.
-- Create a lightweight poster/thumbnail that communicates “before → operation → after.”
-  GitHub README does not provide an inline YouTube player, so link the displayed poster
-  image to the final YouTube video.
-- Treat YouTube publication as a separate approval boundary: first produce and review
-  the final local video, title, description, thumbnail, and proposed visibility. Upload
-  only after the destination account and public/unlisted choice are confirmed, then add
-  the final URL to the README.
-- Acceptance: the README explains the feature before the full tool inventory and its
-  linked showcase contains no real user, browser, account, or machine data. A fresh
-  checkout serving and recording the controlled demo is already verified locally.
-
 ## P1.8: v0.1 publication destinations and release
 
 MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selected and applied. Reproducible extension ZIP, wheel, and sdist builds and clean E2E are complete locally and in CI. Chrome Web Store is selected as the extension distribution channel, starting Unlisted with deferred publishing. Finalize the remaining repository and publication setup.
