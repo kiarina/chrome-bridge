@@ -11,12 +11,13 @@ profile paths, account names, cookies, or browsing data.
 
 ## Public MCP contract
 
-Add one discovery tool and one optional argument to each of the existing 18 tools.
+The current MCP surface has one discovery tool and 20 routed tools. Every routed tool
+accepts the same optional browser identity argument.
 
 ```python
 async def browser_instances() -> list[BrowserInstance]: ...
 async def browser_tabs(browser_id: str | None = None) -> list[Tab]: ...
-# The other 17 existing tools add the same final optional browser_id argument.
+# The other 19 routed tools accept the same final optional browser_id argument.
 ```
 
 `browser_instances` returns connected instances only. Its result uses the existing camelCase result convention:
@@ -93,8 +94,9 @@ The new server accepts both protocols during migration:
 - v1 connections receive a server-generated ephemeral UUID and label `Legacy browser`; `identityStable` is false.
 - At most one v1 legacy connection exists. A newer v1 connection replaces only the previous v1 connection.
 - A v1 connection never replaces a v2 connection, and a v2 connection never replaces an unrelated ID.
-- The deployment order is server first, extension second. The current server accepts only v1 and will correctly reject a
-  v2 hello rather than silently ignoring its identity.
+- The deployment order for introducing v2 was server first, extension second. The current
+  server accepts both versions, while the current extension sends v2. A pre-v2 server
+  correctly rejects a v2 hello rather than silently ignoring its identity.
 
 Supporting v1 is a migration mechanism, not a permanent identity substitute. The ephemeral ID changes across reconnects
 and server restarts, and `browser_instances` exposes this through `identityStable: false`.
@@ -210,7 +212,9 @@ identity, reconnect behavior, and a real-Chrome two-profile validation before de
 1. Add canonical protocol v2 schema/validators while retaining v1 receive support.
 2. Add extension local identity, label Options/popup UI, and v2 hello/reconnect behavior.
 3. Introduce `BrowserRegistry`/`BrowserConnection`, per-connection correlation, and redacted health count.
-4. Add `browser_instances`, optional `browser_id` to all 18 tools/controller methods, exact resolution, and provenance.
+4. Add `browser_instances`, optional `browser_id` to the then-existing 18
+   tools/controller methods, exact resolution, and provenance. Later tools inherit the
+   same routing contract.
 5. Run automated tests, then validate two unpacked-extension profiles without foregrounding either target tab.
 
 The registry and public routing ship together. A state where multiple connections are accepted while some tools still

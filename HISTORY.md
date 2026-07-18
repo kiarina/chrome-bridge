@@ -2,6 +2,15 @@
 
 ## 2026-07-18
 
+### Protocol and tool-count documentation consistency
+
+- Corrected the normative specification to state that the current extension sends a
+  protocol v2 identity hello while the server retains one protocol v1 legacy slot, and
+  identified the separate canonical v2 hello schema.
+- Updated the contributor and multiple-browser-routing guides for the current 21-tool
+  MCP surface while preserving the historical fact that multi-browser routing was first
+  added to the then-existing 18 routed tools.
+
 ### GitHub and PyPI publication setup
 
 - Created the public `kiarina/chrome-bridge` GitHub repository and established its owner as the tag and release authority.

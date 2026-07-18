@@ -93,10 +93,17 @@ Error response:
 {"id":"uuid","ok":false,"error":"No tab with id: 123"}
 ```
 
-Connection lifecycle messages are `hello`, `ping`, and `pong`. The current implementation's `hello.protocolVersion` is `1`.
+Connection lifecycle messages are `hello`, `ping`, and `pong`. The current extension sends
+`hello.protocolVersion: 2` with its stable browser identity. The server also accepts one
+legacy protocol v1 connection for migration.
 Commands time out after 15 seconds by default. Extension disconnect fails every in-flight command.
 
-`apps/server/src/chrome_bridge_mcp/protocol_v1.schema.json` is canonical for protocol v1 envelopes and command parameters. Request IDs are lowercase UUIDv4 values, and every object rejects unknown fields. A success response contains `result`; an error response contains only a non-empty `error`; the two are never mixed. The server controller continues to validate command-specific result payloads.
+`apps/server/src/chrome_bridge_mcp/protocol_v1.schema.json` is canonical for protocol v1
+envelopes and command parameters, while `protocol_v2.schema.json` is canonical for the v2
+identity hello. Request IDs are lowercase UUIDv4 values, and every object rejects unknown
+fields. A success response contains `result`; an error response contains only a non-empty
+`error`; the two are never mixed. The server controller continues to validate
+command-specific result payloads.
 
 Handling of invalid messages at the boundary:
 

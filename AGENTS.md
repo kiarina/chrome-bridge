@@ -29,7 +29,7 @@ docs 以下にドキュメントを追加した際に、以下に、読む条件
 - 通常運用、server設定、MCP client接続、ログ、障害復旧を変更する場合:
   [Operations guide](docs/operations.md) — loopback運用、設定値、health、複数profile、troubleshootingの正典。
 - MCP toolの追加・変更、公開引数、戻り値、利用例、error contractを変更する場合:
-  [MCP tool API reference](docs/api.md) — 20 toolの入力、結果、共通routing、target/ref lifecycleの利用者向け正典。
+  [MCP tool API reference](docs/api.md) — 21 toolの入力、結果、共通routing、target/ref lifecycleの利用者向け正典。
 - 複数 Chrome profile、browser identity、connection registry、tool routing を変更する場合:
   [Multiple browser routing](docs/multiple-browser-routing.md) — stable ID、protocol移行、公開schema、状態遷移、test matrix。
 - isolated Chromium、extension E2E、test process/profile lifecycle、failure artifactを変更する場合:
