@@ -28,6 +28,11 @@
   covered by focused tests instead of runner-dependent total-frame output. Increased
   only the complete artifact-E2E suite timeout from 120 to 180 seconds so slower hosts
   can finish the many sequential recording scenarios; per-command deadlines are unchanged.
+- Repointed the unpublished `v0.1.0` tag to the E2E-fix commit and completed the release
+  workflow. GitHub Release and PyPI trusted publishing both succeeded after artifact E2E,
+  reproducibility, generated-file, and checksum validation. PyPI published wheel/sdist
+  hashes match the local and GitHub Release values; a no-cache public-index install of
+  `chrome-bridge-mcp==0.1.0` started successfully and returned `status: ok` from `/health`.
 
 ### Publish the operation-recording showcase
 
