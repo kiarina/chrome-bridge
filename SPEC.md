@@ -225,7 +225,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - The Python wheel/sdist contain protocol schemas and the console entry point, and exclude test/cache/profile data.
 - Install the wheel in a fresh temporary venv and run isolated E2E with the ZIP extension and installed server.
 - Independently built extension ZIP, wheel, and sdist artifacts from the same checkout are byte-identical, and SHA-256 checksums are distributed.
-- While the project license and Git remote remain undecided, limit work to local/CI validation and do not publish a release to third parties.
+- Publish only from the selected public repository under the owner's release authority. The tag workflow must validate the release artifacts before uploading them to GitHub Releases or PyPI.
 
 ### Page-operation milestone
 
