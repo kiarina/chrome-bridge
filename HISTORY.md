@@ -33,6 +33,14 @@
   reproducibility, generated-file, and checksum validation. PyPI published wheel/sdist
   hashes match the local and GitHub Release values; a no-cache public-index install of
   `chrome-bridge-mcp==0.1.0` started successfully and returned `status: ok` from `/health`.
+- Completed the initial Chrome Web Store listing, privacy declarations, permission
+  justifications, reviewer instructions, Unlisted distribution, publisher contact-email
+  verification, and submission for item `ogmocgobegbjbecakclahodnhhfmccad`, version
+  `0.1.0`. The dashboard warned that broad host access could lengthen review, as expected,
+  and accepted the submission; its status became pending review. Neither the submission
+  flow nor the item menu exposed an automatic-publishing or `Defer publish` control, so
+  review remains active and the post-approval procedure handles either staged or automatic
+  Unlisted publication without cancelling and resubmitting solely to obtain that control.
 
 ### Publish the operation-recording showcase
 

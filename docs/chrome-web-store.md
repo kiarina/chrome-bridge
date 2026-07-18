@@ -4,7 +4,24 @@
 
 Chrome Web Store is the canonical distribution channel for the Chrome extension. PyPI distributes the separate `chrome-bridge-mcp` local server, and GitHub Releases provide source, checksums, and the same verified artifacts.
 
-The initial Store release should be **Unlisted** with deferred publishing. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. The publisher account is registered and currently declared Non-Trader for the present personal, non-commercial open-source distribution; update and verify that declaration if the publishing activity becomes related to a trade, business, craft, or profession. Do not submit until the public privacy-policy URL, support URL, and reviewer-accessible server package are ready.
+The initial Store release should be **Unlisted**, with deferred publishing when the dashboard exposes that control. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. The publisher account is registered and currently declared Non-Trader for the present personal, non-commercial open-source distribution; update and verify that declaration if the publishing activity becomes related to a trade, business, craft, or profession. Do not submit until the public privacy-policy URL, support URL, and reviewer-accessible server package are ready.
+
+### Current v0.1 submission
+
+- Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
+- Submitted version: `0.1.0`
+- Visibility: Unlisted
+- Submitted: 2026-07-18, after GitHub Release and PyPI publication succeeded
+- Status at handoff: pending review
+- Submitted ZIP SHA-256: `029fc7284a29d1b22aaa0f4c4410043b55f891a2ca3c8c3583450a00e8139301`
+
+The dashboard showed the expected warning that broad host permissions can lengthen
+review, then accepted the submission. It exposed neither the automatic-publishing
+checkbox during submission nor a `Defer publish` action afterward. Do not cancel an
+otherwise valid review solely to obtain a missing defer control. If approval produces a
+ready-to-publish state, publish manually within the staging window. If the item is
+published automatically, its Unlisted visibility still keeps it out of Store search;
+continue the Store-installation validation immediately.
 
 Official references:
 
@@ -141,9 +158,15 @@ Explain that the initial permission prompt is expected because operating arbitra
 
 1. Upload the verified ZIP in the Developer Dashboard.
 2. Complete Package, Store Listing, Privacy, Distribution, and Test instructions.
-3. Select **Unlisted** and submit with automatic publishing disabled.
+3. Select **Unlisted** and disable automatic publishing when the submission UI exposes
+   that option. If submission is already pending and the item menu exposes `Defer
+   publish`, select it without cancelling review. If neither control is available, keep
+   the valid review active and handle the resulting staged or automatically published
+   state after approval.
 4. Monitor the publisher email and dashboard. New items, broad host permissions, and sensitive execution permissions may require additional review time.
-5. After approval, publish within the dashboard's staging window and install the Store build in branded Chrome.
+5. After approval, publish within the dashboard's staging window if the item is staged.
+   If it was published automatically, proceed directly to installing the Unlisted Store
+   build in branded Chrome.
 6. Disable the unpacked development copy in that profile before validating the Store copy. Otherwise both installations can connect as separate browser IDs and make routing ambiguous.
 7. Verify connection, stable Store extension ID across an update, inactive-tab operation, popup/Options UI, and rollback guidance before considering Public visibility.
 
