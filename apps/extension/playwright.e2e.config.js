@@ -6,6 +6,6 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "line",
-  timeout: 120_000,
+  timeout: 180_000,
   outputDir: "test-results/e2e",
 });

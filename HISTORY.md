@@ -11,7 +11,23 @@
 - Rebuilt the v0.1.0 release artifacts immediately before the first Store upload. Clean-wheel install, artifact-based two-profile Chromium E2E, and two independent byte-identical builds passed; the extension ZIP SHA-256 is `029fc7284a29d1b22aaa0f4c4410043b55f891a2ca3c8c3583450a00e8139301`.
 - Uploaded that verified extension ZIP as the initial draft Store item, then prepared the required 1280×800 screenshot and 440×280 small promotional image from controlled fixture data and the packaged icon. No review submission was made.
 - Added the Chrome Web Store Limited Use affirmation to the public privacy policy so the dashboard certification, Store disclosure, and published policy state the same handling boundary.
-- Kept `v0.1.0` untagged until the workflow is merged and the remaining public URL prerequisites are complete.
+- The first `v0.1.0` workflow execution stopped before creating a GitHub Release or
+  publishing to PyPI because an artifact E2E assertion required one Chromium-specific
+  recording failure message. Relaxed the assertion to verify the public error contract
+  (a non-empty `Recording also failed` detail) while retaining the no-download check.
+  Removed environment-dependent dropped-frame ceilings from the same E2E because the
+  recording contract explicitly prioritizes input and does not fix a frame-rate ceiling;
+  duration, minimum frames, dimensions, encoding, and downloaded bytes remain verified.
+  Replaced fixed delays in recorded-navigation interruption cases with an explicit
+  loading-state/pending-URL barrier so the tests distinguish pre-entry cancellation from
+  the intended post-entry unknown-outcome contract without relying on runner speed. The
+  general recording assertion now requires a positive frame count rather than treating
+  an approximate frame-rate target as a release contract; duration, dimensions, WebM
+  bytes, and operation-specific final states remain enforced. Removed the historical
+  24-frame drag benchmark for the same reason; bounded explicit drag milestones remain
+  covered by focused tests instead of runner-dependent total-frame output. Increased
+  only the complete artifact-E2E suite timeout from 120 to 180 seconds so slower hosts
+  can finish the many sequential recording scenarios; per-command deadlines are unchanged.
 
 ### Publish the operation-recording showcase
 
