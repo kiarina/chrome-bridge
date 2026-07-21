@@ -1,5 +1,29 @@
 # History
 
+## 2026-07-21
+
+### Chrome Web Store v0.1 publication and rollback validation
+
+- Chrome Web Store approved item `ogmocgobegbjbecakclahodnhhfmccad`, version `0.1.0`.
+  The dashboard staged it for manual publication through 2026-08-19, and it was manually
+  published as Unlisted on 2026-07-21. The direct listing became available immediately.
+- Disabled and removed the prior unpacked development copy before installing the Store
+  copy. The Store extension ID, packaged version, permission display, Options endpoint,
+  generated browser identity, and enabled/pinned state matched the submitted release.
+- Started the v0.1.0 server and observed ten consecutive healthy checks with exactly one
+  protocol v2 extension connection. Controlled inactive fixture tabs passed selection,
+  snapshot, strict-ref click, and cleanup. One initial aggregate run observed an active
+  tab change; two immediate operation-boundary reruns preserved the original active tab
+  throughout and did not reproduce it.
+- Verified the emergency fallback by disabling the Store copy, loading the submitted ZIP
+  from a fixed directory outside the repository, and repeating the inactive
+  snapshot/click smoke successfully. The fallback was left installed but disabled.
+- Re-enabled the Store copy only after disabling the fallback. The Store browser ID,
+  label, WebSocket endpoint, protocol version, and extension version survived the
+  disable/re-enable cycle, and the server returned to exactly one healthy connection.
+  Identity preservation across an actual Store version update remains for the first real
+  update rather than an artificial content-free release.
+
 ## 2026-07-18
 
 ### Protocol and tool-count documentation consistency

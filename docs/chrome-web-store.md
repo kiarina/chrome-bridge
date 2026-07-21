@@ -6,22 +6,31 @@ Chrome Web Store is the canonical distribution channel for the Chrome extension.
 
 The initial Store release should be **Unlisted**, with deferred publishing when the dashboard exposes that control. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. The publisher account is registered and currently declared Non-Trader for the present personal, non-commercial open-source distribution; update and verify that declaration if the publishing activity becomes related to a trade, business, craft, or profession. Do not submit until the public privacy-policy URL, support URL, and reviewer-accessible server package are ready.
 
-### Current v0.1 submission
+### Current v0.1 publication
 
 - Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
-- Submitted version: `0.1.0`
+- Published version: `0.1.0`
 - Visibility: Unlisted
 - Submitted: 2026-07-18, after GitHub Release and PyPI publication succeeded
-- Status at handoff: pending review
+- Approved and manually published: 2026-07-21
+- Status at handoff: published and post-publication smoke tested
+- Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
 - Submitted ZIP SHA-256: `029fc7284a29d1b22aaa0f4c4410043b55f891a2ca3c8c3583450a00e8139301`
 
 The dashboard showed the expected warning that broad host permissions can lengthen
 review, then accepted the submission. It exposed neither the automatic-publishing
-checkbox during submission nor a `Defer publish` action afterward. Do not cancel an
-otherwise valid review solely to obtain a missing defer control. If approval produces a
-ready-to-publish state, publish manually within the staging window. If the item is
-published automatically, its Unlisted visibility still keeps it out of Store search;
-continue the Store-installation validation immediately.
+checkbox during submission nor a `Defer publish` action afterward. Approval produced a
+ready-to-publish state with a 2026-08-19 deadline, and v0.1.0 was manually published as
+Unlisted on 2026-07-21.
+
+The Store installation connected as the only protocol v2 browser with extension version
+0.1.0. Two operation-boundary reruns preserved the existing active tab while opening,
+selecting, snapshotting, and clicking an inactive controlled fixture. The Store copy was
+then disabled, the verified ZIP was loaded from a fixed fallback directory, and the same
+inactive snapshot/click smoke passed. After disabling the unpacked fallback and
+re-enabling the Store copy, the Store browser ID and endpoint settings were preserved.
+The actual Store extension ID and browser identity across a real Store version update
+remain to be measured with the first non-artificial update.
 
 Official references:
 
@@ -174,6 +183,11 @@ The Store-assigned extension ID is distinct from the random `browserId` used by 
 
 ## Update automation
 
-Perform the first submission, visibility selection, and publication manually. Once the Store item and publisher IDs exist, the Chrome Web Store API v2 can upload later ZIPs and submit them for review. Keep API credentials in the CI secret store, use the existing verified ZIP without rebuilding, and prefer staged publishing. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
+The first submission, visibility selection, and publication were performed manually.
+The Chrome Web Store API v2 can upload later ZIPs and submit them for review. Keep API
+credentials in the CI secret store, use the existing verified ZIP without rebuilding,
+and prefer staged publishing. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
 
-Do not automate Store publication until the manual v0.1 submission has passed review and the rollback path has been exercised.
+Do not automate the final Store publication action until the first real update has
+confirmed staged-update behavior, Store/browser identity preservation, and the exercised
+fallback procedure under an updated version.
