@@ -89,7 +89,7 @@ def validate_extension(extension_zip: Path) -> None:
             raise ValueError("extension LICENSE does not match the project LICENSE")
 
 
-def validate_python_archives(wheel: Path, sdist: Path) -> None:
+def validate_mcp_archives(wheel: Path, sdist: Path) -> None:
     with zipfile.ZipFile(wheel) as archive:
         wheel_names = archive.namelist()
         assert_clean_names(wheel_names)
@@ -146,11 +146,51 @@ def validate_python_archives(wheel: Path, sdist: Path) -> None:
             raise ValueError("sdist LICENSE does not match the project LICENSE")
 
 
+def validate_sdk_archives(wheel: Path, sdist: Path) -> None:
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+        assert_clean_names(names)
+        required = {
+            "chrome_bridge_sdk/__init__.py",
+            "chrome_bridge_sdk/client.py",
+            "chrome_bridge_sdk/errors.py",
+        }
+        for suffix in required:
+            if not any(name.endswith(suffix) for name in names):
+                raise ValueError(f"SDK wheel is missing {suffix}")
+        licenses = [
+            name for name in names if name.endswith(".dist-info/licenses/LICENSE")
+        ]
+        if (
+            len(licenses) != 1
+            or archive.read(licenses[0]) != (ROOT / "LICENSE").read_bytes()
+        ):
+            raise ValueError("SDK wheel is missing the project MIT license")
+    with tarfile.open(sdist, "r:gz") as archive:
+        names = archive.getnames()
+        assert_clean_names(names)
+        required = {
+            "/LICENSE",
+            "/src/chrome_bridge_sdk/__init__.py",
+            "/src/chrome_bridge_sdk/client.py",
+            "/src/chrome_bridge_sdk/errors.py",
+        }
+        for suffix in required:
+            if not any(name.endswith(suffix) for name in names):
+                raise ValueError(f"SDK sdist is missing {suffix.removeprefix('/')}")
+
+
 def venv_python(venv: Path) -> Path:
     return venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -> None:
+def validate_clean_install(
+    mcp_wheel: Path,
+    sdk_wheel: Path,
+    extension_zip: Path,
+    *,
+    run_e2e: bool,
+) -> None:
     with tempfile.TemporaryDirectory(
         prefix="chrome-bridge-release-smoke-"
     ) as temporary:
@@ -163,7 +203,15 @@ def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -
         )
         python = venv_python(venv)
         subprocess.run(
-            ["uv", "pip", "install", "--python", str(python), str(wheel)],
+            [
+                "uv",
+                "pip",
+                "install",
+                "--python",
+                str(python),
+                str(mcp_wheel),
+                str(sdk_wheel),
+            ],
             cwd=root,
             check=True,
         )
@@ -174,7 +222,8 @@ def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -
                 (
                     "from importlib.resources import files; import chrome_bridge_mcp as p; "
                     "assert files(p).joinpath('protocol_v1.schema.json').is_file(); "
-                    "print(p.__file__)"
+                    "from chrome_bridge_sdk import ChromeBridge; "
+                    "assert not hasattr(ChromeBridge(), 'open'); print(p.__file__)"
                 ),
             ],
             cwd=root,
@@ -207,17 +256,23 @@ def validate_clean_install(wheel: Path, extension_zip: Path, *, run_e2e: bool) -
 
 def validate(release_dir: Path, *, run_e2e: bool) -> None:
     extension_archives = list(release_dir.glob("chrome-bridge-extension-*.zip"))
-    wheels = list(release_dir.glob("chrome_bridge_mcp-*.whl"))
-    sdists = list(release_dir.glob("chrome_bridge_mcp-*.tar.gz"))
-    if len(extension_archives) != 1 or len(wheels) != 1 or len(sdists) != 1:
+    mcp_wheels = list(release_dir.glob("chrome_bridge_mcp-*.whl"))
+    mcp_sdists = list(release_dir.glob("chrome_bridge_mcp-*.tar.gz"))
+    sdk_wheels = list(release_dir.glob("chrome_bridge_sdk-*.whl"))
+    sdk_sdists = list(release_dir.glob("chrome_bridge_sdk-*.tar.gz"))
+    groups = (extension_archives, mcp_wheels, mcp_sdists, sdk_wheels, sdk_sdists)
+    if any(len(group) != 1 for group in groups):
         raise ValueError(
-            "release directory must contain exactly one extension ZIP, wheel, and sdist"
+            "release directory must contain one extension ZIP and both Python distributions"
         )
-    artifacts = [extension_archives[0], wheels[0], sdists[0]]
+    artifacts = [group[0] for group in groups]
     validate_checksums(release_dir, artifacts)
     validate_extension(extension_archives[0])
-    validate_python_archives(wheels[0], sdists[0])
-    validate_clean_install(wheels[0], extension_archives[0], run_e2e=run_e2e)
+    validate_mcp_archives(mcp_wheels[0], mcp_sdists[0])
+    validate_sdk_archives(sdk_wheels[0], sdk_sdists[0])
+    validate_clean_install(
+        mcp_wheels[0], sdk_wheels[0], extension_archives[0], run_e2e=run_e2e
+    )
 
 
 def main() -> None:

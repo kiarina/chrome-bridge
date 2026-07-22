@@ -5,6 +5,7 @@
 ```mermaid
 flowchart LR
     A["MCP client"] -->|"Loopback Streamable HTTP"| S["Python MCP server"]
+    D["Python SDK"] -->|"Direct API v1"| S
     S -->|"Command + UUID"| W["Loopback WebSocket"]
     W --> E["Manifest V3 service worker"]
     E -->|"chrome.tabs API"| C["All Chrome windows and tabs"]
@@ -15,6 +16,24 @@ flowchart LR
 ```
 
 Because an extension cannot open a listening socket inside the browser, it connects outward to the server's loopback WebSocket. The MCP transport and extension protocol are separate, keeping Chrome API implementation details hidden from MCP clients.
+
+## Shared operation coordination
+
+MCP and Direct API adapters invoke the same transport-neutral browser controller through
+one process-wide FIFO coordinator. Ordinary MCP and Direct calls hold the coordinator
+for one operation. A Direct API session holds it across multiple calls, including time
+spent by an LLM deciding which snapshot ref to use. This is intentionally global rather
+than browser- or tab-scoped because target selection and snapshot generations are shared
+extension state.
+
+The explicit lease uses a random session token, 30-second SDK heartbeat, two-minute idle
+TTL, and ten-minute maximum lifetime. Expiry marks an in-flight call for release after it
+completes and never interrupts Chrome input. MCP and session-less calls wait in FIFO order
+for at most 30 seconds before returning busy.
+
+`chrome-bridge-mcp --managed` is an autonomous shared process. SDK instances race safely
+to start it, attach to the winner, and do not retain ownership. It exits after five idle
+minutes only when no lease, operation, or waiter exists. The normal CLI remains persistent.
 
 ## Server modules
 

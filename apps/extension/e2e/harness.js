@@ -341,6 +341,32 @@ export async function connectMcp(mcpUrl) {
   return client;
 }
 
+export async function runSdkProbe(httpUrl) {
+  const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
+  const command = installedPython || "uv";
+  const script = path.join(repoDir, "apps/server/tests/e2e_sdk.py");
+  const port = new URL(httpUrl).port;
+  const args = installedPython
+    ? [script, "--port", port]
+    : ["run", "python", script, "--port", port];
+  const child = spawn(command, args, {
+    cwd: repoDir,
+    env: { ...process.env, PYTHONNOUSERSITE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => stdout.push(chunk));
+  child.stderr.on("data", (chunk) => stderr.push(chunk));
+  const code = await withTimeout(childExit(child), 20_000, "SDK E2E probe");
+  if (code !== 0) {
+    throw new Error(`SDK E2E probe failed (code ${code})\n${stderr.join("")}`);
+  }
+  return JSON.parse(stdout.join(""));
+}
+
 export function toolCaller(client, transcript) {
   return async (name, args = {}) => {
     const started = Date.now();

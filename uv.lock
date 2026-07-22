@@ -11,6 +11,7 @@ resolution-markers = [
 [manifest]
 members = [
     "chrome-bridge-mcp",
+    "chrome-bridge-sdk",
     "chrome-bridge-workspace",
 ]
 
@@ -163,7 +164,7 @@ wheels = [
 
 [[package]]
 name = "chrome-bridge-mcp"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "apps/server" }
 dependencies = [
     { name = "jsonschema" },
@@ -195,11 +196,39 @@ dev = [
 ]
 
 [[package]]
+name = "chrome-bridge-sdk"
+version = "0.2.0"
+source = { editable = "packages/sdk" }
+dependencies = [
+    { name = "chrome-bridge-mcp" },
+    { name = "httpx2" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chrome-bridge-mcp", editable = "apps/server" },
+    { name = "httpx2", specifier = ">=2,<3" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4,<9" },
+    { name = "pytest-asyncio", specifier = ">=1.1,<2" },
+]
+
+[[package]]
 name = "chrome-bridge-workspace"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "chrome-bridge-mcp" },
+    { name = "chrome-bridge-sdk" },
 ]
 
 [package.dev-dependencies]
@@ -211,7 +240,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "chrome-bridge-mcp", editable = "apps/server" }]
+requires-dist = [
+    { name = "chrome-bridge-mcp", editable = "apps/server" },
+    { name = "chrome-bridge-sdk", editable = "packages/sdk" },
+]
 
 [package.metadata.requires-dev]
 dev = [

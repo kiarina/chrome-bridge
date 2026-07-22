@@ -73,6 +73,18 @@ Use protocol v2 for the identity hello. A new server accepts v1 in one legacy sl
 
 MCP sessions are stateless. Extension connections and pending commands are process-local state.
 
+Python applications may use Direct API v1 instead of MCP. All MCP tool calls and Direct
+API calls pass through one process-wide FIFO operation coordinator. A Direct API client
+may acquire an exclusive lease across multiple calls; while held, no other transport may
+change browser target or snapshot state. Session tokens are process-local and leases are
+released explicitly, after two idle minutes without heartbeat, or after the ten-minute
+maximum lifetime. An operation already in flight is never interrupted by lease expiry.
+
+The SDK lazily reuses a compatible server or starts `chrome-bridge-mcp --managed`.
+Managed servers are shared and exit only after five minutes without an active lease,
+executing or queued request, or browser operation. The SDK exposes no server lifecycle
+methods and never terminates a server that another process may be using.
+
 ## 4. Extension protocol v1 and v2
 
 Server request:
@@ -299,5 +311,27 @@ ownership, capture pipeline, dimensions, result/error contract, and rollout reco
 ## 8. Versioning
 
 - Manage the extension protocol with integer versions and increment for incompatible changes.
-- Keep server and extension package versions equal for now.
+- Version the server and Python SDK together within a compatible minor series. Version
+  the extension independently when its runtime changes; a server/SDK-only release must
+  not trigger a content-free Chrome Web Store update.
+
+## 9. Direct API and SDK milestone
+
+- Direct API v1 exposes metadata, tool schemas, exclusive session acquire/heartbeat/release,
+  and structured tool calls on loopback only.
+- A session-less Direct call and every MCP tool call acquire one FIFO operation lease.
+  MCP and session-less calls wait at most 30 seconds; an explicit Direct session retains
+  the lease across calls and is renewed by SDK heartbeat every 30 seconds.
+- Direct results remain transport-neutral: screenshots retain base64 plus dimensions,
+  console logs remain an array, and wait/key results remain structured. MCP preserves
+  its existing image, JSON Lines, and text results.
+- The `chrome-bridge-sdk` package uses Direct API only, starts a managed server when
+  needed, shares a compatible existing server, never retries an uncertain operation,
+  and releases its exclusive session from the async context manager.
+- High-level SDK methods use Pythonic arguments and immutable typed result models. The
+  low-level `call` method preserves raw Direct API JSON for LLM adapters. SDK errors retain
+  `code`, `retryable`, and `outcome_unknown`, and optional session status callbacks expose
+  server, extension, and FIFO wait phases without controlling lifecycle.
+- Reject session nesting by asyncio task rather than by SDK instance. A different task or
+  process may request a session and waits through the server-wide FIFO coordinator.
 - Pin the MCP Python SDK to stable v1 with `>=1.27,<2`; treat migration to v2 as a separate task.

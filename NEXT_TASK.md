@@ -1,10 +1,23 @@
 # Next task
 
-## P1.8: v0.1 publication destinations and release
+## P1.10: shared managed-server release validation and publication
 
-MIT licensing and the `chrome-bridge-mcp` Python distribution/CLI name are selected and applied. Reproducible extension ZIP, wheel, and sdist builds and clean E2E are complete. GitHub Release `v0.1.0` and PyPI project `chrome-bridge-mcp` are public, their SHA-256 values match the local reproducible build, and a no-cache public PyPI install passed a server health smoke test. Chrome Web Store item `ogmocgobegbjbecakclahodnhhfmccad`, version `0.1.0`, was submitted as Unlisted on 2026-07-18 and is pending review. Complete the Store review and post-approval validation.
+Direct API v1, process-wide exclusive sessions, managed idle shutdown, and the
+`chrome-bridge-sdk` 0.2.0 package are implemented. The extension protocol and Store
+runtime remain 0.1.0; do not create a content-free Store update for this Python-only
+release.
 
-- The Chrome Web Store publisher account is currently declared Non-Trader for the present personal, non-commercial open-source distribution. Change and verify it as Trader if the publishing activity becomes related to a trade, business, craft, or profession.
-- While the Store item is pending review, monitor the publisher email and dashboard. Do not cancel review, edit metadata, or upload another ZIP unless review feedback requires a revision.
-- The initial submission UI exposed neither the automatic-publishing checkbox nor a `Defer publish` action. After approval, branch on the resulting state: manually publish within the staging window if it is ready to publish, or accept an automatic Unlisted publication and immediately continue validation if it is already published.
-- After Store approval/publication, disable the unpacked copy before testing the Store installation, then verify connection, inactive-tab operation, stable Store ID across update, and rollback before considering Public visibility.
+- Merge PR #2 after the final cancellation-race fix passes CI, then confirm the resulting
+  `main` CI. The prior PR run passed Python 3.11/3.12, extension tests/audit, source and
+  artifact-installed isolated Chromium SDK E2E, and reproducible five-artifact builds.
+  The Store-extension branded-Chrome SDK smoke also passed locally without foregrounding
+  the background fixture or closing existing tabs.
+- PyPI pending trusted publishing for `chrome-bridge-sdk` is configured for repository
+  `kiarina/chrome-bridge`, workflow `release-pypi.yml`, and GitHub environment `pypi`.
+  After PR merge and green `main` CI, publish server/SDK 0.2.0 together by tagging the
+  version commit, then verify both PyPI projects and GitHub Release checksums.
+- Track an upstream MCP JavaScript SDK release that can adopt `@hono/node-server>=2.0.5`.
+  The current advisory is moderate and only affects an E2E development dependency; do
+  not force a transitive major override solely to silence it.
+- After the first Python-only release is stable, resume the separately tracked first real
+  Chrome Web Store update and Public visibility decision from the v0.1 handoff.

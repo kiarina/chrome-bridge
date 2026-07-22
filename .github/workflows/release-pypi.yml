@@ -1,4 +1,4 @@
-name: Release v0.1
+name: Release
 
 on:
   push:
@@ -87,12 +87,12 @@ jobs:
           fi
 
   pypi-publish:
-    name: Publish Python distributions to PyPI
+    name: Publish server and SDK distributions to PyPI
     needs: github-release
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/chrome-bridge-mcp
+      url: https://pypi.org/p/chrome-bridge-sdk
     permissions:
       id-token: write
     steps:

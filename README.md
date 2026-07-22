@@ -93,23 +93,51 @@ Sources: [Browser MCP server setup](https://docs.browsermcp.io/setup-server),
 apps/
 ├── extension/  # Manifest V3 Chrome extension
 └── server/     # Python FastMCP + Streamable HTTP + WebSocket bridge
+packages/
+└── sdk/        # Direct API Python SDK and managed-server launcher
 ```
 
 The MCP client connects to `http://127.0.0.1:8765/mcp`. The Chrome extension makes an outbound connection to `ws://127.0.0.1:8765/extension` and returns results from Chrome API operations.
 
+Python applications can instead use `chrome-bridge-sdk` without an MCP client. Its
+exclusive session is enforced by the shared server across processes, so target and
+snapshot refs cannot be changed by another SDK workflow while the session is active.
+
+```python
+from chrome_bridge_sdk import ChromeBridge
+
+chrome = ChromeBridge()
+
+async with chrome.session() as session:
+    tabs = await session.browser_tabs()
+    await session.browser_tab_select(tab_id=tabs[0].id)
+    snapshot = await session.browser_snapshot()
+```
+
+`session()` reuses a compatible server or starts a shared managed server automatically.
+There are no public `open`, `close`, or `restart` methods; an SDK-started server exits
+after five idle minutes. High-level operations return typed immutable models; `call()`
+remains available when an integration needs the raw Direct API JSON result.
+
 ## Quick start
 
 ```bash
-uv sync --all-groups
-npm --prefix apps/extension ci
-npm --prefix apps/extension run build
-uv run chrome-bridge-mcp
+uv tool install chrome-bridge-mcp
+chrome-bridge-mcp
 ```
 
-1. Open `chrome://extensions` and enable Developer mode.
-2. Choose **Load unpacked** and select `apps/extension`.
-3. If needed, set a Browser label in Options to identify the profile.
-4. Connect the MCP client to `http://127.0.0.1:8765/mcp`.
+For Python SDK use, install both distributions through the SDK dependency:
+
+```bash
+uv add chrome-bridge-sdk
+```
+
+1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.1 release is Unlisted, so use this direct URL.
+2. If needed, set a Browser label in Options to identify the profile.
+3. Connect the MCP client to `http://127.0.0.1:8765/mcp`.
+
+For source setup and Load unpacked development, see the
+[development guide](docs/development.md).
 
 A typical Streamable HTTP configuration looks like this. Adjust field names for your MCP client.
 
@@ -135,8 +163,8 @@ Local CI-equivalent validation:
 
 ```bash
 uv sync --all-groups --locked
-uv run ruff check apps/server scripts
-uv run ruff format --check apps/server scripts
+uv run ruff check apps/server packages/sdk scripts
+uv run ruff format --check apps/server packages/sdk scripts
 uv run pytest
 uv run python scripts/validate_static.py
 npm --prefix apps/extension ci

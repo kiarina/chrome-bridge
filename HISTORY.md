@@ -1,5 +1,66 @@
 # History
 
+## 2026-07-22
+
+### Direct API SDK and shared managed server
+
+- Added Direct API v1 with metadata/tool discovery, structured calls, and exclusive
+  session acquire, heartbeat, release, idle TTL, and maximum lifetime.
+- Added one server-wide FIFO operation coordinator shared by MCP and Direct API so an SDK
+  session preserves target and snapshot/ref state across multiple LLM-driven calls.
+- Added the `chrome-bridge-sdk` Python distribution. Its only lifecycle surface is
+  `ChromeBridge.session()`; it reuses a compatible server or starts an autonomous managed
+  server and never automatically retries an uncertain operation.
+- Added managed idle shutdown, server/SDK 0.2 versioning independent of the unchanged
+  extension 0.1.0, five-artifact reproducible build support, clean-install validation,
+  coordinator/API/SDK tests, two-process managed-server coverage, and an artifact-installed
+  SDK probe against two isolated Chromium profiles while preserving existing MCP and
+  extension results.
+- Registered the pending PyPI trusted publisher for `chrome-bridge-sdk` against repository
+  `kiarina/chrome-bridge`, workflow `release-pypi.yml`, and GitHub environment `pypi`,
+  matching the release workflow that publishes both Python distributions.
+- Polished the unreleased SDK with immutable typed operation results, Pythonic drag
+  arguments and type defaults, sync/async session status callbacks, structured exception
+  attributes, and correct same-task nested-session detection while preserving raw JSON
+  `call()` for LLM integrations.
+- Opened draft PR #2 and completed its Linux CI on Python 3.11/3.12. Extension tests and
+  high-severity audit, source and clean-installed artifact Chromium E2E, and reproducible
+  five-artifact builds all passed. Updated transitive `fast-uri` from 3.1.3 to 3.1.4 after
+  a newly reported high-severity advisory; the remaining upstream `@hono/node-server`
+  advisory is moderate and has no non-breaking v1 fix.
+- Added and passed a repeatable SDK smoke against the published Chrome Web Store extension
+  in normal branded Chrome. It preserved the active tab while selecting a dedicated
+  background fixture, then verified typed tab discovery, snapshot, strict-ref click, and
+  a 1632×1009 PNG screenshot without closing any pre-existing tab.
+- During the final PR review, fixed a cancellation race after a queued session had been
+  granted but before its waiting task resumed. The coordinator now releases only the
+  lease granted to that cancelled waiter, avoiding a two-minute orphaned lock while also
+  preventing cancellation from releasing an unrelated single request.
+
+## 2026-07-21
+
+### Chrome Web Store v0.1 publication and rollback validation
+
+- Chrome Web Store approved item `ogmocgobegbjbecakclahodnhhfmccad`, version `0.1.0`.
+  The dashboard staged it for manual publication through 2026-08-19, and it was manually
+  published as Unlisted on 2026-07-21. The direct listing became available immediately.
+- Disabled and removed the prior unpacked development copy before installing the Store
+  copy. The Store extension ID, packaged version, permission display, Options endpoint,
+  generated browser identity, and enabled/pinned state matched the submitted release.
+- Started the v0.1.0 server and observed ten consecutive healthy checks with exactly one
+  protocol v2 extension connection. Controlled inactive fixture tabs passed selection,
+  snapshot, strict-ref click, and cleanup. One initial aggregate run observed an active
+  tab change; two immediate operation-boundary reruns preserved the original active tab
+  throughout and did not reproduce it.
+- Verified the emergency fallback by disabling the Store copy, loading the submitted ZIP
+  from a fixed directory outside the repository, and repeating the inactive
+  snapshot/click smoke successfully. The fallback was left installed but disabled.
+- Re-enabled the Store copy only after disabling the fallback. The Store browser ID,
+  label, WebSocket endpoint, protocol version, and extension version survived the
+  disable/re-enable cycle, and the server returned to exactly one healthy connection.
+  Identity preservation across an actual Store version update remains for the first real
+  update rather than an artificial content-free release.
+
 ## 2026-07-18
 
 ### Protocol and tool-count documentation consistency

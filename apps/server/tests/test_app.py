@@ -128,6 +128,89 @@ def test_health_rejects_dns_rebinding_origin() -> None:
         assert response.status_code == 403
 
 
+def test_direct_api_metadata_and_tool_catalog() -> None:
+    app = create_app(Settings())
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        meta = client.get("/api/v1/meta")
+        assert meta.status_code == 200
+        assert meta.json()["service"] == "chrome-bridge"
+        assert meta.json()["apiVersion"] == 1
+        assert meta.json()["mode"] == "persistent"
+        tools = client.get("/api/v1/tools").json()["tools"]
+        assert len(tools) == 21
+        assert {tool["name"] for tool in tools} >= {
+            "browser_instances",
+            "browser_snapshot",
+            "browser_screenshot",
+        }
+
+
+def test_direct_api_session_and_structured_call() -> None:
+    app = create_app(Settings())
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        created = client.post("/api/v1/sessions", json={}).json()["result"]
+        headers = {
+            "Authorization": f"Bearer {created['token']}",
+            "X-Chrome-Bridge-Session": created["sessionId"],
+        }
+        result = client.post(
+            "/api/v1/call",
+            headers=headers,
+            json={"method": "browser_instances", "arguments": {}},
+        )
+        assert result.json() == {"ok": True, "result": []}
+        heartbeat = client.post(
+            f"/api/v1/sessions/{created['sessionId']}/heartbeat",
+            headers=headers,
+        )
+        assert heartbeat.status_code == 200
+        released = client.delete(
+            f"/api/v1/sessions/{created['sessionId']}", headers=headers
+        )
+        assert released.json() == {"ok": True, "result": {"released": True}}
+
+
+def test_direct_api_rejects_wrong_session_token() -> None:
+    app = create_app(Settings())
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        created = client.post("/api/v1/sessions", json={}).json()["result"]
+        response = client.post(
+            "/api/v1/call",
+            headers={
+                "Authorization": "Bearer wrong",
+                "X-Chrome-Bridge-Session": created["sessionId"],
+            },
+            json={"method": "browser_instances", "arguments": {}},
+        )
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "invalid_session_token"
+
+
+def test_mcp_call_cannot_enter_during_direct_session() -> None:
+    app = create_app(Settings(operation_wait_timeout_seconds=0.01))
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        created = client.post("/api/v1/sessions", json={}).json()["result"]
+        response = client.post(
+            "/mcp",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "browser_instances", "arguments": {}},
+            },
+            headers={"Accept": "application/json, text/event-stream"},
+        )
+        assert response.status_code == 200
+        result = response.json()["result"]
+        assert result["isError"] is True
+        assert "exclusive session" in result["content"][0]["text"]
+        headers = {
+            "Authorization": f"Bearer {created['token']}",
+            "X-Chrome-Bridge-Session": created["sessionId"],
+        }
+        client.delete(f"/api/v1/sessions/{created['sessionId']}", headers=headers)
+
+
 def test_tools_include_non_focusing_tab_select() -> None:
     app = create_app(Settings())
     with TestClient(app, base_url="http://127.0.0.1:8765") as client:

@@ -1,8 +1,8 @@
 [project]
 name = "chrome-bridge-workspace"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.11"
-dependencies = ["chrome-bridge-mcp"]
+dependencies = ["chrome-bridge-mcp", "chrome-bridge-sdk"]
 
 [dependency-groups]
 dev = [
@@ -17,9 +17,10 @@ package = false
 
 [tool.uv.sources]
 chrome-bridge-mcp = { workspace = true }
+chrome-bridge-sdk = { workspace = true }
 
 [tool.uv.workspace]
-members = ["apps/server"]
+members = ["apps/server", "packages/sdk"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

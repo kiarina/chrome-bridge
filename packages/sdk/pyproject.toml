@@ -1,20 +1,15 @@
 [project]
-name = "chrome-bridge-mcp"
+name = "chrome-bridge-sdk"
 version = "0.2.0"
-description = "HTTP MCP server that bridges LLM agents to a Chrome extension"
+description = "Python SDK for the shared Chrome Bridge service"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
-    "jsonschema>=4.23,<5",
-    "mcp[cli]>=1.27,<2",
-    "uvicorn>=0.35,<1",
-    "websockets>=15,<17",
+    "chrome-bridge-mcp>=0.2,<0.3",
+    "httpx2>=2,<3",
 ]
-
-[project.scripts]
-chrome-bridge-mcp = "chrome_bridge_mcp.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -22,7 +17,6 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "httpx2>=2,<3",
     "pytest>=8.4,<9",
     "pytest-asyncio>=1.1,<2",
 ]
@@ -32,7 +26,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/chrome_bridge_mcp"]
+packages = ["src/chrome_bridge_sdk"]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["/tests"]

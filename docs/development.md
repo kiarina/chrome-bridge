@@ -25,6 +25,7 @@ In Chrome, manually open `chrome://extensions`, enable Developer mode, choose Lo
 | --- | --- | --- |
 | `GET /health` | None | Server/extension connection status |
 | `POST/GET/DELETE /mcp` | Loopback only | MCP Streamable HTTP |
+| `GET/POST/DELETE /api/v1/*` | Loopback only; bearer token for explicit sessions | Direct API metadata, tools, leases, and calls |
 | `WS /extension` | Loopback + Origin validation | Extension protocol |
 
 When `extensionConnected` is `true` in the health response, at least one extension bridge is connected. Check the count with `connectedBrowserCount`. Unauthenticated health never returns browser IDs or labels.
@@ -33,9 +34,10 @@ When `extensionConnected` is `true` in the health response, at least one extensi
 
 ```bash
 uv run pytest
-uv run ruff check apps/server
-uv run ruff format --check apps/server
-uv run python -m compileall -q apps/server/src
+uv run pytest packages/sdk/tests
+uv run ruff check apps/server packages/sdk scripts
+uv run ruff format --check apps/server packages/sdk scripts
+uv run python -m compileall -q apps/server/src packages/sdk/src
 npm --prefix apps/extension test
 npm --prefix apps/extension run lint
 npm --prefix apps/extension audit --audit-level=high
@@ -76,7 +78,12 @@ Because Playwright stores accepted downloads under UUID filenames, the
 ephemeral artifact substitutes only the returned relative filename conversion; the
 production conversion has cross-platform unit coverage and remains unchanged.
 
-`scripts/validate_static.py` checks manifest references, matching extension/server versions, protocol v1/v2 JSON Schemas, and the command catalog. The GitHub Actions [CI workflow](../.github/workflows/ci.yml) runs the same commands on Python 3.11/3.12 and Node 20, and rejects drift between canonical schemas and the tracked bundle with `git diff --exit-code -- apps/extension/dist/protocol.js` after the extension build. After earlier gates pass, the isolated E2E job installs full bundled Chromium and runs the same `test:e2e`. It then builds release artifacts, clean-installs the wheel into a temporary venv, runs E2E with the ZIP extension, and checks matching SHA-256 values across two independent builds. [Release artifacts](release.md) is canonical for artifact contents and installation.
+`scripts/validate_static.py` checks manifest references, matching extension versions,
+matching server/SDK versions, protocol v1/v2 JSON Schemas, and the command catalog. The
+GitHub Actions [CI workflow](../.github/workflows/ci.yml) runs the same gates on Python
+3.11/3.12 and Node 20. Release validation builds and clean-installs both Python
+distributions alongside the independently versioned extension ZIP. [Release
+artifacts](release.md) is canonical for artifact contents and installation.
 
 Edit `protocol_v1.schema.json` when changing protocol commands/runtime and `protocol_v2.schema.json` when changing the identity hello, then regenerate `dist/protocol.js` with `npm --prefix apps/extension run build`. Python and extension protocol tests check every command, unknown/extra fields, omissions, type mismatches, lifecycle, and success/error exclusivity against the same canonical schemas. Because the background imports `dist/protocol.js`, Reload the unpacked extension after schema or validator changes.
 
@@ -107,6 +114,22 @@ Set the URL to `http://127.0.0.1:8765/mcp`. For real-Chrome validation, check fi
 5. Close only the new tab with `browser_tab_close`.
 
 Never close existing user tabs during validation.
+
+For the Python SDK release smoke, use the Chrome Web Store extension in normal branded
+Chrome. Serve `apps/server/tests/fixtures/multiple-profile.html` over loopback, open one
+dedicated fixture tab with `?profile=store-sdk-smoke`, and run:
+
+```bash
+uv run python apps/server/tests/branded_chrome_sdk_smoke.py \
+  --fixture-url http://127.0.0.1:<fixture-port>/multiple-profile.html?profile=store-sdk-smoke
+```
+
+The script may start a managed server, finds only the exact fixture URL, opens and removes
+one temporary tab, and leaves all pre-existing tabs untouched. It verifies that selection
+stays in the background, then exercises typed tabs, snapshot, strict-ref click, and PNG
+screenshot results through the SDK. Close the dedicated fixture tab separately after the
+script succeeds. Keep the normal managed idle timeout for this smoke: setting it below the
+extension reconnect backoff can make the server exit before the Store extension connects.
 
 For real-Chrome `browser_snapshot` validation, create an inactive HTTP(S) test tab, select it, and capture a snapshot. Confirm the original active tab ID is unchanged and the result contains a URL, title, YAML, and refs matching `^s\d+e\d+$`. Expect content-unavailable for `about:blank` or `chrome://` targets. Prefer loopback HTTP fixtures for reproducible E2E because external sites can become Chrome error pages in some environments.
 

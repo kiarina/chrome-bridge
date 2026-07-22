@@ -463,6 +463,21 @@ class BrowserController:
         browser_id: str | None = None,
         video_filename: str | None = None,
     ) -> str | dict[str, Any]:
+        result = await self.press_key_result(key, browser_id, video_filename)
+        completion = f"Pressed key {key}"
+        if video_filename is not None:
+            return {
+                "operation": completion,
+                "recording": result["recording"],
+            }
+        return completion
+
+    async def press_key_result(
+        self,
+        key: str,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
         if not key.strip():
             raise ValueError("key must be a non-empty key name or character")
         if video_filename is not None:
@@ -472,7 +487,6 @@ class BrowserController:
         if video_filename is not None:
             params["videoFilename"] = video_filename
         result = await connection.request("page.pressKey", params)
-        completion = f"Pressed key {key}"
         if video_filename is not None:
             if not (
                 isinstance(result, dict)
@@ -488,7 +502,7 @@ class BrowserController:
                     "page.pressKey returned an invalid recorded response"
                 )
             return {
-                "operation": completion,
+                "operation": result["operation"],
                 "recording": self._with_browser_id(result["recording"], connection),
             }
         if not (
@@ -497,7 +511,7 @@ class BrowserController:
             and result.get("key") == key
         ):
             raise ExtensionCommandError("page.pressKey returned an invalid response")
-        return completion
+        return self._with_browser_id(result, connection)
 
     async def navigate(
         self,
@@ -538,6 +552,21 @@ class BrowserController:
         browser_id: str | None = None,
         video_filename: str | None = None,
     ) -> str | dict[str, Any]:
+        result = await self.wait_result(time, browser_id, video_filename)
+        completion = f"Waited for {time:g} seconds"
+        if video_filename is not None:
+            return {
+                "operation": completion,
+                "recording": result["recording"],
+            }
+        return completion
+
+    async def wait_result(
+        self,
+        time: float,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
         if (
             isinstance(time, bool)
             or not isinstance(time, (int, float))
@@ -553,7 +582,6 @@ class BrowserController:
         if video_filename is not None:
             params["videoFilename"] = video_filename
         result = await connection.request("page.wait", params)
-        completion = f"Waited for {time:g} seconds"
         if video_filename is not None:
             if not (
                 isinstance(result, dict)
@@ -569,7 +597,7 @@ class BrowserController:
                     "page.wait returned an invalid recorded response"
                 )
             return {
-                "operation": completion,
+                "operation": result["operation"],
                 "recording": self._with_browser_id(result["recording"], connection),
             }
         if not (
@@ -578,7 +606,7 @@ class BrowserController:
             and result.get("time") == time
         ):
             raise ExtensionCommandError("page.wait returned an invalid response")
-        return completion
+        return self._with_browser_id(result, connection)
 
     async def record_video(
         self, filename: str, duration: float, browser_id: str | None = None
@@ -601,6 +629,10 @@ class BrowserController:
         return self._with_browser_id(result, connection)
 
     async def screenshot(self, browser_id: str | None = None) -> bytes:
+        result = await self.screenshot_result(browser_id)
+        return base64.b64decode(result["data"], validate=True)
+
+    async def screenshot_result(self, browser_id: str | None = None) -> dict[str, Any]:
         connection = self._connection(browser_id)
         result = await connection.request("page.screenshot", {})
         if not (
@@ -623,7 +655,7 @@ class BrowserController:
             ) from error
         if not image.startswith(b"\x89PNG\r\n\x1a\n"):
             raise ExtensionCommandError("page.screenshot did not return a PNG image")
-        return image
+        return self._with_browser_id(result, connection)
 
     async def console_logs(self, browser_id: str | None = None) -> list[dict[str, Any]]:
         connection = self._connection(browser_id)

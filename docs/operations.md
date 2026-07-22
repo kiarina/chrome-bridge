@@ -18,6 +18,10 @@ This document is canonical for operating chrome-bridge with an everyday Chrome p
 | `CHROME_BRIDGE_HOST` | `127.0.0.1` | Bind host; only `127.0.0.1`, `::1`, and `localhost` are allowed |
 | `CHROME_BRIDGE_PORT` | `8765` | Port shared by HTTP MCP, health, and the extension WebSocket |
 | `CHROME_BRIDGE_COMMAND_TIMEOUT` | `15` | Seconds the server waits for an extension command |
+| `CHROME_BRIDGE_OPERATION_WAIT_TIMEOUT` | `30` | Seconds a single MCP/Direct call waits for the global lease |
+| `CHROME_BRIDGE_SESSION_IDLE_TTL` | `120` | Exclusive Direct session idle TTL in seconds |
+| `CHROME_BRIDGE_SESSION_MAX_LIFETIME` | `600` | Maximum exclusive Direct session lifetime in seconds |
+| `CHROME_BRIDGE_MANAGED_IDLE_TIMEOUT` | `300` | Idle seconds before an SDK-started managed server exits |
 
 After changing the port, set each Chrome profile's extension Options WebSocket URL to `ws://<host>:<port>/extension` and the MCP client URL to `http://<host>:<port>/mcp`. A command timeout shorter than the default may expire before navigation, the file chooser, or DOM stabilization completes.
 
@@ -56,6 +60,19 @@ Recommended normal startup order:
 5. Connect the MCP client.
 
 In-flight commands fail during server restart. Because the registry starts empty after restart, wait for connection counts to return before sending new tool calls. Restarting the extension or Chrome itself is normally unnecessary.
+
+## Python SDK lifecycle
+
+Install `chrome-bridge-sdk` in an application and use only its async session context.
+The SDK checks `/api/v1/meta`, reuses a compatible server, or starts
+`python -m chrome_bridge_mcp --managed`. It does not expose open/close/restart methods and
+does not stop a shared process when the application exits. The server releases abandoned
+sessions by heartbeat TTL and a managed server exits after the configured idle period.
+
+An explicit SDK session blocks other SDK workflows and MCP tool calls from entering the
+browser controller. MCP calls return a retryable busy error after the operation-wait
+timeout rather than waiting indefinitely. A lost connection during an operation is never
+automatically retried because its browser-side outcome may be unknown.
 
 ## MCP client configuration
 
