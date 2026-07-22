@@ -32,6 +32,10 @@
   in normal branded Chrome. It preserved the active tab while selecting a dedicated
   background fixture, then verified typed tab discovery, snapshot, strict-ref click, and
   a 1632×1009 PNG screenshot without closing any pre-existing tab.
+- During the final PR review, fixed a cancellation race after a queued session had been
+  granted but before its waiting task resumed. The coordinator now releases only the
+  lease granted to that cancelled waiter, avoiding a two-minute orphaned lock while also
+  preventing cancellation from releasing an unrelated single request.
 
 ## 2026-07-21
 

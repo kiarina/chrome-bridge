@@ -105,3 +105,33 @@ async def test_cancelled_waiter_does_not_block_next_request() -> None:
     await coordinator.release_session(lease.session_id, lease.token)
     async with coordinator.single_call(1):
         pass
+
+
+async def test_cancelled_session_after_grant_releases_lease() -> None:
+    coordinator = OperationCoordinator()
+    first = await coordinator.acquire_session(
+        idle_ttl_seconds=1,
+        max_lifetime_seconds=10,
+        timeout_seconds=1,
+    )
+    waiter = asyncio.create_task(
+        coordinator.acquire_session(
+            idle_ttl_seconds=1,
+            max_lifetime_seconds=10,
+            timeout_seconds=None,
+        )
+    )
+    await asyncio.sleep(0)
+
+    await coordinator.release_session(first.session_id, first.token)
+    waiter.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiter
+
+    assert not coordinator.busy
+    replacement = await coordinator.acquire_session(
+        idle_ttl_seconds=1,
+        max_lifetime_seconds=10,
+        timeout_seconds=0.1,
+    )
+    await coordinator.release_session(replacement.session_id, replacement.token)

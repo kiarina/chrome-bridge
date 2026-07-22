@@ -57,6 +57,8 @@ class _Waiter:
     future: asyncio.Future[SessionLease | None]
     idle_ttl_seconds: float = 0
     max_lifetime_seconds: float = 0
+    granted: bool = False
+    granted_lease: SessionLease | None = None
 
 
 class OperationCoordinator:
@@ -218,8 +220,14 @@ class OperationCoordinator:
             try:
                 self._waiters.remove(waiter)
             except ValueError:
-                if waiter.kind == "single" and self._single_active:
+                if waiter.kind == "single" and waiter.granted and self._single_active:
                     self._single_active = False
+                elif (
+                    waiter.kind == "session"
+                    and waiter.granted
+                    and self._active_session is waiter.granted_lease
+                ):
+                    await self._expire_session_locked(waiter.granted_lease)
             self._grant_next_locked()
 
     def _grant_next_locked(self) -> None:
@@ -231,6 +239,7 @@ class OperationCoordinator:
                 continue
             if waiter.kind == "single":
                 self._single_active = True
+                waiter.granted = True
                 self._activity_locked()
                 waiter.future.set_result(None)
                 return
@@ -244,6 +253,8 @@ class OperationCoordinator:
                 last_heartbeat=now,
             )
             self._active_session = lease
+            waiter.granted = True
+            waiter.granted_lease = lease
             self._activity_locked()
             waiter.future.set_result(lease)
             return
