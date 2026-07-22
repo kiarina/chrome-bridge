@@ -36,6 +36,9 @@
   granted but before its waiting task resumed. The coordinator now releases only the
   lease granted to that cancelled waiter, avoiding a two-minute orphaned lock while also
   preventing cancellation from releasing an unrelated single request.
+- Merged PR #2 after the cancellation regression and every PR gate passed, then confirmed
+  the merge commit on `main` with Python 3.11/3.12, extension audit/tests, isolated Chrome
+  source and artifact E2E, and reproducible release builds all green.
 
 ## 2026-07-21
 
