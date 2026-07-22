@@ -39,6 +39,14 @@
 - Merged PR #2 after the cancellation regression and every PR gate passed, then confirmed
   the merge commit on `main` with Python 3.11/3.12, extension audit/tests, isolated Chrome
   source and artifact E2E, and reproducible release builds all green.
+- Tagged handoff commit `70f2837` as `v0.2.0`. The release workflow rebuilt and validated
+  all five artifacts, passed clean-install isolated Chrome E2E and reproducibility, then
+  published the GitHub Release plus `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.2.0 to
+  PyPI through trusted publishing.
+- Downloaded the public release assets and verified every entry against `SHA256SUMS`.
+  The four PyPI wheel/sdist SHA-256 values matched the corresponding GitHub assets, and a
+  no-cache public-index install of `chrome-bridge-sdk==0.2.0` installed/imported both SDK
+  and server 0.2.0 with the server CLI available.
 
 ## 2026-07-21
 

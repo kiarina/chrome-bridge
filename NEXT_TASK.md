@@ -1,22 +1,19 @@
 # Next task
 
-## P1.10: shared managed-server release validation and publication
+## P1.11: v0.2 release follow-up and next extension update
 
 Direct API v1, process-wide exclusive sessions, managed idle shutdown, and the
-`chrome-bridge-sdk` 0.2.0 package are implemented. The extension protocol and Store
-runtime remain 0.1.0; do not create a content-free Store update for this Python-only
-release.
+`chrome-bridge-sdk` 0.2.0 package are published. The extension protocol and Store runtime
+remain 0.1.0; no content-free Store update was created for this Python-only release.
 
-- PR #2 is merged and its `main` CI passed Python 3.11/3.12, extension tests/audit,
-  source and artifact-installed isolated Chromium SDK E2E, and reproducible
-  five-artifact builds. The Store-extension branded-Chrome SDK smoke also passed locally
-  without foregrounding the background fixture or closing existing tabs.
-- PyPI pending trusted publishing for `chrome-bridge-sdk` is configured for repository
-  `kiarina/chrome-bridge`, workflow `release-pypi.yml`, and GitHub environment `pypi`.
-  After this handoff commit passes `main` CI, publish server/SDK 0.2.0 together by tagging
-  it `v0.2.0`, then verify both PyPI projects and GitHub Release checksums.
+- `v0.2.0` is published on GitHub and PyPI. All GitHub assets passed `SHA256SUMS`, both
+  PyPI projects matched the GitHub wheel/sdist hashes, and a no-cache public-index SDK
+  install pulled server/SDK 0.2.0 successfully.
+- Update pinned `actions/upload-artifact` and `actions/download-artifact` revisions to
+  Node 24-native releases when available. GitHub currently forces their Node 20 metadata
+  onto Node 24 and emits deprecation warnings, but the v0.2.0 release completed normally.
 - Track an upstream MCP JavaScript SDK release that can adopt `@hono/node-server>=2.0.5`.
   The current advisory is moderate and only affects an E2E development dependency; do
   not force a transitive major override solely to silence it.
-- After the first Python-only release is stable, resume the separately tracked first real
-  Chrome Web Store update and Public visibility decision from the v0.1 handoff.
+- After the Python-only release remains stable, resume the separately tracked first real
+  Chrome Web Store runtime update and Public visibility decision from the v0.1 handoff.
