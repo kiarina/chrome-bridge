@@ -478,3 +478,38 @@ browser_wait(time=1)
 browser_snapshot()
 # Observe site-specific asynchronous completion here.
 ```
+
+## Direct API v1 and Python SDK
+
+Python applications install `chrome-bridge-sdk` and call the same 21 operations without
+an MCP client. All operations are methods of an exclusive async session:
+
+```python
+from chrome_bridge_sdk import ChromeBridge
+
+chrome = ChromeBridge()
+
+async with chrome.session() as session:
+    tabs = await session.browser_tabs()
+    await session.browser_tab_select(tab_id=tabs[0]["id"])
+    snapshot = await session.browser_snapshot()
+```
+
+The SDK exposes `session.call(method, arguments)` and
+`session.tool_definitions()` for framework-neutral LLM integration. It has no public
+open, close, restart, or finish method. A session reuses a compatible server or lazily
+starts a shared managed server, then holds the process-wide browser-operation lease until
+the context exits.
+
+Direct API endpoints are `GET /api/v1/meta`, `GET /api/v1/tools`,
+`POST /api/v1/sessions`, session heartbeat/release endpoints, and
+`POST /api/v1/call`. Explicit calls send both `Authorization: Bearer <token>` and
+`X-Chrome-Bridge-Session: <id>`. A call without both headers is an independently queued
+single operation.
+
+Success uses `{ "ok": true, "result": ... }`. Errors use
+`{ "ok": false, "error": { "code", "message", "retryable",
+"outcomeUnknown" } }`. The SDK never automatically retries a call whose outcome may be
+unknown. Direct screenshots retain base64 data and dimensions, console logs are arrays,
+and key/wait results are structured; the MCP representations documented above remain
+unchanged.

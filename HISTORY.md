@@ -1,5 +1,25 @@
 # History
 
+## 2026-07-22
+
+### Direct API SDK and shared managed server
+
+- Added Direct API v1 with metadata/tool discovery, structured calls, and exclusive
+  session acquire, heartbeat, release, idle TTL, and maximum lifetime.
+- Added one server-wide FIFO operation coordinator shared by MCP and Direct API so an SDK
+  session preserves target and snapshot/ref state across multiple LLM-driven calls.
+- Added the `chrome-bridge-sdk` Python distribution. Its only lifecycle surface is
+  `ChromeBridge.session()`; it reuses a compatible server or starts an autonomous managed
+  server and never automatically retries an uncertain operation.
+- Added managed idle shutdown, server/SDK 0.2 versioning independent of the unchanged
+  extension 0.1.0, five-artifact reproducible build support, clean-install validation,
+  coordinator/API/SDK tests, two-process managed-server coverage, and an artifact-installed
+  SDK probe against two isolated Chromium profiles while preserving existing MCP and
+  extension results.
+- Registered the pending PyPI trusted publisher for `chrome-bridge-sdk` against repository
+  `kiarina/chrome-bridge`, workflow `release-pypi.yml`, and GitHub environment `pypi`,
+  matching the release workflow that publishes both Python distributions.
+
 ## 2026-07-21
 
 ### Chrome Web Store v0.1 publication and rollback validation

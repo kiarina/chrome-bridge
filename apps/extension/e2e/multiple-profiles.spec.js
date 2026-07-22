@@ -7,6 +7,7 @@ import {
   connectMcp,
   launchProfile,
   prepareExtensionArtifact,
+  runSdkProbe,
   startFixtureServer,
   startServer,
   toolCaller,
@@ -261,6 +262,9 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
 
     const connected = await waitFor(instances, (items) => items.length === 2, "two browser instances");
     expect(connected).toHaveLength(2);
+    const sdkInstances = await runSdkProbe(server.httpUrl);
+    expect(new Set(sdkInstances.map((item) => item.browserId)))
+      .toEqual(new Set(connected.map((item) => item.browserId)));
     await expect.poll(() => profileA.worker.evaluate(async () => ({
       status: (await chrome.storage.local.get("connectionStatus")).connectionStatus?.status,
       title: await chrome.action.getTitle({}),
@@ -598,10 +602,13 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       openedA.id,
       `${fixture.baseUrl}/slow-a`,
     );
-    successful(await call("browser_tab_select", {
-      browser_id: browserA,
-      tab_id: navigationTargetChangeTab.id,
-    }));
+    // The server-wide coordinator intentionally prevents another API/MCP call from
+    // entering during navigation. Mutate the test profile's session state directly to
+    // retain coverage of the extension's external target-loss diagnostic boundary.
+    await profileA.worker.evaluate(async ({ tabId }) => {
+      await chrome.storage.session.set({ targetTabId: tabId });
+      await chrome.storage.session.remove("latestSnapshot");
+    }, { tabId: navigationTargetChangeTab.id });
     const targetChangedNavigationResult = await targetChangedNavigation;
     expect(targetChangedNavigationResult.isError).toBe(true);
     expect(toolText(targetChangedNavigationResult)).toContain(
@@ -682,10 +689,12 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       closingNavigationTab.id,
       `${fixture.baseUrl}/slow-a`,
     );
-    successful(await call("browser_tab_close", {
-      browser_id: browserA,
-      tab_id: closingNavigationTab.id,
-    }));
+    // Closing the Chrome tab directly models user/browser lifecycle change without
+    // waiting behind the server's operation lease.
+    await profileA.worker.evaluate(
+      async ({ tabId }) => chrome.tabs.remove(tabId),
+      { tabId: closingNavigationTab.id },
+    );
     const closingNavigationResult = await closingNavigation;
     expect(closingNavigationResult.isError).toBe(true);
     expect(toolText(closingNavigationResult)).toContain(
@@ -912,10 +921,10 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     // during pre-roll. The key must not run on either tab; the original recording remains
     // a diagnostic artifact and its command-scoped debugger must still be released.
     await new Promise((resolve) => setTimeout(resolve, 250));
-    successful(await call("browser_tab_select", {
-      browser_id: browserA,
-      tab_id: targetChangeTab.id,
-    }));
+    await profileA.worker.evaluate(async ({ tabId }) => {
+      await chrome.storage.session.set({ targetTabId: tabId });
+      await chrome.storage.session.remove("latestSnapshot");
+    }, { tabId: targetChangeTab.id });
     const targetChangedResult = await interruptedKey;
     expect(targetChangedResult.isError).toBe(true);
     expect(toolText(targetChangedResult)).toContain(
@@ -1032,10 +1041,10 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     // Cross first-frame startup and pre-roll so interception and the chooser listener are
     // active before routing changes to another tab in the same Chrome profile.
     await new Promise((resolve) => setTimeout(resolve, 750));
-    successful(await call("browser_tab_select", {
-      browser_id: browserA,
-      tab_id: uploadTargetChangeTab.id,
-    }));
+    await profileA.worker.evaluate(async ({ tabId }) => {
+      await chrome.storage.session.set({ targetTabId: tabId });
+      await chrome.storage.session.remove("latestSnapshot");
+    }, { tabId: uploadTargetChangeTab.id });
     const targetChangedUploadResult = await targetChangedUpload;
     expect(targetChangedUploadResult.isError).toBe(true);
     expect(toolText(targetChangedUploadResult)).toContain(
@@ -1175,14 +1184,10 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     // the target closes. Cleanup may save a diagnostic or report a secondary capture
     // failure, but it must never leave a partial download or a selected dead target.
     await new Promise((resolve) => setTimeout(resolve, 750));
-    expect(successful(await call("browser_tab_close", {
-      browser_id: browserA,
-      tab_id: closingRecordedTab.id,
-    }))).toMatchObject({
-      closed: true,
-      tabId: closingRecordedTab.id,
-      browserId: browserA,
-    });
+    await profileA.worker.evaluate(
+      async ({ tabId }) => chrome.tabs.remove(tabId),
+      { tabId: closingRecordedTab.id },
+    );
     const tabClosedResult = await tabClosingUpload;
     expect(tabClosedResult.isError).toBe(true);
     expect(toolText(tabClosedResult)).toContain(

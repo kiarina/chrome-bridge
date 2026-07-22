@@ -32,9 +32,10 @@ jobs:
           cache-dependency-glob: uv.lock
       - run: uv sync --all-groups --locked
       - run: uv run pytest
-      - run: uv run ruff check apps/server scripts
-      - run: uv run ruff format --check apps/server scripts
-      - run: uv run python -m compileall -q apps/server/src scripts
+      - run: uv run pytest packages/sdk/tests
+      - run: uv run ruff check apps/server packages/sdk scripts
+      - run: uv run ruff format --check apps/server packages/sdk scripts
+      - run: uv run python -m compileall -q apps/server/src packages/sdk/src scripts
       - run: uv run python scripts/validate_static.py
 
   extension:

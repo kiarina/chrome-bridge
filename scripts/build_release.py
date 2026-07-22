@@ -109,19 +109,20 @@ def build(output_dir: Path) -> list[Path]:
         staging = Path(temporary)
         python_dir = staging / "python"
         python_dir.mkdir()
-        subprocess.run(
-            [
-                "uv",
-                "build",
-                "--package",
-                "chrome-bridge-mcp",
-                "--out-dir",
-                str(python_dir),
-            ],
-            cwd=ROOT,
-            check=True,
-            env=env,
-        )
+        for package in ("chrome-bridge-mcp", "chrome-bridge-sdk"):
+            subprocess.run(
+                [
+                    "uv",
+                    "build",
+                    "--package",
+                    package,
+                    "--out-dir",
+                    str(python_dir),
+                ],
+                cwd=ROOT,
+                check=True,
+                env=env,
+            )
         extension_zip = staging / f"chrome-bridge-extension-{version}.zip"
         build_extension_zip(extension_zip)
 
@@ -130,9 +131,9 @@ def build(output_dir: Path) -> list[Path]:
             *sorted(python_dir.glob("*.whl")),
             *sorted(python_dir.glob("*.tar.gz")),
         ]
-        if len(artifacts) != 3:
+        if len(artifacts) != 5:
             raise RuntimeError(
-                f"expected extension ZIP, wheel, and sdist; got {artifacts}"
+                f"expected extension ZIP and two Python wheel/sdist pairs; got {artifacts}"
             )
 
         if output_dir.exists():

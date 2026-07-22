@@ -25,6 +25,7 @@ In Chrome, manually open `chrome://extensions`, enable Developer mode, choose Lo
 | --- | --- | --- |
 | `GET /health` | None | Server/extension connection status |
 | `POST/GET/DELETE /mcp` | Loopback only | MCP Streamable HTTP |
+| `GET/POST/DELETE /api/v1/*` | Loopback only; bearer token for explicit sessions | Direct API metadata, tools, leases, and calls |
 | `WS /extension` | Loopback + Origin validation | Extension protocol |
 
 When `extensionConnected` is `true` in the health response, at least one extension bridge is connected. Check the count with `connectedBrowserCount`. Unauthenticated health never returns browser IDs or labels.
@@ -33,9 +34,10 @@ When `extensionConnected` is `true` in the health response, at least one extensi
 
 ```bash
 uv run pytest
-uv run ruff check apps/server
-uv run ruff format --check apps/server
-uv run python -m compileall -q apps/server/src
+uv run pytest packages/sdk/tests
+uv run ruff check apps/server packages/sdk scripts
+uv run ruff format --check apps/server packages/sdk scripts
+uv run python -m compileall -q apps/server/src packages/sdk/src
 npm --prefix apps/extension test
 npm --prefix apps/extension run lint
 npm --prefix apps/extension audit --audit-level=high
@@ -76,7 +78,12 @@ Because Playwright stores accepted downloads under UUID filenames, the
 ephemeral artifact substitutes only the returned relative filename conversion; the
 production conversion has cross-platform unit coverage and remains unchanged.
 
-`scripts/validate_static.py` checks manifest references, matching extension/server versions, protocol v1/v2 JSON Schemas, and the command catalog. The GitHub Actions [CI workflow](../.github/workflows/ci.yml) runs the same commands on Python 3.11/3.12 and Node 20, and rejects drift between canonical schemas and the tracked bundle with `git diff --exit-code -- apps/extension/dist/protocol.js` after the extension build. After earlier gates pass, the isolated E2E job installs full bundled Chromium and runs the same `test:e2e`. It then builds release artifacts, clean-installs the wheel into a temporary venv, runs E2E with the ZIP extension, and checks matching SHA-256 values across two independent builds. [Release artifacts](release.md) is canonical for artifact contents and installation.
+`scripts/validate_static.py` checks manifest references, matching extension versions,
+matching server/SDK versions, protocol v1/v2 JSON Schemas, and the command catalog. The
+GitHub Actions [CI workflow](../.github/workflows/ci.yml) runs the same gates on Python
+3.11/3.12 and Node 20. Release validation builds and clean-installs both Python
+distributions alongside the independently versioned extension ZIP. [Release
+artifacts](release.md) is canonical for artifact contents and installation.
 
 Edit `protocol_v1.schema.json` when changing protocol commands/runtime and `protocol_v2.schema.json` when changing the identity hello, then regenerate `dist/protocol.js` with `npm --prefix apps/extension run build`. Python and extension protocol tests check every command, unknown/extra fields, omissions, type mismatches, lifecycle, and success/error exclusivity against the same canonical schemas. Because the background imports `dist/protocol.js`, Reload the unpacked extension after schema or validator changes.
 

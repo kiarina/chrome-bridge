@@ -93,15 +93,42 @@ Sources: [Browser MCP server setup](https://docs.browsermcp.io/setup-server),
 apps/
 ├── extension/  # Manifest V3 Chrome extension
 └── server/     # Python FastMCP + Streamable HTTP + WebSocket bridge
+packages/
+└── sdk/        # Direct API Python SDK and managed-server launcher
 ```
 
 The MCP client connects to `http://127.0.0.1:8765/mcp`. The Chrome extension makes an outbound connection to `ws://127.0.0.1:8765/extension` and returns results from Chrome API operations.
+
+Python applications can instead use `chrome-bridge-sdk` without an MCP client. Its
+exclusive session is enforced by the shared server across processes, so target and
+snapshot refs cannot be changed by another SDK workflow while the session is active.
+
+```python
+from chrome_bridge_sdk import ChromeBridge
+
+chrome = ChromeBridge()
+
+async with chrome.session() as session:
+    tabs = await session.browser_tabs()
+    await session.browser_tab_select(tab_id=tabs[0]["id"])
+    snapshot = await session.browser_snapshot()
+```
+
+`session()` reuses a compatible server or starts a shared managed server automatically.
+There are no public `open`, `close`, or `restart` methods; an SDK-started server exits
+after five idle minutes.
 
 ## Quick start
 
 ```bash
 uv tool install chrome-bridge-mcp
 chrome-bridge-mcp
+```
+
+For Python SDK use, install both distributions through the SDK dependency:
+
+```bash
+uv add chrome-bridge-sdk
 ```
 
 1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.1 release is Unlisted, so use this direct URL.

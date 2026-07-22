@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
 SERVER_PACKAGE = ROOT / "apps" / "server"
+SDK_PACKAGE = ROOT / "packages" / "sdk"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -43,6 +44,7 @@ def validate_manifest() -> None:
     server = tomllib.loads(
         (SERVER_PACKAGE / "pyproject.toml").read_text(encoding="utf-8")
     )
+    sdk = tomllib.loads((SDK_PACKAGE / "pyproject.toml").read_text(encoding="utf-8"))
 
     require(manifest.get("manifest_version") == 3, "manifest_version must be 3")
     require(
@@ -54,18 +56,29 @@ def validate_manifest() -> None:
         == {"service_worker": "background.js", "type": "module"},
         "background must use the module service worker",
     )
-    versions = {
+    extension_versions = {
         "manifest": manifest.get("version"),
         "extension package": package.get("version"),
-        "server package": server["project"]["version"],
     }
     require(
-        len(set(versions.values())) == 1,
-        f"package versions must match: {versions}",
+        len(set(extension_versions.values())) == 1,
+        f"extension versions must match: {extension_versions}",
+    )
+    python_versions = {
+        "server package": server["project"]["version"],
+        "SDK package": sdk["project"]["version"],
+    }
+    require(
+        len(set(python_versions.values())) == 1,
+        f"Python package versions must match: {python_versions}",
     )
     require(
         server["project"]["name"] == "chrome-bridge-mcp",
         "Python distribution must be chrome-bridge-mcp",
+    )
+    require(
+        sdk["project"]["name"] == "chrome-bridge-sdk",
+        "SDK distribution must be chrome-bridge-sdk",
     )
     require(
         server["project"].get("license") == "MIT" and package.get("license") == "MIT",
@@ -73,7 +86,9 @@ def validate_manifest() -> None:
     )
     root_license = (ROOT / "LICENSE").read_text(encoding="utf-8")
     server_license = (SERVER_PACKAGE / "LICENSE").read_text(encoding="utf-8")
+    sdk_license = (SDK_PACKAGE / "LICENSE").read_text(encoding="utf-8")
     require(root_license == server_license, "server LICENSE must match root LICENSE")
+    require(root_license == sdk_license, "SDK LICENSE must match root LICENSE")
 
     expected_icons = {str(size): f"icons/icon-{size}.png" for size in (16, 32, 48, 128)}
     require(manifest.get("icons") == expected_icons, "manifest icon set drifted")
