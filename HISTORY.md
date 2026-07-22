@@ -23,6 +23,15 @@
   arguments and type defaults, sync/async session status callbacks, structured exception
   attributes, and correct same-task nested-session detection while preserving raw JSON
   `call()` for LLM integrations.
+- Opened draft PR #2 and completed its Linux CI on Python 3.11/3.12. Extension tests and
+  high-severity audit, source and clean-installed artifact Chromium E2E, and reproducible
+  five-artifact builds all passed. Updated transitive `fast-uri` from 3.1.3 to 3.1.4 after
+  a newly reported high-severity advisory; the remaining upstream `@hono/node-server`
+  advisory is moderate and has no non-breaking v1 fix.
+- Added and passed a repeatable SDK smoke against the published Chrome Web Store extension
+  in normal branded Chrome. It preserved the active tab while selecting a dedicated
+  background fixture, then verified typed tab discovery, snapshot, strict-ref click, and
+  a 1632×1009 PNG screenshot without closing any pre-existing tab.
 
 ## 2026-07-21
 

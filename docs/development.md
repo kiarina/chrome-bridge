@@ -115,6 +115,22 @@ Set the URL to `http://127.0.0.1:8765/mcp`. For real-Chrome validation, check fi
 
 Never close existing user tabs during validation.
 
+For the Python SDK release smoke, use the Chrome Web Store extension in normal branded
+Chrome. Serve `apps/server/tests/fixtures/multiple-profile.html` over loopback, open one
+dedicated fixture tab with `?profile=store-sdk-smoke`, and run:
+
+```bash
+uv run python apps/server/tests/branded_chrome_sdk_smoke.py \
+  --fixture-url http://127.0.0.1:<fixture-port>/multiple-profile.html?profile=store-sdk-smoke
+```
+
+The script may start a managed server, finds only the exact fixture URL, opens and removes
+one temporary tab, and leaves all pre-existing tabs untouched. It verifies that selection
+stays in the background, then exercises typed tabs, snapshot, strict-ref click, and PNG
+screenshot results through the SDK. Close the dedicated fixture tab separately after the
+script succeeds. Keep the normal managed idle timeout for this smoke: setting it below the
+extension reconnect backoff can make the server exit before the Store extension connects.
+
 For real-Chrome `browser_snapshot` validation, create an inactive HTTP(S) test tab, select it, and capture a snapshot. Confirm the original active tab ID is unchanged and the result contains a URL, title, YAML, and refs matching `^s\d+e\d+$`. Expect content-unavailable for `about:blank` or `chrome://` targets. Prefer loopback HTTP fixtures for reproducible E2E because external sites can become Chrome error pages in some environments.
 
 For `browser_click`, place two same-named buttons in a loopback fixture, target the background tab, and verify:
