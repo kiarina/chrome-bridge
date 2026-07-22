@@ -110,13 +110,14 @@ chrome = ChromeBridge()
 
 async with chrome.session() as session:
     tabs = await session.browser_tabs()
-    await session.browser_tab_select(tab_id=tabs[0]["id"])
+    await session.browser_tab_select(tab_id=tabs[0].id)
     snapshot = await session.browser_snapshot()
 ```
 
 `session()` reuses a compatible server or starts a shared managed server automatically.
 There are no public `open`, `close`, or `restart` methods; an SDK-started server exits
-after five idle minutes.
+after five idle minutes. High-level operations return typed immutable models; `call()`
+remains available when an integration needs the raw Direct API JSON result.
 
 ## Quick start
 
@@ -162,8 +163,8 @@ Local CI-equivalent validation:
 
 ```bash
 uv sync --all-groups --locked
-uv run ruff check apps/server scripts
-uv run ruff format --check apps/server scripts
+uv run ruff check apps/server packages/sdk scripts
+uv run ruff format --check apps/server packages/sdk scripts
 uv run pytest
 uv run python scripts/validate_static.py
 npm --prefix apps/extension ci

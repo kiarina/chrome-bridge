@@ -485,21 +485,35 @@ Python applications install `chrome-bridge-sdk` and call the same 21 operations 
 an MCP client. All operations are methods of an exclusive async session:
 
 ```python
-from chrome_bridge_sdk import ChromeBridge
+from chrome_bridge_sdk import ChromeBridge, SessionStatus
 
-chrome = ChromeBridge()
+chrome = ChromeBridge(status_callback=lambda status: print(status.value))
 
 async with chrome.session() as session:
     tabs = await session.browser_tabs()
-    await session.browser_tab_select(tab_id=tabs[0]["id"])
+    await session.browser_tab_select(tab_id=tabs[0].id)
     snapshot = await session.browser_snapshot()
 ```
 
-The SDK exposes `session.call(method, arguments)` and
-`session.tool_definitions()` for framework-neutral LLM integration. It has no public
-open, close, restart, or finish method. A session reuses a compatible server or lazily
-starts a shared managed server, then holds the process-wide browser-operation lease until
-the context exits.
+The 21 high-level methods use Pythonic snake_case arguments and return frozen typed models
+such as `Tab`, `Snapshot`, `Screenshot`, `ConsoleEntry`, and `Recording`. Recorded calls
+return `RecordedResult[operation type]`; `Screenshot.image_bytes` decodes its base64 data.
+`browser_type` defaults `submit=False`, and drag arguments are `start_element`,
+`start_ref`, `end_element`, and `end_ref` even though the low-level tool schema retains
+its existing wire names.
+
+The SDK exposes `session.call(method, arguments)` for raw JSON results and
+`session.tool_definitions()` for framework-neutral LLM integration. It has no public open,
+close, restart, or finish method. A session reuses a compatible server or lazily starts a
+shared managed server, then holds the process-wide browser-operation lease until the
+context exits. An optional sync or async `status_callback` receives `SessionStatus`
+transitions for server, extension, and FIFO lease waits. Callback failures are logged and
+do not interrupt browser work.
+
+SDK exceptions expose `code`, `retryable`, and `outcome_unknown`. A nested session in the
+same asyncio task raises `NestedSessionError`, including when it uses another
+`ChromeBridge` instance. A different task is allowed to request a session and waits in
+the server FIFO like another process.
 
 Direct API endpoints are `GET /api/v1/meta`, `GET /api/v1/tools`,
 `POST /api/v1/sessions`, session heartbeat/release endpoints, and

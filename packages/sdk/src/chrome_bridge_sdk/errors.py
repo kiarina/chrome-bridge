@@ -1,6 +1,19 @@
 class ChromeBridgeError(RuntimeError):
     """Base SDK exception."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "chrome_bridge_error",
+        retryable: bool = False,
+        outcome_unknown: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+        self.outcome_unknown = outcome_unknown
+
 
 class NestedSessionError(ChromeBridgeError):
     pass
@@ -31,4 +44,17 @@ class OperationError(ChromeBridgeError):
 
 
 class OperationOutcomeUnknownError(OperationError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "operation_outcome_unknown",
+        retryable: bool = False,
+        outcome_unknown: bool = True,
+    ) -> None:
+        super().__init__(
+            message,
+            code=code,
+            retryable=retryable,
+            outcome_unknown=outcome_unknown,
+        )

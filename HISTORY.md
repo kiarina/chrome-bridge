@@ -19,6 +19,10 @@
 - Registered the pending PyPI trusted publisher for `chrome-bridge-sdk` against repository
   `kiarina/chrome-bridge`, workflow `release-pypi.yml`, and GitHub environment `pypi`,
   matching the release workflow that publishes both Python distributions.
+- Polished the unreleased SDK with immutable typed operation results, Pythonic drag
+  arguments and type defaults, sync/async session status callbacks, structured exception
+  attributes, and correct same-task nested-session detection while preserving raw JSON
+  `call()` for LLM integrations.
 
 ## 2026-07-21
 

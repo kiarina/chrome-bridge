@@ -328,4 +328,10 @@ ownership, capture pipeline, dimensions, result/error contract, and rollout reco
 - The `chrome-bridge-sdk` package uses Direct API only, starts a managed server when
   needed, shares a compatible existing server, never retries an uncertain operation,
   and releases its exclusive session from the async context manager.
+- High-level SDK methods use Pythonic arguments and immutable typed result models. The
+  low-level `call` method preserves raw Direct API JSON for LLM adapters. SDK errors retain
+  `code`, `retryable`, and `outcome_unknown`, and optional session status callbacks expose
+  server, extension, and FIFO wait phases without controlling lifecycle.
+- Reject session nesting by asyncio task rather than by SDK instance. A different task or
+  process may request a session and waits through the server-wide FIFO coordinator.
 - Pin the MCP Python SDK to stable v1 with `>=1.27,<2`; treat migration to v2 as a separate task.

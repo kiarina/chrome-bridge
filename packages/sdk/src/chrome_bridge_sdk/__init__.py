@@ -1,6 +1,6 @@
 """Direct Python SDK for Chrome Bridge."""
 
-from .client import ChromeBridge, ChromeBridgeSession
+from .client import ChromeBridge, ChromeBridgeSession, SessionStatus, StatusCallback
 from .errors import (
     ChromeBridgeError,
     ExtensionUnavailableError,
@@ -12,17 +12,41 @@ from .errors import (
     SessionAcquireTimeoutError,
     SessionExpiredError,
 )
+from .models import (
+    BrowserInstance,
+    ClosedTab,
+    ConsoleEntry,
+    KeyPress,
+    RecordedResult,
+    Recording,
+    Screenshot,
+    Snapshot,
+    Tab,
+    WaitResult,
+)
 
 __all__ = [
     "ChromeBridge",
     "ChromeBridgeError",
     "ChromeBridgeSession",
+    "BrowserInstance",
+    "ClosedTab",
+    "ConsoleEntry",
     "ExtensionUnavailableError",
     "IncompatibleServerError",
+    "KeyPress",
     "NestedSessionError",
     "OperationError",
     "OperationOutcomeUnknownError",
+    "RecordedResult",
+    "Recording",
+    "Screenshot",
     "ServerUnavailableError",
     "SessionAcquireTimeoutError",
     "SessionExpiredError",
+    "SessionStatus",
+    "Snapshot",
+    "StatusCallback",
+    "Tab",
+    "WaitResult",
 ]
