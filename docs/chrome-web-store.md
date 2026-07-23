@@ -32,7 +32,7 @@ re-enabling the Store copy, the Store browser ID and endpoint settings were pres
 The actual Store extension ID and browser identity across a real Store version update
 remain to be measured with the first non-artificial update.
 
-### Prepared v0.3 update
+### Submitted v0.3 update
 
 Version 0.3.0 is the first planned Store runtime update. It adds accessible-text
 condition waiting and strict-ref downloads observed through the selected target's CDP
@@ -40,10 +40,15 @@ Page events. It also adds the non-warning `alarms` permission so a dormant Manif
 worker can resume quiet local-server reachability checks without treating normal server
 downtime as an extension error. `debugger` already supports target-scoped input and
 observation, while `downloads` remains required for explicitly requested WebM recording
-output. Upload only the 0.3.0 ZIP that passed source and clean-installed
-two-profile E2E, then keep the item Unlisted and use staged publication. Public visibility
-and final-publication automation remain out of scope until the real update preserves the
-Store extension ID, browser ID, label, endpoint, background behavior, and rollback path.
+output. The verified 0.3.0 ZIP with SHA-256
+`32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04` was uploaded to
+the existing Unlisted item on 2026-07-24. The dashboard required and accepted the new
+`alarms` justification, automatic publication was disabled in the confirmation dialog,
+and the authoritative item row entered `審査待ち` at version 0.3.0. A transient submission
+error toast appeared after that transition; do not retry while the item remains pending
+review. Public visibility and final-publication automation remain out of scope until the
+approved update preserves the Store extension ID, browser ID, label, endpoint,
+background behavior, and rollback path.
 
 Official references:
 

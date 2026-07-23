@@ -2,6 +2,18 @@
 
 ## 2026-07-24
 
+### v0.3.0 staged Chrome Web Store submission
+
+- Uploaded the verified GitHub Release ZIP with SHA-256
+  `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04` to existing
+  Unlisted Store item `ogmocgobegbjbecakclahodnhhfmccad` as version 0.3.0.
+- Added the new `alarms` justification: it wakes the Manifest V3 worker only for bounded,
+  backoff-based reachability checks of the user-configured server and neither collects
+  browsing data nor initiates page operations.
+- Disabled automatic publication in the review confirmation and submitted the update.
+  The submission UI displayed a transient error toast after returning to the item list,
+  but the authoritative row showed version 0.3.0 and `審査待ち`; no retry was performed.
+
 ### v0.3.0 GitHub and PyPI publication
 
 - Pushed final commit `b28be3f` to `main`, created annotated tag `v0.3.0` at that exact
