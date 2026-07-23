@@ -2,6 +2,18 @@
 
 ## 2026-07-23
 
+### Branded-Chrome 0.3 wait/download release smoke
+
+- Added a self-contained branded-Chrome SDK smoke with a random loopback fixture and one
+  inactive temporary tab. It validates visible/hidden accessible waits, stale-ref
+  rejection, immediate strict-ref download, delayed download with `timeout=60`, the
+  minimal public download fields, a 0.1-second outcome-unknown timeout, and immediate
+  debugger reuse while preserving the original active tab.
+- Ran the smoke against the fixed unpacked 0.3.0 artifact and browser ID
+  `8397f14f-ea11-4e15-b79b-10091d5c027b`. Both UUID-named CSV downloads completed and
+  were deleted exactly; no cleanup remained, and the intentionally stalled request
+  created no reported successful download.
+
 ### Quiet optional-server reconnect
 
 - Changed normal local-server downtime from `error` to `disconnected`. The extension now

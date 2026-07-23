@@ -5,18 +5,15 @@
 The source tree prepares server, SDK, and extension 0.3.0 with 23 MCP tools. The new
 `browser_wait_for` and strict-ref `browser_download_file` paths pass unit/static and
 two-profile isolated Chromium validation, including background operation, exact-target
-CDP events, outcome-unknown timeout cleanup, and the maximum 60-second public range.
+CDP events, outcome-unknown timeout cleanup, and the maximum 60-second public range. The
+fixed unpacked ZIP also passed branded-Chrome 0.3.0 smoke for visible/hidden wait,
+immediate/delayed downloads, `timeout=60`, timeout recovery, exact result fields,
+foreground preservation, and exact test-file cleanup.
 No tag, GitHub/PyPI publication, or Chrome Web Store upload has been performed yet.
 
 - Run the complete release/reproducibility gates from `docs/release.md` on the final main
   commit, push `v0.3.0`, then verify GitHub/PyPI hashes and a no-cache public-index SDK
   install before any Store upload.
-- Validate the same ZIP on branded Chrome 116+ with an immediate and delayed download,
-  `timeout=60`, background wait/download, and post-timeout debugger/queue reuse. Stop the
-  release if target-scoped Page download events are unavailable; do not add an inferred
-  Downloads API fallback. Prepare the fixed visible Load unpacked path with
-  `uv run python scripts/prepare_unpacked_extension.py`, then select or Reload
-  `unpacked-extension/` in Chrome.
 - Upload that verified ZIP as the first real Unlisted Store update with staged
   publication. Confirm the Store extension ID, browser ID, label, endpoint, server
   settings, background behavior, and verified old-ZIP fallback after the update.

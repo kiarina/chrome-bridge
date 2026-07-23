@@ -146,6 +146,22 @@ screenshot results through the SDK. Close the dedicated fixture tab separately a
 script succeeds. Keep the normal managed idle timeout for this smoke: setting it below the
 extension reconnect backoff can make the server exit before the Store extension connects.
 
+For the 0.3.0 wait/download release smoke, enable exactly one 0.3.0 extension in branded
+Chrome, start the server, and run:
+
+```bash
+uv run python apps/server/tests/branded_chrome_v03_smoke.py
+```
+
+The script owns a random loopback fixture and one inactive Chrome tab. It waits for an
+asynchronous accessible marker to appear and disappear, rejects a stale pre-wait ref,
+performs immediate and delayed strict-ref downloads (the latter with `timeout=60`),
+injects a 0.1-second outcome-unknown timeout, and immediately reuses the debugger for a
+PNG screenshot. It confirms the original active tab and exact public download fields,
+closes only its fixture tab, and deletes only its two UUID-named CSV files from
+`~/Downloads`. Pass `--download-dir` if Chrome uses a different download directory; a
+non-empty `cleanupRequired` result must be resolved before completing the smoke.
+
 For real-Chrome `browser_snapshot` validation, create an inactive HTTP(S) test tab, select it, and capture a snapshot. Confirm the original active tab ID is unchanged and the result contains a URL, title, YAML, and refs matching `^s\d+e\d+$`. Expect content-unavailable for `about:blank` or `chrome://` targets. Prefer loopback HTTP fixtures for reproducible E2E because external sites can become Chrome error pages in some environments.
 
 For `browser_click`, place two same-named buttons in a loopback fixture, target the background tab, and verify:
