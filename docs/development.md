@@ -19,6 +19,21 @@ uv run chrome-bridge-mcp
 
 In Chrome, manually open `chrome://extensions`, enable Developer mode, choose Load unpacked, and select `apps/extension`. After changing extension code, click Reload on the same page. See the [Operations guide](operations.md) for routine start/stop procedures, environment variables, Options, MCP client configuration, and incident response.
 
+For repeatable testing of the exact release ZIP rather than source files, prepare the
+gitignored fixed directory at the repository root:
+
+```bash
+uv run python scripts/build_release.py
+uv run python scripts/prepare_unpacked_extension.py
+```
+
+Choose `unpacked-extension/` in Chrome's Load unpacked dialog. The preparation command
+requires the ZIP checksum to match `release/SHA256SUMS`, validates its file catalog and
+manifest version, replaces stale files, and prints the selected ZIP and SHA-256. Keep
+Chrome pointed at this same visible path across versions, then run the command and click
+Reload after each update. The directory is generated and ignored by Git; do not edit or
+store unrelated files in it because preparation replaces its complete contents.
+
 ## Endpoints
 
 | URL | Authentication | Purpose |

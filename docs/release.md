@@ -72,6 +72,17 @@ After the Store item is approved, Chrome Web Store is the normal extension insta
 
 Extract the extension ZIP into a fixed installation directory. To preserve the unpacked extension ID and `chrome.storage.local` browser identity, do not Load unpacked from a different path per version; use the same directory for upgrades and rollbacks.
 
+From a source checkout, the repository provides a visible, gitignored fixed directory:
+
+```bash
+uv run python scripts/prepare_unpacked_extension.py
+```
+
+This verifies the current `release/SHA256SUMS` entry and replaces
+`unpacked-extension/` with the complete current ZIP contents. Select that directory in
+Chrome once and use Reload after later preparations. For an installed release without a
+source checkout, use an equivalent fixed directory as shown below.
+
 ```bash
 mkdir -p /path/to/chrome-bridge-extension
 unzip chrome-bridge-extension-0.3.0.zip -d /path/to/chrome-bridge-extension

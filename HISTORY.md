@@ -2,6 +2,14 @@
 
 ## 2026-07-23
 
+### Fixed unpacked-extension preparation
+
+- Added `scripts/prepare_unpacked_extension.py` and the visible, gitignored repository
+  path `unpacked-extension/` for repeatable branded-Chrome artifact testing. Preparation
+  verifies the current release ZIP against `SHA256SUMS`, checks the canonical file set
+  and manifest version, replaces stale contents, and keeps one path across Reloads so an
+  unpacked extension ID and browser-local identity can remain stable between versions.
+
 ### Conditional wait and strict-ref download for v0.3.0
 
 - Added `browser_wait_for` across the content runtime, extension protocol, MCP, Direct

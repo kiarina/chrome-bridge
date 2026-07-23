@@ -140,6 +140,9 @@ uv add chrome-bridge-sdk
 
 For source setup and Load unpacked development, see the
 [development guide](docs/development.md).
+For repeatable testing of the exact release ZIP, run
+`uv run python scripts/prepare_unpacked_extension.py` and select the generated,
+gitignored `unpacked-extension/` directory in Chrome once.
 
 A typical Streamable HTTP configuration looks like this. Adjust field names for your MCP client.
 

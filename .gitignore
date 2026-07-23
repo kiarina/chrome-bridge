@@ -11,4 +11,5 @@ dist/
 node_modules/
 test-results/
 release/
+unpacked-extension/
 apps/extension/tests/.generated/

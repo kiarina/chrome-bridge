@@ -14,7 +14,9 @@ No tag, GitHub/PyPI publication, or Chrome Web Store upload has been performed y
 - Validate the same ZIP on branded Chrome 116+ with an immediate and delayed download,
   `timeout=60`, background wait/download, and post-timeout debugger/queue reuse. Stop the
   release if target-scoped Page download events are unavailable; do not add an inferred
-  Downloads API fallback.
+  Downloads API fallback. Prepare the fixed visible Load unpacked path with
+  `uv run python scripts/prepare_unpacked_extension.py`, then select or Reload
+  `unpacked-extension/` in Chrome.
 - Upload that verified ZIP as the first real Unlisted Store update with staged
   publication. Confirm the Store extension ID, browser ID, label, endpoint, server
   settings, background behavior, and verified old-ZIP fallback after the update.
