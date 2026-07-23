@@ -485,3 +485,68 @@ test("resizes PNG screenshots within the configured pixel bounds", async ({
   expect(result.decoded).toEqual({ width: 10, height: 5 });
   expect(result.data).not.toMatch(/^data:/);
 });
+
+test("waits for normalized accessible text to appear and disappear", async ({
+  page,
+}) => {
+  await page.setContent(`
+    <main>
+      <div id="status" role="status" aria-label="Starting"></div>
+      <div id="hidden" hidden>Secret</div>
+      <snapshot-wait-host></snapshot-wait-host>
+    </main>
+    <script>
+      customElements.define("snapshot-wait-host", class extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({ mode: "open" }).innerHTML = '<p>Shadow ready</p>';
+        }
+      });
+    </script>
+  `);
+  await installHarness(page);
+
+  const result = await page.evaluate(async () => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    const status = document.querySelector("#status");
+    setTimeout(() => status.setAttribute("aria-label", "Payment   complete"), 50);
+    const visible = await runtime.waitForAriaText(
+      "Payment complete",
+      "visible",
+      1_000,
+    );
+    setTimeout(() => status.setAttribute("aria-label", "Finished"), 50);
+    const hidden = await runtime.waitForAriaText(
+      "Payment complete",
+      "hidden",
+      1_000,
+    );
+    return {
+      visible,
+      hidden,
+      shadow: runtime.ariaTextContains("Shadow ready"),
+      ariaHidden: runtime.ariaTextContains("Secret"),
+    };
+  });
+
+  expect(result.visible.matched).toBe(true);
+  expect(result.hidden.matched).toBe(true);
+  expect(result.shadow).toBe(true);
+  expect(result.ariaHidden).toBe(false);
+});
+
+test("uses case-sensitive wait text and supports an immediate timeout", async ({
+  page,
+}) => {
+  await page.setContent("<main>Ready</main>");
+  await installHarness(page);
+  await expect(
+    page.evaluate(() =>
+      globalThis.chromeBridgeSnapshotTest.waitForAriaText(
+        "ready",
+        "visible",
+        0,
+      ),
+    ),
+  ).rejects.toThrow("Timed out waiting for text");
+});

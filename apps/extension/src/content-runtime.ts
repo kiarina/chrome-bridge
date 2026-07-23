@@ -1,4 +1,9 @@
-import { clearSnapshotState, generateSnapshot } from "./snapshot";
+import {
+  clearSnapshotState,
+  generateSnapshot,
+  waitForAriaText,
+  type WaitForAriaTextState,
+} from "./snapshot";
 import {
   moveVirtualCursor,
   performSelectOptions,
@@ -35,6 +40,9 @@ type ContentMessage = {
   state?: AgentUiState;
   durationMs?: number;
   pressed?: boolean;
+  text?: string;
+  waitState?: WaitForAriaTextState;
+  timeoutMs?: number;
 };
 
 if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
@@ -200,6 +208,21 @@ if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
       }
       if (message?.type === "chrome-bridge.dom.waitForStable") {
         void waitForStableDOM().then(
+          (result) => sendResponse({ ok: true, result }),
+          (error) =>
+            sendResponse({
+              ok: false,
+              error: error instanceof Error ? error.message : String(error),
+            }),
+        );
+        return true;
+      }
+      if (message?.type === "chrome-bridge.dom.waitForText") {
+        void waitForAriaText(
+          message.text || "",
+          message.waitState || "visible",
+          message.timeoutMs ?? 10_000,
+        ).then(
           (result) => sendResponse({ ok: true, result }),
           (error) =>
             sendResponse({

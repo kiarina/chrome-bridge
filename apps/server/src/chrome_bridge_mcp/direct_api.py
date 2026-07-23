@@ -116,6 +116,18 @@ class DirectDispatcher:
             return await controller.go_forward(browser_id, video)
         if method == "browser_wait":
             return await controller.wait_result(values["time"], browser_id, video)
+        if method == "browser_wait_for":
+            return await controller.wait_for(
+                values["text"],
+                values["state"],
+                values["timeout"],
+                browser_id,
+                video,
+            )
+        if method == "browser_download_file":
+            return await controller.download_file(
+                values["element"], values["ref"], values["timeout"], browser_id
+            )
         if method == "browser_record_video":
             return await controller.record_video(
                 values["filename"], values["duration"], browser_id

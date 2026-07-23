@@ -19,7 +19,7 @@ Provide a local MCP server that lets LLM agents operate every tab by explicit ta
 
 Page operations run against the single target tab retained by the extension. Change the target with chrome-bridge's `browser_tab_select(tab_id)` tool. This tool does not change Chrome UI's active tab or window focus. The existing `browser_tab_activate(tab_id)` changes the target and explicitly brings it to the foreground only when the user needs to see the page.
 
-The following 12 page-operation tools operate on the persistent target; they do not accept a per-tool `tab_id`.
+The following 13 page-operation tools operate on the persistent target; they do not accept a per-tool `tab_id`.
 
 | Tool | Main arguments | Result |
 | --- | --- | --- |
@@ -27,6 +27,7 @@ The following 12 page-operation tools operate on the persistent target; they do 
 | `browser_go_back` | optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_go_forward` | optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_wait` | `time`, optional `video_filename` | Completion message, or operation/recording wrapper |
+| `browser_wait_for` | `text`, `state`, `timeout`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_press_key` | `key`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
 | `browser_click` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
@@ -47,6 +48,7 @@ As a chrome-bridge-specific extension, assign local files to the file chooser op
 | Tool | Main arguments | Result |
 | --- | --- | --- |
 | `browser_upload_file` | `element`, `ref`, `paths`, optional `video_filename` | Snapshot, or operation/recording wrapper |
+| `browser_download_file` | `element`, `ref`, `timeout` | Sanitized completed-download metadata and snapshot |
 
 ### Out of scope for v0.1
 
@@ -143,6 +145,8 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `page.goBack {videoFilename?: string}`
 - `page.goForward {videoFilename?: string}`
 - `page.wait {time: number, videoFilename?: string}`
+- `page.waitFor {text: string, state: "visible" | "hidden", timeout: number, videoFilename?: string}`
+- `page.downloadFile {element: string, ref: string, timeout: number}`
 - `page.screenshot {}`
 - `page.getConsoleLogs {}`
 - `page.recordVideo {filename: string, duration: number}`
@@ -177,6 +181,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - If remote binding is added in the future, require authentication together with that transport.
 - Upload paths are limited to 1–20 absolute paths to existing regular files on the machine running both the server and Chrome. Resolve them to canonical paths on the server before passing them to the extension, and never return paths in results or health.
 - Obtain the upload result after the target input's `change` dispatch and synchronous handlers complete, followed by DOM stabilization. Do not guarantee completion of site-specific asynchronous uploads, thumbnail generation, or media processing; when needed, obtain a new snapshot after `browser_wait`.
+- A strict-ref download observes only `Page.downloadWillBegin` and `Page.downloadProgress` events from the exact target debugger session. Return the suggested filename, completed state, and byte counts, but never return the URL, absolute path, actual saved name, Chrome download ID, or another tab's download. The 0.1–60 second timeout is one deadline from trusted click through completion.
 
 ## 6. UX requirements
 
@@ -219,7 +224,9 @@ viewport without moving `scrollY` or substituting document-top content.
 - Console logs return at most 100 JSON lines containing only console entries/exceptions from the current target.
 - Drag strictly resolves start/end refs from the same latest snapshot and returns a post-operation snapshot without foregrounding the background target.
 - Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input. Recorded upload borrows the recorder session for interception and takes at most one explicit click milestone frame; every outcome disables interception and releases its change barrier in `finally`.
-- Every protocol v1 envelope and all 20 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
+- Every protocol v1 envelope and all 22 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
+- Wait-for matches a case-sensitive literal substring in normalized accessible name/text from the top-frame ARIA tree, clears old refs at entry, and returns a fresh snapshot after visible/hidden succeeds within 0–10 seconds.
+- Download validates one latest strict ref before entry, listens before trusted click, preserves the 15-second default for other commands while allowing its own timeout plus five seconds, and reports every post-click failure as outcome unknown without automatic retry.
 - Fixture tests for role/name/form state, Shadow DOM, slots, and `aria-owns` pass.
 
 ### Multiple-profile milestone

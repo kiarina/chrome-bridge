@@ -1,6 +1,6 @@
 # MCP tool API reference
 
-This document is the user-facing reference for the 21 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
+This document is the user-facing reference for the 23 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
 
 [`apps/server/src/chrome_bridge_mcp/app.py`](../apps/server/src/chrome_bridge_mcp/app.py) is the runtime source of truth for tool names, input JSON Schemas, and tool descriptions; they are available through MCP `tools/list`. The [Specification](../SPEC.md) is canonical for detailed page-operation semantics and security boundaries, and [Multiple browser routing](multiple-browser-routing.md) is canonical for multi-browser routing rules.
 
@@ -45,7 +45,7 @@ A snapshot result has the following form:
 
 `snapshot` is a YAML accessibility tree. Operable elements have refs in the form `s<generation>e<element-id>`. For element operations, pass the human-readable description shown in the snapshot as `element` and its ref as `ref`. Only the ref identifies the element; `element` is never used as a selector or fallback search.
 
-A ref is scoped to its source browser, target tab, document, and latest snapshot generation. After obtaining a new snapshot, performing an element operation, changing the target, navigating, calling `browser_wait`, or calling `browser_press_key`, do not reuse old refs; obtain a new snapshot.
+A ref is scoped to its source browser, target tab, document, and latest snapshot generation. After obtaining a new snapshot, performing an element operation, changing the target, navigating, calling `browser_wait`, `browser_wait_for`, or `browser_press_key`, do not reuse old refs; obtain a new snapshot.
 
 ### Common result types
 
@@ -56,7 +56,7 @@ A ref is scoped to its source browser, target tab, document, and latest snapshot
   "browserId": "b9d746c1-e245-4f2d-9e5d-65fddf63c587",
   "label": "Work",
   "protocolVersion": 2,
-  "extensionVersion": "0.1.0",
+  "extensionVersion": "0.3.0",
   "identityStable": true
 }
 ```
@@ -268,6 +268,29 @@ complete, followed by DOM stabilization, or `{operation, recording}` when record
 Completion of site-specific asynchronous uploads, thumbnail generation, or media
 processing is not guaranteed. If needed, call `browser_snapshot` after `browser_wait`.
 
+### `browser_download_file`
+
+Trusted-clicks a ref and waits for the first download reported by that exact target's
+debugger session.
+
+| Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `element` | string | yes | — | Human-readable description of the download control |
+| `ref` | string | yes | — | Ref from the latest snapshot |
+| `timeout` | number | no | `10` | One deadline from trusted click through completion, from 0.1 through 60 seconds |
+| `browser_id` | string | no | `null` | Browser to route to |
+
+**Returns:** `{download, snapshot}`. `download` contains `suggestedFilename`, the fixed
+success state `complete`, `receivedBytes`, `totalBytes`, and `browserId`; `snapshot` is
+the fresh post-click accessibility snapshot. The result deliberately omits download
+URLs, MIME, Chrome download IDs, absolute paths, and the actual saved filename.
+
+The command keeps its debugger session and operation queue entry until completion. A
+post-click timeout, cancellation, multiple-download ambiguity, target loss, or snapshot
+failure is outcome-unknown and must not be retried automatically. The maximum 60-second
+call uses a 65-second extension-response deadline; configure the MCP client's tool
+timeout to at least 75 seconds when using that maximum.
+
 ## Keyboard, navigation, and timing tools
 
 ### `browser_press_key`
@@ -336,6 +359,25 @@ Waits for a specified duration while retaining the target. This is a real-time s
 before. With it, returns `{ "operation": "Waited for <time> seconds", "recording":
 <metadata> }` after the download completes. The latest refs are cleared in both cases;
 call `browser_snapshot` to read the DOM afterward.
+
+### `browser_wait_for`
+
+Waits for accessible text in the top frame to become visible or hidden and returns a
+fresh snapshot.
+
+| Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `text` | string | yes | — | Non-whitespace literal text to match |
+| `state` | string | no | `visible` | `visible` when a match exists; `hidden` when none exists |
+| `timeout` | number | no | `10` | Finite seconds from 0 through 10 |
+| `video_filename` | string | no | `null` | Optional bounded WebM recording |
+| `browser_id` | string | no | `null` | Browser to route to |
+
+Matching is case-sensitive against whitespace-normalized names and text from the same
+ARIA tree used by snapshots. It is an observation condition, not an element selector;
+subsequent actions still require strict refs. The old generation is cleared at entry.
+Success returns a `Snapshot`, or `{operation, recording}` when recorded. Target change,
+tab close, top-frame navigation, and timeout return errors without a new snapshot.
 
 ## Diagnostic and media tools
 
@@ -439,7 +481,9 @@ Tool errors are returned to the client as MCP error results. There is no publish
 | element mismatch | Detached, covered, non-editable, non-select, or missing option | Choose an appropriate ref/value from the latest snapshot |
 | navigation failure | No history, load failure, or restricted destination | Check the URL/history and navigate to HTTP(S) if needed |
 | upload failure | Invalid path, no chooser, or multiple files for a single input | Correct the paths/ref; interception is cleaned up after failure |
-| timeout/disconnect | Command did not finish within the default 15 seconds, or disconnected during processing | Check connectivity, obtain current state, then retry |
+| wait-for timeout | Accessible text did not reach the requested state within 0–10 seconds | Inspect a current snapshot before retrying or changing the condition |
+| download outcome unknown | A post-click download timed out, was canceled, became ambiguous, or lost its target/snapshot | Inspect the current page and Downloads; never retry automatically |
+| timeout/disconnect | Command did not finish within the default 15 seconds (or the download-specific deadline), or disconnected during processing | Check connectivity and obtain current state before deciding whether to retry |
 | recorded outcome unknown | Target changed or closed after a recorded operation entered | Inspect current page state and the reported diagnostic recording before deciding whether to retry |
 
 On error, chrome-bridge never implicitly reroutes to another browser/tab or falls back to a similar element.

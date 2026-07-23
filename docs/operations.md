@@ -24,6 +24,10 @@ This document is canonical for operating chrome-bridge with an everyday Chrome p
 | `CHROME_BRIDGE_MANAGED_IDLE_TIMEOUT` | `300` | Idle seconds before an SDK-started managed server exits |
 
 After changing the port, set each Chrome profile's extension Options WebSocket URL to `ws://<host>:<port>/extension` and the MCP client URL to `http://<host>:<port>/mcp`. A command timeout shorter than the default may expire before navigation, the file chooser, or DOM stabilization completes.
+The server keeps that normal 15-second command deadline for ordinary operations. A
+`browser_download_file` call instead uses its requested 0.1–60 second deadline plus five
+seconds of transport cleanup allowance; changing `CHROME_BRIDGE_COMMAND_TIMEOUT` is not
+required for a long download.
 
 ### Extension Options
 
@@ -91,6 +95,10 @@ Field names vary by client, but configure the following Streamable HTTP endpoint
 
 If the client infers the transport from the URL, configure only `url`. MCP Inspector can also check connectivity.
 
+MCP clients commonly impose their own tool-call deadline. When calling
+`browser_download_file(timeout=60)`, configure the client timeout to at least 75 seconds
+so it does not abandon the request before Chrome reports completion and cleanup finishes.
+
 ```bash
 npx -y @modelcontextprotocol/inspector
 ```
@@ -136,6 +144,10 @@ During normal operation, do not inspect Chrome profile directories, cookies, or 
 | Content unavailable | Confirm the target is an HTTP(S) page. Do not perform in-page operations on `chrome://`, `about:blank`, or file URLs; navigate to HTTP(S). |
 | Debugger attach or CDP operation fails | Close Chrome DevTools on the target tab and retry. Opening DevTools can detach the extension debugger session. Never foreground and auto-retry after failure. |
 | Upload times out waiting for file chooser | Use a visible-element ref from the latest snapshot that actually opens the chooser. Do not pass multiple paths to a single input; specify 1–20 absolute paths to existing regular files. |
+| `browser_wait_for` times out | Confirm the literal text and case in a fresh accessibility snapshot. Matching uses normalized top-frame ARIA name/text, not selectors or iframe content. |
+| Download requires extension 0.3.0 | Upgrade and Reload the selected profile's extension. The server deliberately does not reroute a new command to another profile. |
+| Download outcome is unknown | Do not retry automatically. The trusted click already occurred; inspect the page and Downloads UI, obtain a fresh snapshot, and decide manually. |
+| Download exceeds 10 seconds | Raise the tool's `timeout` up to 60 seconds and set the MCP client tool timeout to at least 75 seconds. The deadline covers click through completed CDP progress and is not reset after download starts. |
 | Thumbnail or processing display remains incomplete after upload | Synchronous input change processing is reflected in the tool result. For site-specific asynchronous work, capture another `browser_snapshot` after `browser_wait`. |
 | Target disappears after extension Reload | Expected. Confirm the Browser ID is unchanged and reselect the target with `browser_tab_select`. |
 | Command timeout | Check server/extension connectivity, target load state, and service-worker console. Fix causes such as stalled navigation or a chooser that never opened before increasing the timeout. |

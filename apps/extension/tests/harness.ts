@@ -1,7 +1,9 @@
 import {
   clearSnapshotState,
+  ariaTextContains,
   generateSnapshot,
   resolveAriaRef,
+  waitForAriaText,
 } from "../src/snapshot";
 import {
   moveVirtualCursor,
@@ -25,6 +27,7 @@ import { resizePng } from "../src/image";
 
 (globalThis as Record<string, unknown>).chromeBridgeSnapshotTest = {
   clearSnapshotState,
+  ariaTextContains,
   generateSnapshot,
   resolveAriaRef,
   prepareClickTarget,
@@ -33,6 +36,7 @@ import { resizePng } from "../src/image";
   prepareSelectOptions,
   selectOptions,
   waitForStableDOM,
+  waitForAriaText,
   moveVirtualCursor,
   pressVirtualCursor,
   removeVirtualCursor,

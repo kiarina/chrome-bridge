@@ -103,6 +103,8 @@ var protocol_v1_schema_default = {
             "page.goBack",
             "page.goForward",
             "page.wait",
+            "page.waitFor",
+            "page.downloadFile",
             "page.screenshot",
             "page.getConsoleLogs",
             "page.recordVideo"
@@ -336,6 +338,47 @@ var protocol_v1_schema_default = {
                   videoFilename: { $ref: "#/$defs/recordingFilename" }
                 },
                 required: ["time"],
+                additionalProperties: false
+              }
+            }
+          }
+        },
+        {
+          if: {
+            properties: { type: { const: "page.waitFor" } },
+            required: ["type"]
+          },
+          then: {
+            properties: {
+              params: {
+                type: "object",
+                properties: {
+                  text: { type: "string", minLength: 1 },
+                  state: { enum: ["visible", "hidden"] },
+                  timeout: { type: "number", minimum: 0, maximum: 10 },
+                  videoFilename: { $ref: "#/$defs/recordingFilename" }
+                },
+                required: ["text", "state", "timeout"],
+                additionalProperties: false
+              }
+            }
+          }
+        },
+        {
+          if: {
+            properties: { type: { const: "page.downloadFile" } },
+            required: ["type"]
+          },
+          then: {
+            properties: {
+              params: {
+                type: "object",
+                properties: {
+                  element: { type: "string", minLength: 1 },
+                  ref: { type: "string", pattern: "^s[0-9]+e[0-9]+$" },
+                  timeout: { type: "number", minimum: 0.1, maximum: 60 }
+                },
+                required: ["element", "ref", "timeout"],
                 additionalProperties: false
               }
             }

@@ -19,11 +19,13 @@ def test_schema_lists_all_protocol_commands() -> None:
     command_types = PROTOCOL_SCHEMA["$defs"]["commandRequest"]["properties"]["type"][
         "enum"
     ]
-    assert len(command_types) == 20
-    assert len(set(command_types)) == 20
+    assert len(command_types) == 22
+    assert len(set(command_types)) == 22
     assert "page.drag" in command_types
     assert "page.uploadFile" in command_types
     assert "page.recordVideo" in command_types
+    assert "page.waitFor" in command_types
+    assert "page.downloadFile" in command_types
 
 
 def test_protocol_v2_requires_stable_browser_identity() -> None:
@@ -91,6 +93,16 @@ def test_protocol_v2_requires_stable_browser_identity() -> None:
             "type": "page.wait",
             "params": {"time": 1, "videoFilename": "wait.webm"},
         },
+        {
+            "id": ID,
+            "type": "page.waitFor",
+            "params": {"text": "Ready", "state": "visible", "timeout": 10},
+        },
+        {
+            "id": ID,
+            "type": "page.downloadFile",
+            "params": {"element": "Export", "ref": "s1e5", "timeout": 60},
+        },
         {"type": "pong"},
     ],
 )
@@ -104,6 +116,16 @@ def test_server_message_validation_accepts_valid_messages(message: object) -> No
         {"id": ID, "type": "tabs.list", "params": {"extra": True}},
         {"id": ID, "type": "tabs.close", "params": {"tabId": "1"}},
         {"id": ID, "type": "page.wait", "params": {"time": 11}},
+        {
+            "id": ID,
+            "type": "page.waitFor",
+            "params": {"text": "Ready", "state": "present", "timeout": 10},
+        },
+        {
+            "id": ID,
+            "type": "page.downloadFile",
+            "params": {"element": "Export", "ref": "s1e5", "timeout": 60.1},
+        },
         {
             "id": ID,
             "type": "page.recordVideo",

@@ -35,7 +35,7 @@ Omit `video_filename` to preserve the tool's original return value and avoid rec
 overhead. The standalone `browser_record_video` tool records a bounded hold without
 performing another page action.
 
-The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 21 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
+The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 23 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
 
 | Tool | Function |
 | --- | --- |
@@ -56,6 +56,8 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_go_back` | Go back in history, optionally recording through the post-operation snapshot |
 | `browser_go_forward` | Go forward in history, optionally recording through the post-operation snapshot |
 | `browser_wait` | Wait for a specified number of seconds, optionally recording the target during the wait |
+| `browser_wait_for` | Wait up to 10 seconds for accessible text to become visible or hidden, optionally record, and return a fresh snapshot |
+| `browser_download_file` | Trusted-click a strict ref, wait up to 60 seconds for its target download, and return sanitized metadata plus a fresh snapshot |
 | `browser_record_video` | Record the target tab as a bounded silent WebM below Downloads/chrome-bridge |
 | `browser_screenshot` | Capture the target tab's viewport as PNG image content |
 | `browser_get_console_logs` | Retrieve up to 100 console entries and exceptions from the target tab |

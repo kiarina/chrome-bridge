@@ -5,6 +5,7 @@
     "debugger-session.js",
     "dist/content-runtime.js",
     "dist/protocol.js",
+    "download.js",
     "icons/disconnected/icon-128.png",
     "icons/disconnected/icon-16.png",
     "icons/disconnected/icon-32.png",

@@ -29,11 +29,13 @@ class FakeSocket:
         self.closed = (code, reason)
 
 
-def v2_hello(browser_id: str, label: str = "Test") -> dict[str, Any]:
+def v2_hello(
+    browser_id: str, label: str = "Test", extension_version: str = "0.1.0"
+) -> dict[str, Any]:
     return {
         "type": "hello",
         "protocolVersion": 2,
-        "extensionVersion": "0.1.0",
+        "extensionVersion": extension_version,
         "browserId": browser_id,
         "browserLabel": label,
     }
@@ -839,6 +841,87 @@ async def test_wait_with_video_returns_operation_wrapper_and_recording() -> None
             "browserId": BROWSER_A,
         },
     }
+
+
+async def test_wait_for_routes_snapshot_and_requires_extension_03() -> None:
+    registry = BridgeHub(timeout_seconds=1)
+    old_socket = FakeSocket()
+    await registry.attach(old_socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    with pytest.raises(ExtensionCommandError, match="extension 0.3.0 or newer"):
+        await controller.wait_for("Ready", browser_id=BROWSER_A)
+    assert old_socket.sent == []
+
+    socket = FakeSocket()
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.3.0")
+    )
+    task = asyncio.create_task(controller.wait_for("Ready", "visible", 2, BROWSER_A))
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    assert request["type"] == "page.waitFor"
+    assert request["params"] == {
+        "text": "Ready",
+        "state": "visible",
+        "timeout": 2,
+    }
+    snapshot = {
+        "generation": 15,
+        "url": "https://example.com/",
+        "title": "Ready",
+        "snapshot": '- status "Ready" [ref=s15e2]',
+    }
+    connection.receive({"id": request["id"], "ok": True, "result": snapshot})
+    assert await task == {**snapshot, "browserId": BROWSER_A}
+
+
+async def test_download_file_uses_extended_timeout_and_enriches_nested_results() -> (
+    None
+):
+    registry = BridgeHub(timeout_seconds=0.01)
+    socket = FakeSocket()
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.3.0")
+    )
+    controller = BrowserController(registry)
+    task = asyncio.create_task(controller.download_file("Export", "s3e4", 1, BROWSER_A))
+    await asyncio.sleep(0.02)
+    request = socket.sent[0]
+    assert request["type"] == "page.downloadFile"
+    assert request["params"] == {
+        "element": "Export",
+        "ref": "s3e4",
+        "timeout": 1,
+    }
+    result = {
+        "download": {
+            "suggestedFilename": "report.csv",
+            "state": "complete",
+            "receivedBytes": 42,
+            "totalBytes": 42,
+        },
+        "snapshot": {
+            "generation": 4,
+            "url": "https://example.com/reports",
+            "title": "Reports",
+            "snapshot": '- status "Downloaded" [ref=s4e2]',
+        },
+    }
+    connection.receive({"id": request["id"], "ok": True, "result": result})
+    assert await task == {
+        "download": {**result["download"], "browserId": BROWSER_A},
+        "snapshot": {**result["snapshot"], "browserId": BROWSER_A},
+    }
+
+
+@pytest.mark.parametrize("timeout", [0, 60.1, float("nan"), True])
+async def test_download_file_rejects_invalid_timeout(timeout: Any) -> None:
+    registry = BridgeHub()
+    await registry.attach(FakeSocket(), v2_hello(BROWSER_A, extension_version="0.3.0"))
+    with pytest.raises(ValueError, match="between 0.1 and 60"):
+        await BrowserController(registry).download_file(
+            "Export", "s1e2", timeout, BROWSER_A
+        )
 
 
 async def test_wait_rejects_unsafe_video_filename_before_sending() -> None:

@@ -137,7 +137,7 @@ def test_direct_api_metadata_and_tool_catalog() -> None:
         assert meta.json()["apiVersion"] == 1
         assert meta.json()["mode"] == "persistent"
         tools = client.get("/api/v1/tools").json()["tools"]
-        assert len(tools) == 21
+        assert len(tools) == 23
         assert {tool["name"] for tool in tools} >= {
             "browser_instances",
             "browser_snapshot",
@@ -221,7 +221,7 @@ def test_tools_include_non_focusing_tab_select() -> None:
         )
         assert response.status_code == 200
         tools = {tool["name"]: tool for tool in response.json()["result"]["tools"]}
-        assert len(tools) == 21
+        assert len(tools) == 23
         assert tools["browser_instances"]["inputSchema"]["properties"] == {}
         assert "browser_tab_select" in tools
         assert "without focusing" in tools["browser_tab_select"]["description"]
@@ -295,6 +295,24 @@ def test_tools_include_non_focusing_tab_select() -> None:
         assert set(tools["browser_wait"]["inputSchema"]["properties"]) == {
             "time",
             "video_filename",
+            "browser_id",
+        }
+        assert set(tools["browser_wait_for"]["inputSchema"]["required"]) == {"text"}
+        assert set(tools["browser_wait_for"]["inputSchema"]["properties"]) == {
+            "text",
+            "state",
+            "timeout",
+            "video_filename",
+            "browser_id",
+        }
+        assert set(tools["browser_download_file"]["inputSchema"]["required"]) == {
+            "element",
+            "ref",
+        }
+        assert set(tools["browser_download_file"]["inputSchema"]["properties"]) == {
+            "element",
+            "ref",
+            "timeout",
             "browser_id",
         }
         assert set(tools["browser_record_video"]["inputSchema"]["required"]) == {

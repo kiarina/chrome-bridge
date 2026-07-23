@@ -272,7 +272,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     for (const instance of connected) {
       expect(instance).toMatchObject({
         protocolVersion: 2,
-        extensionVersion: "0.1.0",
+        extensionVersion: "0.3.0",
         identityStable: true,
       });
       expect(instance.browserId).toMatch(/^[0-9a-f-]{36}$/);
@@ -321,6 +321,115 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     expect(await pageA.locator("#chrome-bridge-agent-indicator").count()).toBe(0);
     expect(successful(await waitingA)).toBe("Waited for 0.5 seconds");
     await expect.poll(() => pageA.title()).toBe("◉ Chrome Bridge E2E");
+
+    const beforeWaitFor = successful(await call("browser_snapshot", {
+      browser_id: browserA,
+    }));
+    const staleAfterWaitFor = buttonRef(beforeWaitFor);
+    await pageA.evaluate(() => {
+      setTimeout(() => {
+        document.querySelector("[role=status]").textContent =
+          "Payment   complete";
+      }, 200);
+    });
+    const waitedVisible = successful(await call("browser_wait_for", {
+      browser_id: browserA,
+      text: "Payment complete",
+      state: "visible",
+      timeout: 2,
+    }));
+    expect(waitedVisible).toMatchObject({ browserId: browserA });
+    expect(waitedVisible.snapshot).toContain("Payment complete");
+    const staleClick = await call("browser_click", {
+      browser_id: browserA,
+      element: "Update button",
+      ref: staleAfterWaitFor,
+    });
+    expect(staleClick.isError).toBe(true);
+    expect(toolText(staleClick)).toContain("Stale aria-ref");
+    await pageA.evaluate(() => {
+      setTimeout(() => {
+        document.querySelector("[role=status]").textContent = "Ready again";
+      }, 200);
+    });
+    const waitedHidden = successful(await call("browser_wait_for", {
+      browser_id: browserA,
+      text: "Payment complete",
+      state: "hidden",
+      timeout: 2,
+      video_filename: "wait-for-hidden.webm",
+    }));
+    expect(waitedHidden.operation.snapshot).not.toContain("Payment complete");
+    await verifyRecording(
+      profileA,
+      waitedHidden.recording,
+      { width: 1_920, height: 1_080 },
+      browserA,
+      1,
+      "recorded wait-for",
+    );
+
+    const downloadRef = refFor(
+      waitedHidden.operation,
+      /link "Export report"[^\n]*\[ref=([^\]]+)\]/,
+    );
+    const downloaded = successful(await call("browser_download_file", {
+      browser_id: browserA,
+      element: "Export report link",
+      ref: downloadRef,
+      timeout: 10,
+    }));
+    expect(downloaded.download).toMatchObject({
+      suggestedFilename: "report.csv",
+      state: "complete",
+      browserId: browserA,
+    });
+    expect(downloaded.download.receivedBytes).toBeGreaterThan(0);
+    expect(downloaded.snapshot).toMatchObject({ browserId: browserA });
+    const firstDownload = await downloadState(profileA);
+    expect((await readFile(firstDownload.latest.filename)).toString()).toContain(
+      "report,42",
+    );
+    await removeProbeDownload(profileA, firstDownload.latest.id);
+
+    const delayedRef = refFor(
+      downloaded.snapshot,
+      /link "Export delayed report"[^\n]*\[ref=([^\]]+)\]/,
+    );
+    const delayedDownload = successful(await call("browser_download_file", {
+      browser_id: browserA,
+      element: "Export delayed report link",
+      ref: delayedRef,
+      timeout: 3,
+    }));
+    expect(delayedDownload.download).toMatchObject({
+      suggestedFilename: "delayed.csv",
+      state: "complete",
+      browserId: browserA,
+    });
+    const secondDownload = await downloadState(profileA);
+    await removeProbeDownload(profileA, secondDownload.latest.id);
+
+    const timeoutRef = refFor(
+      delayedDownload.snapshot,
+      /link "Export timeout report"[^\n]*\[ref=([^\]]+)\]/,
+    );
+    const timedOutDownload = await call("browser_download_file", {
+      browser_id: browserA,
+      element: "Export timeout report link",
+      ref: timeoutRef,
+      timeout: 0.1,
+    });
+    expect(timedOutDownload.isError).toBe(true);
+    expect(toolText(timedOutDownload)).toContain("Operation outcome unknown");
+    expect(successful(await call("browser_snapshot", {
+      browser_id: browserA,
+    }))).toMatchObject({ browserId: browserA });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const timeoutDownload = await downloadState(profileA);
+    if (timeoutDownload.latest) {
+      await removeProbeDownload(profileA, timeoutDownload.latest.id);
+    }
 
     const recordedWait = successful(await call("browser_wait", {
       browser_id: browserA,

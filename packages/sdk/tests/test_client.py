@@ -14,6 +14,8 @@ from chrome_bridge_sdk import (
     ChromeBridge,
     ClosedTab,
     ConsoleEntry,
+    Download,
+    DownloadFileResult,
     KeyPress,
     NestedSessionError,
     OperationError,
@@ -51,7 +53,7 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.2.0",
+                    "serverVersion": "0.3.0",
                     "extensionConnected": True,
                 },
             )
@@ -146,6 +148,24 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                     "snapshot": '- button "Save" [ref=s3e1]',
                     "browserId": "browser-1",
                 }
+            elif method == "browser_wait_for":
+                snapshot = {
+                    "generation": 3,
+                    "url": "https://example.com/",
+                    "title": "Fixture",
+                    "snapshot": '- status "Ready" [ref=s3e1]',
+                    "browserId": "browser-1",
+                }
+                if arguments["video_filename"] is None:
+                    result = snapshot
+                else:
+                    result = {
+                        "operation": snapshot,
+                        "recording": {
+                            **recording,
+                            "requestedFilename": arguments["video_filename"],
+                        },
+                    }
             elif method == "browser_click":
                 snapshot = {
                     "generation": 4,
@@ -172,6 +192,23 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                     "waited": True,
                     "time": arguments["time"],
                     "browserId": "browser-1",
+                }
+            elif method == "browser_download_file":
+                result = {
+                    "download": {
+                        "suggestedFilename": "report.csv",
+                        "state": "complete",
+                        "receivedBytes": 42,
+                        "totalBytes": 42,
+                        "browserId": "browser-1",
+                    },
+                    "snapshot": {
+                        "generation": 5,
+                        "url": "https://example.com/reports",
+                        "title": "Reports",
+                        "snapshot": '- status "Downloaded" [ref=s5e1]',
+                        "browserId": "browser-1",
+                    },
                 }
             elif method == "browser_record_video":
                 result = {
@@ -327,6 +364,29 @@ async def test_remaining_typed_result_models(
         assert pressed == KeyPress(pressed=True, key="Enter", browser_id="browser-1")
         waited = await session.browser_wait(0.5)
         assert waited == WaitResult(waited=True, time=0.5, browser_id="browser-1")
+        assert isinstance(await session.browser_wait_for("Ready"), Snapshot)
+        recorded_wait = await session.browser_wait_for(
+            "Ready", video_filename="wait-for.webm"
+        )
+        assert isinstance(recorded_wait, RecordedResult)
+        assert recorded_wait.recording.requested_filename == "wait-for.webm"
+        downloaded = await session.browser_download_file("Export", "s3e1", 60)
+        assert downloaded == DownloadFileResult(
+            download=Download(
+                suggested_filename="report.csv",
+                state="complete",
+                received_bytes=42,
+                total_bytes=42,
+                browser_id="browser-1",
+            ),
+            snapshot=Snapshot(
+                generation=5,
+                url="https://example.com/reports",
+                title="Reports",
+                snapshot='- status "Downloaded" [ref=s5e1]',
+                browser_id="browser-1",
+            ),
+        )
         recording = await session.browser_record_video("hold.webm", 1)
         assert isinstance(recording, Recording)
         assert recording.requested_filename == "hold.webm"
@@ -341,7 +401,7 @@ async def test_structured_operation_error(monkeypatch: pytest.MonkeyPatch) -> No
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.2.0",
+                    "serverVersion": "0.3.0",
                     "extensionConnected": True,
                 },
             )
@@ -406,7 +466,7 @@ async def test_call_transport_failure_is_not_retried(
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.2.0",
+                    "serverVersion": "0.3.0",
                     "extensionConnected": True,
                 },
             )

@@ -9,7 +9,14 @@ import {
   shouldReconnectForIdentityChange,
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
-import { withDebuggerSession } from "./debugger-session.js";
+import {
+  openDebuggerSession,
+  withDebuggerSession,
+} from "./debugger-session.js";
+import {
+  observeTargetDownload,
+  validateDownloadTimeout,
+} from "./download.js";
 import { fitWithinMediaBounds } from "./media-sizing.js";
 import {
   currentViewportScreenshotParams,
@@ -1359,6 +1366,134 @@ async function waitTarget(params) {
   return { waited: true, time: params.time };
 }
 
+async function waitForTarget(params) {
+  if (typeof params.text !== "string" || !params.text.trim()) {
+    throw new Error("text must contain non-whitespace characters");
+  }
+  if (!["visible", "hidden"].includes(params.state)) {
+    throw new Error("state must be visible or hidden");
+  }
+  if (
+    typeof params.timeout !== "number" ||
+    !Number.isFinite(params.timeout) ||
+    params.timeout < 0 ||
+    params.timeout > MAX_WAIT_SECONDS
+  ) {
+    throw new Error(`timeout must be between 0 and ${MAX_WAIT_SECONDS} seconds`);
+  }
+  const selectedTab = await getTargetTab();
+  const tab = await waitForContentRuntimeTab(selectedTab.id);
+  await requireUnchangedTarget(tab.id);
+  await ensureContentRuntime(tab.id);
+  await clearLatestSnapshotGeneration();
+  await clearContentSnapshotState(tab.id);
+  await sendContentMessage(tab.id, {
+    type: "chrome-bridge.dom.waitForText",
+    text: params.text,
+    waitState: params.state,
+    timeoutMs: params.timeout * 1_000,
+  });
+  await requireUnchangedTarget(tab.id);
+  return captureSnapshotForTarget(tab.id);
+}
+
+function outcomeDetail(outcome) {
+  if (outcome.status === "fulfilled") return null;
+  return outcome.reason instanceof Error
+    ? outcome.reason.message
+    : String(outcome.reason);
+}
+
+async function downloadFileTarget(params) {
+  const timeout = validateDownloadTimeout(params.timeout);
+  const tab = await getCurrentRefTarget(params);
+  const point = await prepareRefPoint(
+    tab,
+    "chrome-bridge.click.prepare",
+    params.ref,
+  );
+  const session = await openDebuggerSession(tab.id);
+  let observer;
+  let clickStarted = false;
+  try {
+    observer = observeTargetDownload(session.debuggee, timeout);
+    await session.run(
+      (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.enable"),
+      { emulateFocus: false },
+    );
+    await showCursorPress(tab.id);
+    await session.run(
+      (debuggee) => {
+        observer.start();
+        clickStarted = true;
+        return dispatchTrustedClick(debuggee, point);
+      },
+      { emulateFocus: true },
+    );
+    const snapshotPromise = finishSnapshotOperation(tab.id);
+    const [downloadOutcome, snapshotOutcome] = await Promise.allSettled([
+      observer.promise,
+      snapshotPromise,
+    ]);
+    let targetError;
+    try {
+      await requireUnchangedTarget(tab.id);
+    } catch (error) {
+      targetError = error;
+    }
+    if (
+      downloadOutcome.status === "fulfilled" &&
+      snapshotOutcome.status === "fulfilled" &&
+      !targetError
+    ) {
+      return {
+        download: downloadOutcome.value,
+        snapshot: snapshotOutcome.value,
+      };
+    }
+    const details = [];
+    if (downloadOutcome.status === "fulfilled") {
+      details.push(
+        `Download completed with suggested filename ${JSON.stringify(downloadOutcome.value.suggestedFilename)}.`,
+      );
+    } else {
+      details.push(`Download failed: ${outcomeDetail(downloadOutcome)}.`);
+    }
+    const snapshotDetail = outcomeDetail(snapshotOutcome);
+    if (snapshotDetail) details.push(`Post-download snapshot failed: ${snapshotDetail}.`);
+    if (targetError) {
+      details.push(
+        `Target changed: ${targetError instanceof Error ? targetError.message : String(targetError)}.`,
+      );
+    }
+    throw new Error(
+      `Operation outcome unknown: ${details.join(" ")} Inspect current page state and Downloads before retrying.`,
+    );
+  } catch (error) {
+    if (
+      clickStarted &&
+      !(error instanceof Error && error.message.startsWith("Operation outcome unknown:"))
+    ) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Operation outcome unknown: ${detail} Inspect current page state and Downloads before retrying.`,
+      );
+    }
+    throw error;
+  } finally {
+    observer?.cleanup();
+    try {
+      await session.run(
+        (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.disable"),
+        { emulateFocus: false },
+      );
+    } catch {
+      // Navigation, target closure, or external detach can disable Page first.
+    }
+    await session.close();
+  }
+}
+
 async function screenshotTarget() {
   const selectedTab = await getTargetTab();
   const tab = await waitForContentRuntimeTab(selectedTab.id);
@@ -1764,6 +1899,14 @@ async function executeCommand(type, params) {
             ),
         });
       });
+    }
+    case "page.waitFor": {
+      return runPageOperation(() =>
+        runOptionallyRecordedTargetOperation(params, () => waitForTarget(params)),
+      );
+    }
+    case "page.downloadFile": {
+      return runPageOperation(() => downloadFileTarget(params));
     }
     case "page.screenshot": {
       return runPageOperation(() => screenshotTarget());

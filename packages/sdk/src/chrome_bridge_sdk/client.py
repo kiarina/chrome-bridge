@@ -30,6 +30,7 @@ from .models import (
     BrowserInstance,
     ClosedTab,
     ConsoleEntry,
+    DownloadFileResult,
     KeyPress,
     RecordedResult,
     Recording,
@@ -98,7 +99,7 @@ class ChromeBridge:
         client: httpx2.AsyncClient | None = None
         session: ChromeBridgeSession | None = None
         try:
-            client = httpx2.AsyncClient(base_url=self.base_url, timeout=70)
+            client = httpx2.AsyncClient(base_url=self.base_url, timeout=90)
             await self._ensure_server(client)
             await self._wait_for_extension(client)
             body: dict[str, Any] = {
@@ -580,6 +581,44 @@ class ChromeBridgeSession:
             ),
         )
 
+    async def browser_wait_for(
+        self,
+        text: str,
+        state: str = "visible",
+        timeout: float = 10,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> Snapshot | RecordedResult[Snapshot]:
+        return await self._snapshot_call(
+            "browser_wait_for",
+            {
+                "text": text,
+                "state": state,
+                "timeout": timeout,
+                "video_filename": video_filename,
+                "browser_id": browser_id,
+            },
+            recorded=video_filename is not None,
+        )
+
+    async def browser_download_file(
+        self,
+        element: str,
+        ref: str,
+        timeout: float = 10,
+        browser_id: str | None = None,
+    ) -> DownloadFileResult:
+        return await self._typed_call(
+            "browser_download_file",
+            {
+                "element": element,
+                "ref": ref,
+                "timeout": timeout,
+                "browser_id": browser_id,
+            },
+            DownloadFileResult._from_result,
+        )
+
     async def browser_record_video(
         self, filename: str, duration: float, browser_id: str | None = None
     ) -> Recording:
@@ -660,10 +699,10 @@ def _validate_meta(meta: Mapping[str, Any]) -> None:
     if (
         meta.get("service") != "chrome-bridge"
         or meta.get("apiVersion") != 1
-        or not str(meta.get("serverVersion", "")).startswith("0.2.")
+        or not str(meta.get("serverVersion", "")).startswith("0.3.")
     ):
         raise IncompatibleServerError(
-            "The running Chrome Bridge server is not compatible with SDK 0.2"
+            "The running Chrome Bridge server is not compatible with SDK 0.3"
         )
 
 

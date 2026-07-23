@@ -4,6 +4,7 @@ import asyncio
 import base64
 import binascii
 import math
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Protocol
@@ -73,7 +74,13 @@ class BrowserConnection:
                 code=1012, reason="Replaced by a newer extension connection"
             )
 
-    async def request(self, command: str, params: Mapping[str, Any]) -> Any:
+    async def request(
+        self,
+        command: str,
+        params: Mapping[str, Any],
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Any:
         request_id = str(uuid4())
         message = {"id": request_id, "type": command, "params": dict(params)}
         validate_server_message(message)
@@ -82,7 +89,14 @@ class BrowserConnection:
         try:
             async with self._send_lock:
                 await self.socket.send_json(message)
-            return await asyncio.wait_for(future, timeout=self._timeout_seconds)
+            return await asyncio.wait_for(
+                future,
+                timeout=(
+                    self._timeout_seconds
+                    if timeout_seconds is None
+                    else timeout_seconds
+                ),
+            )
         except TimeoutError as error:
             raise ExtensionCommandError(
                 f"Chrome extension timed out while running {command}"
@@ -251,6 +265,19 @@ class BrowserController:
 
     def _connection(self, browser_id: str | None) -> BrowserConnection:
         return self._hub.resolve(browser_id)
+
+    @staticmethod
+    def _require_extension_03(connection: BrowserConnection) -> None:
+        match = re.fullmatch(
+            r"(\d+)\.(\d+)\.(\d+)(?:\.\d+)?", connection.extension_version
+        )
+        version = tuple(int(part) for part in match.groups()) if match else None
+        if version is None or version < (0, 3, 0):
+            raise ExtensionCommandError(
+                "This tool requires Chrome Bridge extension 0.3.0 or newer; "
+                f"connected extension is {connection.extension_version!r}. Upgrade the "
+                "Chrome extension and retry with the same browser_id."
+            )
 
     @staticmethod
     def _with_browser_id(
@@ -608,6 +635,72 @@ class BrowserController:
             raise ExtensionCommandError("page.wait returned an invalid response")
         return self._with_browser_id(result, connection)
 
+    async def wait_for(
+        self,
+        text: str,
+        state: str = "visible",
+        timeout: float = 10,
+        browser_id: str | None = None,
+        video_filename: str | None = None,
+    ) -> dict[str, Any]:
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("text must contain non-whitespace characters")
+        if state not in {"visible", "hidden"}:
+            raise ValueError("state must be visible or hidden")
+        if (
+            isinstance(timeout, bool)
+            or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout)
+            or timeout < 0
+            or timeout > 10
+        ):
+            raise ValueError("timeout must be between 0 and 10 seconds")
+        connection = self._connection(browser_id)
+        self._require_extension_03(connection)
+        return await self._snapshot_operation(
+            "page.waitFor",
+            {"text": text, "state": state, "timeout": timeout},
+            connection,
+            video_filename,
+        )
+
+    async def download_file(
+        self,
+        element: str,
+        ref: str,
+        timeout: float = 10,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        _validate_element_ref(element, ref)
+        if (
+            isinstance(timeout, bool)
+            or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout)
+            or timeout < 0.1
+            or timeout > 60
+        ):
+            raise ValueError("timeout must be between 0.1 and 60 seconds")
+        connection = self._connection(browser_id)
+        self._require_extension_03(connection)
+        result = await connection.request(
+            "page.downloadFile",
+            {"element": element, "ref": ref, "timeout": timeout},
+            timeout_seconds=timeout + 5,
+        )
+        if not (
+            isinstance(result, dict)
+            and set(result) == {"download", "snapshot"}
+            and _is_download_result(result["download"])
+            and _is_snapshot_result(result["snapshot"])
+        ):
+            raise ExtensionCommandError(
+                "page.downloadFile returned an invalid response"
+            )
+        return {
+            "download": self._with_browser_id(result["download"], connection),
+            "snapshot": self._with_browser_id(result["snapshot"], connection),
+        }
+
     async def record_video(
         self, filename: str, duration: float, browser_id: str | None = None
     ) -> dict[str, Any]:
@@ -778,4 +871,22 @@ def _is_snapshot_result(result: Any) -> bool:
         and isinstance(result.get("url"), str)
         and isinstance(result.get("title"), str)
         and isinstance(result.get("snapshot"), str)
+    )
+
+
+def _is_download_result(result: Any) -> bool:
+    if not (
+        isinstance(result, dict)
+        and set(result) == {"suggestedFilename", "state", "receivedBytes", "totalBytes"}
+        and isinstance(result.get("suggestedFilename"), str)
+        and bool(result["suggestedFilename"])
+        and result.get("state") == "complete"
+    ):
+        return False
+    return all(
+        isinstance(result[name], (int, float))
+        and not isinstance(result[name], bool)
+        and math.isfinite(result[name])
+        and result[name] >= 0
+        for name in ("receivedBytes", "totalBytes")
     )

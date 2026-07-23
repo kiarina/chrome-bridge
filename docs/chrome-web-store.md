@@ -32,6 +32,17 @@ re-enabling the Store copy, the Store browser ID and endpoint settings were pres
 The actual Store extension ID and browser identity across a real Store version update
 remain to be measured with the first non-artificial update.
 
+### Prepared v0.3 update
+
+Version 0.3.0 is the first planned Store runtime update. It adds accessible-text
+condition waiting and strict-ref downloads observed through the selected target's CDP
+Page events. It adds no manifest permission: `debugger` already supports target-scoped
+input and observation, while `downloads` remains required for explicitly requested WebM
+recording output. Upload only the 0.3.0 ZIP that passed source and clean-installed
+two-profile E2E, then keep the item Unlisted and use staged publication. Public visibility
+and final-publication automation remain out of scope until the real update preserves the
+Store extension ID, browser ID, label, endpoint, background behavior, and rollback path.
+
 Official references:
 
 - [Register a developer account](https://developer.chrome.com/docs/webstore/register)
@@ -80,6 +91,8 @@ Suggested detailed description:
 > - Operate tabs across Chrome windows and multiple profiles with explicit routing.
 > - Select a background target independently from Chrome's active tab.
 > - Use generation-scoped accessibility references for click, type, select, drag, and file-upload operations.
+> - Wait for accessible page text to appear or disappear and receive a fresh snapshot.
+> - Start a download from an exact accessibility reference and report sanitized completion metadata without exposing its URL or filesystem path.
 > - Capture viewport screenshots and current-document console messages.
 > - Record explicitly requested operations as silent WebM files saved locally below Downloads/chrome-bridge.
 > - Connect to a user-configured WebSocket endpoint; the supported default is the local Chrome Bridge MCP server on `127.0.0.1`.
@@ -133,7 +146,7 @@ Single-purpose text for the Privacy tab:
 
 | Permission | Required use |
 | --- | --- |
-| `debugger` | Attach temporarily to the selected page target for trusted mouse/keyboard input, screenshots, current-document console messages, file-chooser assignment, and explicitly requested target recording frames; detach after each operation. |
+| `debugger` | Attach temporarily to the selected page target for trusted mouse/keyboard input, screenshots, current-document console messages, file-chooser assignment, exact-target download completion events, and explicitly requested target recording frames; detach after each operation. |
 | `downloads` | Save only an explicitly requested silent WebM recording below `Downloads/chrome-bridge/`, use uniquified names rather than overwrite, and remove only an interrupted partial download created by that command. |
 | `offscreen` | Host the extension-packaged canvas and MediaRecorder needed to encode requested target-tab frames; the document is closed after each bounded recording. |
 | `scripting` | Inject the packaged content runtime into an already-open supported page when the manifest content script is not yet present. No remote code is downloaded or executed. |
@@ -156,10 +169,12 @@ Suggested dashboard instructions:
 4. Check `http://127.0.0.1:8765/health`; `extensionConnected` should be `true`.
 5. Connect MCP Inspector or another MCP client to `http://127.0.0.1:8765/mcp` using Streamable HTTP.
 6. Call `browser_tabs`, open an HTTP(S) test page as inactive, select it, capture `browser_snapshot`, and use one returned ref with `browser_click`.
-7. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a
+7. On a test page with delayed accessible text, call `browser_wait_for` and confirm it returns a fresh snapshot without activating the tab.
+8. On a test page with a direct attachment link, capture a fresh snapshot and call `browser_download_file` with that exact ref. Confirm completed metadata is returned without a URL or filesystem path, then delete only the reviewer download.
+9. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a
    silent WebM appears below `Downloads/chrome-bridge/` without activating the target.
    Delete only that reviewer recording afterward.
-8. Confirm the original active tab remains active. Close only the test tab.
+10. Confirm the original active tab remains active. Close only the test tab.
 
 Explain that the initial permission prompt is expected because operating arbitrary user-selected pages is the extension's single purpose. If review needs a deterministic page, publish a public static fixture that contains no login or credentials; do not ask reviewers to use a private account.
 

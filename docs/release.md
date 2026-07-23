@@ -2,12 +2,11 @@
 
 ## Status and publication boundary
 
-The current build produces five local artifacts plus checksums. Python server/SDK 0.2.x
-is versioned independently from the unchanged Store extension 0.1.0:
+The current build produces five synchronized 0.3.0 local artifacts plus checksums:
 
-- `chrome-bridge-extension-0.1.0.zip`: Extension runtime for Load unpacked.
-- `chrome_bridge_mcp-0.2.0-py3-none-any.whl` and `.tar.gz`: server distribution.
-- `chrome_bridge_sdk-0.2.0-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
+- `chrome-bridge-extension-0.3.0.zip`: Extension runtime for Load unpacked and Store update.
+- `chrome_bridge_mcp-0.3.0-py3-none-any.whl` and `.tar.gz`: server distribution.
+- `chrome_bridge_sdk-0.3.0-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
 - `SHA256SUMS`: SHA-256 checksums for all five artifacts.
 
 Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and the pending `chrome-bridge-sdk` project uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; the server project successfully published v0.1.0 through this boundary.
@@ -18,7 +17,7 @@ Build, clean install, and artifact-based isolated Chromium E2E are automated. Th
 
 The Python distributions are `chrome-bridge-mcp` and `chrome-bridge-sdk`; each packages
 only its `src` package and MIT license, and each sdist excludes tests. The SDK depends on
-the compatible server series `chrome-bridge-mcp>=0.2,<0.3` so its interpreter can start
+the compatible server series `chrome-bridge-mcp>=0.3,<0.4` so its interpreter can start
 the managed server module directly.
 
 ## Build and validation
@@ -61,7 +60,7 @@ Do not create a content-free Store update to match a Python-only release.
 Update the extension package and lockfile together with the following command. A Chrome extension version contains one to four integer components.
 
 ```bash
-npm --prefix apps/extension version 0.1.1 --no-git-tag-version
+npm --prefix apps/extension version 0.3.0 --no-git-tag-version
 ```
 
 Set root/server/SDK versions to the same value, then run builds, tests, and
@@ -75,8 +74,8 @@ Extract the extension ZIP into a fixed installation directory. To preserve the u
 
 ```bash
 mkdir -p /path/to/chrome-bridge-extension
-unzip chrome-bridge-extension-0.1.0.zip -d /path/to/chrome-bridge-extension
-uv tool install ./chrome_bridge_mcp-0.2.0-py3-none-any.whl
+unzip chrome-bridge-extension-0.3.0.zip -d /path/to/chrome-bridge-extension
+uv tool install ./chrome_bridge_mcp-0.3.0-py3-none-any.whl
 chrome-bridge-mcp
 ```
 
@@ -84,7 +83,7 @@ Applications install both local wheels together, or install the published SDK wh
 declares the server dependency:
 
 ```bash
-uv add ./chrome_bridge_mcp-0.2.0-py3-none-any.whl ./chrome_bridge_sdk-0.2.0-py3-none-any.whl
+uv add ./chrome_bridge_mcp-0.3.0-py3-none-any.whl ./chrome_bridge_sdk-0.3.0-py3-none-any.whl
 ```
 
 Enable Developer mode at Chrome's `chrome://extensions` and Load unpacked from the fixed directory. Connect the MCP client to `http://127.0.0.1:8765/mcp`. Check server and extension connection counts with `curl http://127.0.0.1:8765/health`. See the [Operations guide](operations.md) for everyday operation and incident response.
@@ -110,7 +109,7 @@ Complete the following before publication:
 2. Use the public `kiarina/chrome-bridge` repository; its owner authorizes tag and GitHub Release creation.
 3. Keep the `chrome-bridge-mcp` trusted publisher aligned with workflow `release-pypi.yml` and GitHub environment `pypi`.
 4. Confirm both PyPI projects still use the same trusted publisher workflow/environment.
-   Push tag `v0.2.0` only after the version commit is on `main`; the workflow publishes
+   Push tag `v0.3.0` only after the version commit is on `main`; the workflow publishes
    both Python wheel/sdist pairs and attaches all five verified artifacts to the GitHub
    Release.
 5. Publish `PRIVACY.md` and support information at stable HTTPS URLs, prepare Store listing assets, and complete the permission/data declarations in the [Chrome Web Store guide](chrome-web-store.md).

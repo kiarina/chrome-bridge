@@ -164,7 +164,7 @@ wheels = [
 
 [[package]]
 name = "chrome-bridge-mcp"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "apps/server" }
 dependencies = [
     { name = "jsonschema" },
@@ -197,7 +197,7 @@ dev = [
 
 [[package]]
 name = "chrome-bridge-sdk"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "packages/sdk" }
 dependencies = [
     { name = "chrome-bridge-mcp" },
@@ -224,7 +224,7 @@ dev = [
 
 [[package]]
 name = "chrome-bridge-workspace"
-version = "0.2.0"
+version = "0.3.0"
 source = { virtual = "." }
 dependencies = [
     { name = "chrome-bridge-mcp" },

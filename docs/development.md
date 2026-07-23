@@ -162,6 +162,26 @@ For real-Chrome navigate/back/forward/wait validation, provide two history pages
 5. A link click to `about:blank` returns content-unavailable; back recovers the HTTP page without changing the target.
 6. The active tab ID remains unchanged throughout, and only the test tab is closed at the end.
 
+For `browser_wait_for`, use an inactive loopback page whose accessible text appears and
+disappears asynchronously. Verify immediate and delayed `visible`, delayed `hidden`,
+literal case sensitivity, whitespace normalization, and 0–10 second bounds. Every call
+must invalidate the prior generation before waiting and return a fresh snapshot only on
+success; target change, top-frame navigation, tab close, and timeout must issue no new
+snapshot. Repeat one success with `video_filename` and confirm the normal recorded-result
+wrapper and unchanged foreground tab.
+
+For `browser_download_file`, expose direct and deliberately delayed attachment links in
+an inactive loopback fixture. Use only a ref from the latest snapshot and verify the
+suggested filename, completed state, byte counts, post-download snapshot, old-ref
+rejection, unchanged foreground tab, and absence of URL/path/MIME/download IDs from the
+public result. Test 0.1, default 10, and maximum 60 second validation plus a delayed start
+whose total click-to-completion deadline is not reset. Cancel, multiple-download,
+target-loss, detach, timeout, and post-download snapshot failures must be outcome-unknown
+and never automatically retried. After every failure, confirm `chrome.debugger.getTargets()`
+shows no attachment and the next snapshot/download succeeds. Chrome 116+ branded-Chrome
+release validation must demonstrate target-scoped `Page.downloadWillBegin` and
+`Page.downloadProgress`; do not substitute Downloads API URL/time inference.
+
 For real-Chrome screenshot/console validation, create two inactive loopback tabs with distinct console output.
 
 1. Target landscape and portrait tabs and call `browser_screenshot`. Confirm both are
@@ -262,6 +282,8 @@ At minimum, verify the following with automated tests or fixed fixtures:
 - Modifier ordering in key chords and invalidation of the latest snapshot after operation
 - Snapshot invalidation before navigation, same-URL reload, no-history errors, and recovery from restricted history destinations
 - Wait's 0–10 second bounds, target changes, and background-timer throttling
+- Wait-for accessible-text normalization, case sensitivity, observer/poll cleanup, fresh snapshot, and recorded wrapper
+- Strict-ref download target filtering, one total 0.1–60 second deadline, outcome-unknown failures, and debugger cleanup
 - Same-generation drag start/end, end visibility, old-ref rejection, and mouse-release/debugger cleanup
 
 ## Adding a tool
@@ -270,5 +292,5 @@ At minimum, verify the following with automated tests or fixed fixtures:
 2. Add a method with response validation to `BrowserController`.
 3. Call the controller from the FastMCP tool in `app.py`.
 4. Add the Chrome API implementation to extension `executeCommand`.
-5. Test success, extension error, disconnect, and timeout.
+5. Test success, extension error, disconnect, timeout, extension-version gating, and any operation-specific response contract.
 6. Put durable procedures in this guide, completed-work records in `HISTORY.md`, and only remaining work in `NEXT_TASK.md`.

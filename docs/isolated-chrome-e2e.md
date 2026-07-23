@@ -143,7 +143,14 @@ The initial implementation contains one serial test with bounded waits and these
 8. An old ref is rejected as stale within its own profile.
 9. Closing and relaunching A preserves A's browser ID and does not disturb B's target/snapshot.
 10. Closing a fixture tab by explicit browser ID removes only that profile's tab.
-11. Context teardown returns health to zero connected browsers and removes temp upload files with the artifact root.
+11. Accessible text appears and disappears asynchronously in an inactive target;
+    `browser_wait_for` returns fresh snapshots, invalidates the old ref, supports the
+    recorded wrapper, and never changes the foreground tab.
+12. Fresh strict refs start immediate and delayed downloads in the intended profile.
+    Exact-target CDP metadata and a post-download snapshot are returned; timeout is
+    outcome-unknown, cleanup permits the next snapshot/download, and created files alone
+    are removed.
+13. Context teardown returns health to zero connected browsers and removes temp upload and download files with the artifact root.
 
 The test uses the MCP SDK's Streamable HTTP client rather than hand-written JSON-RPC so transport initialization and
 content/structured result decoding are part of the vertical path. Unit tests remain responsible for timeout races,

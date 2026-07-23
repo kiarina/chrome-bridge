@@ -1262,6 +1262,77 @@
   function clearSnapshotState() {
     currentSnapshotState = null;
   }
+  function flattenedAriaText(node) {
+    const values = [];
+    const visit = (current) => {
+      if (current.name) values.push(current.name);
+      for (const child of current.children) {
+        if (typeof child === "string") values.push(child);
+        else visit(child);
+      }
+    };
+    visit(node);
+    return normalizeWhiteSpace(values.join(" "));
+  }
+  function ariaTextContains(text) {
+    const expected = normalizeWhiteSpace(text);
+    if (!expected) throw new Error("text must contain non-whitespace characters");
+    const tree = generateAriaTree(document.documentElement);
+    return flattenedAriaText(tree.root).includes(expected);
+  }
+  function waitForAriaText(text, state, timeoutMs) {
+    if (state !== "visible" && state !== "hidden")
+      throw new Error("state must be visible or hidden");
+    if (!Number.isFinite(timeoutMs) || timeoutMs < 0 || timeoutMs > 1e4)
+      throw new Error("timeout must be between 0 and 10 seconds");
+    const startedAt = performance.now();
+    const matches = () => ariaTextContains(text) === (state === "visible");
+    if (matches()) return Promise.resolve({ matched: true, elapsedMs: 0 });
+    if (timeoutMs === 0)
+      return Promise.reject(
+        new Error(`Timed out waiting for text to become ${state}: ${JSON.stringify(text)}`)
+      );
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let checking = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearInterval(interval);
+        clearTimeout(timeout);
+        if (error) reject(error);
+        else resolve({ matched: true, elapsedMs: performance.now() - startedAt });
+      };
+      const check = () => {
+        if (settled || checking) return;
+        checking = true;
+        try {
+          if (matches()) finish();
+        } catch (error) {
+          finish(error instanceof Error ? error : new Error(String(error)));
+        } finally {
+          checking = false;
+        }
+      };
+      const observer = new MutationObserver(check);
+      observer.observe(document, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true
+      });
+      const interval = window.setInterval(check, 100);
+      const timeout = window.setTimeout(
+        () => finish(
+          new Error(
+            `Timed out waiting for text to become ${state}: ${JSON.stringify(text)}`
+          )
+        ),
+        timeoutMs
+      );
+    });
+  }
 
   // src/interaction.ts
   var CURSOR_ID = "chrome-bridge-virtual-cursor";
@@ -1823,6 +1894,20 @@
         }
         if (message?.type === "chrome-bridge.dom.waitForStable") {
           void waitForStableDOM().then(
+            (result) => sendResponse({ ok: true, result }),
+            (error) => sendResponse({
+              ok: false,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          );
+          return true;
+        }
+        if (message?.type === "chrome-bridge.dom.waitForText") {
+          void waitForAriaText(
+            message.text || "",
+            message.waitState || "visible",
+            message.timeoutMs ?? 1e4
+          ).then(
             (result) => sendResponse({ ok: true, result }),
             (error) => sendResponse({
               ok: false,

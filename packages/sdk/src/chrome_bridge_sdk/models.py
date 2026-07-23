@@ -137,6 +137,40 @@ class Recording:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class Download:
+    suggested_filename: str
+    state: str
+    received_bytes: int
+    total_bytes: int
+    browser_id: str | None = None
+
+    @classmethod
+    def _from_result(cls, value: Any) -> Download:
+        item = _mapping(value)
+        return cls(
+            suggested_filename=str(item["suggestedFilename"]),
+            state=str(item["state"]),
+            received_bytes=int(item["receivedBytes"]),
+            total_bytes=int(item["totalBytes"]),
+            browser_id=_optional_string(item.get("browserId")),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadFileResult:
+    download: Download
+    snapshot: Snapshot
+
+    @classmethod
+    def _from_result(cls, value: Any) -> DownloadFileResult:
+        item = _mapping(value)
+        return cls(
+            download=Download._from_result(item["download"]),
+            snapshot=Snapshot._from_result(item["snapshot"]),
+        )
+
+
 class _ResultModel(Protocol):
     @classmethod
     def _from_result(cls, value: Any) -> Self: ...

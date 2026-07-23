@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { chromium } from "@playwright/test";
 import { spawn } from "node:child_process";
+import { Buffer } from "node:buffer";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, cp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -121,6 +122,24 @@ export async function startFixtureServer() {
       request.socket.destroy();
       return;
     }
+    const downloadMatch = /^\/download\/(report|delayed|timeout)\.csv$/.exec(
+      request.url,
+    );
+    if (downloadMatch) {
+      const [, name] = downloadMatch;
+      const delay = name === "delayed" ? 1_000 : name === "timeout" ? 500 : 0;
+      setTimeout(() => {
+        if (response.destroyed) return;
+        const body = `name,value\n${name},42\n`;
+        response.writeHead(200, {
+          "content-disposition": `attachment; filename="${name}.csv"`,
+          "content-length": Buffer.byteLength(body),
+          "content-type": "text/csv; charset=utf-8",
+        });
+        response.end(body);
+      }, delay);
+      return;
+    }
     const fixturePath = ["/slow-a", "/timeout-a"].includes(request.url)
       ? "/a"
       : request.url;
@@ -138,6 +157,9 @@ export async function startFixtureServer() {
 <p id="route-status">Route: ${fixturePath}</p>
 <a id="history-link" href="${fixturePath === "/a" ? "/b" : "/a"}">History destination</a>
 <button id="update">Update</button>
+<a id="download" href="/download/report.csv" download>Export report</a>
+<a id="download-delayed" href="/download/delayed.csv" download>Export delayed report</a>
+<a id="download-timeout" href="/download/timeout.csv" download>Export timeout report</a>
 <button id="hover">Hover target</button>
 <button id="upload">Choose files</button>
 <input id="files" type="file" multiple hidden>

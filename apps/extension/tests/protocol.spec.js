@@ -108,6 +108,26 @@ test("accepts every protocol v1 command with exact params", () => {
       type: "page.wait",
       params: { time: 1, videoFilename: "wait.webm" },
     },
+    {
+      id,
+      type: "page.waitFor",
+      params: { text: "Ready", state: "visible", timeout: 10 },
+    },
+    {
+      id,
+      type: "page.waitFor",
+      params: {
+        text: "Ready",
+        state: "hidden",
+        timeout: 1,
+        videoFilename: "wait-for.webm",
+      },
+    },
+    {
+      id,
+      type: "page.downloadFile",
+      params: { element: "Export", ref: "s1e5", timeout: 60 },
+    },
     { id, type: "page.screenshot", params: {} },
     { id, type: "page.getConsoleLogs", params: {} },
     {
@@ -117,7 +137,7 @@ test("accepts every protocol v1 command with exact params", () => {
     },
   ];
 
-  expect(messages).toHaveLength(26);
+  expect(messages).toHaveLength(29);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });
@@ -129,6 +149,16 @@ test("rejects unknown commands, missing params, wrong types, and extra fields", 
     { id, type: "tabs.close", params: { tabId: "1" } },
     { id, type: "page.click", params: { element: "Save", ref: "bad" } },
     { id, type: "page.wait", params: { time: 11 } },
+    {
+      id,
+      type: "page.waitFor",
+      params: { text: "Ready", state: "present", timeout: 1 },
+    },
+    {
+      id,
+      type: "page.downloadFile",
+      params: { element: "Export", ref: "s1e5", timeout: 60.1 },
+    },
     {
       id,
       type: "page.recordVideo",

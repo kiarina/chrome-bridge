@@ -2,6 +2,28 @@
 
 ## 2026-07-23
 
+### Conditional wait and strict-ref download for v0.3.0
+
+- Added `browser_wait_for` across the content runtime, extension protocol, MCP, Direct
+  API, and immutable SDK models. It matches normalized top-frame ARIA text literally and
+  case-sensitively, supports visible/hidden plus optional recording, invalidates the old
+  generation on entry, and returns a fresh snapshot only on success.
+- Added `browser_download_file` with one latest strict ref, listener-before-click
+  target-scoped `Page.downloadWillBegin`/`Page.downloadProgress`, a single 0.1–60 second
+  click-to-completion deadline, sanitized metadata, concurrent post-click snapshotting,
+  and explicit no-retry outcome-unknown failures. Normal server commands retain their
+  15-second deadline; download requests receive only the requested timeout plus five
+  seconds of transport allowance.
+- Synchronized server, SDK, workspace, and extension at 0.3.0; retained protocol v2
+  identity, expanded protocol v1 to 22 commands and MCP to 23 tools, and gated both new
+  commands on the selected extension being 0.3.0 or newer without cross-profile reroute.
+- Passed 147 Python tests, 49 extension tests, lint/static validation, source and
+  clean-installed-artifact two-profile isolated Chromium E2E, and byte-identical
+  five-artifact rebuilds. E2E exercised background visible/hidden wait, recorded wait,
+  stale-ref invalidation, immediate/delayed target-CDP downloads, outcome-unknown timeout
+  cleanup, profile isolation, and successful operation reuse. Release publication and
+  the first real Store update remain the handoff in `NEXT_TASK.md`.
+
 ### Node 24-native artifact actions
 
 - Updated every CI and release use of `actions/upload-artifact` from v4 to the pinned

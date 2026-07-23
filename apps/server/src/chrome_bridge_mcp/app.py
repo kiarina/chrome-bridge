@@ -248,6 +248,29 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
         """Wait up to 10 seconds, optionally recording the target to a WebM."""
         return await controller.wait(time, browser_id, video_filename)
 
+    @tool(name="browser_wait_for")
+    async def browser_wait_for(
+        text: str,
+        state: str = "visible",
+        timeout: float = 10,
+        video_filename: str | None = None,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Wait for accessible text to become visible or hidden, then snapshot."""
+        return await controller.wait_for(
+            text, state, timeout, browser_id, video_filename
+        )
+
+    @tool(name="browser_download_file")
+    async def browser_download_file(
+        element: str,
+        ref: str,
+        timeout: float = 10,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Click an exact ref and wait for its target download to complete."""
+        return await controller.download_file(element, ref, timeout, browser_id)
+
     @tool(name="browser_record_video")
     async def browser_record_video(
         filename: str, duration: float, browser_id: str | None = None

@@ -116,6 +116,13 @@ Navigate accepts only HTTP(S) URLs, using `chrome.tabs.reload` for the current U
 
 If the Chrome tabs API reports no history, return a clear error without entering the navigation wait. If the history destination is restricted, such as `about:blank`, retain the target and return content-unavailable; later back/forward or HTTP(S) navigation can recover. Wait sleeps for 0–10 seconds inside the page-operation queue and clears the latest snapshot at start. It waits for elapsed time, not DOM stability; call `browser_snapshot` to inspect the current DOM afterward.
 
+Wait-for clears the latest generation, then observes a case-sensitive literal substring
+in whitespace-normalized accessible names/text from the top-frame ARIA tree. A
+MutationObserver plus a 100 ms check covers DOM and CSS-only state changes. Visible or
+hidden success produces a fresh snapshot; target changes, tab close, navigation, and
+timeout clean up the observer/timers without issuing a generation. Optional recording
+uses the existing operation-scoped recorder contract.
+
 Screenshot does not branch on foreground/background. It temporarily attaches to page
 `targetId` without focus emulation, captures the CSS visual viewport from
 `Page.getLayoutMetrics` through `Page.captureScreenshot`, and selects its bounds with the
@@ -134,6 +141,18 @@ Drag resolves start/end Elements from the same latest snapshot inside the conten
 The virtual cursor aligns the arrow tip with viewport coordinates, and the content runtime returns distance-dependent `settleMs`. The background waits for arrival before sending CDP input; click/type/select synchronize a press ripple, while drag synchronizes 180–500 ms interpolated movement and pressed state. The cursor remains at its last position while targeted. For screenshots, hide only the status host for two animation frames, capture the page including the cursor, and restore status in `finally`.
 
 For file upload, the server validates and canonicalizes 1–20 absolute paths to existing regular files, then passes them to `page.uploadFile`. The extension resolves the strict-ref Element to a clickable point and attaches to page `targetId` with focus emulation. Before clicking, it enables `Page.setInterceptFileChooserDialog`; only the `backendNodeId` from `Page.fileChooserOpened` caused by the trusted click is passed to `DOM.setFileInputFiles`. It never searches for hidden or similar inputs by selector, and rejects a ref that opens no chooser after three seconds. Before assignment, it resolves the same `backendNodeId` with `DOM.resolveNode` and installs a temporary `change` barrier on the input. After assignment, the barrier confirms event dispatch and synchronous-listener completion before common DOM stabilization. Site-specific asynchronous uploads and thumbnail generation are not awaited indefinitely; callers observe them with `browser_wait` and a new snapshot. Multiple files for a single chooser are rejected before assignment. In `finally`, release the remote object, disable interception, and detach the debugger. Paths are never returned in results.
+
+For file download, attach to the exact page target and register a command-scoped listener
+before enabling Page events and dispatching the strict-ref trusted click. Accept only
+`Page.downloadWillBegin` / `Page.downloadProgress` from that `targetId` and the first
+reported GUID; never infer ownership from global Downloads history, URL, timing, or
+filename. Focus emulation ends immediately after input while the same debugger session
+waits for completion. Download progress and post-click DOM stabilization/snapshot run in
+parallel under one 0.1–60 second click-to-completion deadline. The connection uses only
+this command's timeout plus five seconds rather than changing the normal 15-second
+command timeout. Results expose suggested filename and byte counts, not path, URL, MIME,
+actual saved name, or Chrome ID. Every post-click failure is outcome-unknown; listeners,
+Page domain, generation state, and debugger session are released in `finally`.
 
 ```mermaid
 sequenceDiagram
