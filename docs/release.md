@@ -51,7 +51,7 @@ sha256sum -c SHA256SUMS           # Linux
 Update server and SDK together:
 
 - root `pyproject.toml`
-- `apps/server/pyproject.toml`
+- `packages/mcp/pyproject.toml`
 - `packages/sdk/pyproject.toml`
 
 Update extension manifest/package versions only when extension runtime content changes.

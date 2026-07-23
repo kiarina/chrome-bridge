@@ -20,8 +20,8 @@ chrome-bridge-mcp = { workspace = true }
 chrome-bridge-sdk = { workspace = true }
 
 [tool.uv.workspace]
-members = ["apps/server", "packages/sdk"]
+members = ["packages/mcp", "packages/sdk"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["apps/server/tests"]
+testpaths = ["packages/mcp/tests"]

@@ -112,7 +112,7 @@ Connection lifecycle messages are `hello`, `ping`, and `pong`. The current exten
 legacy protocol v1 connection for migration.
 Commands time out after 15 seconds by default. Extension disconnect fails every in-flight command.
 
-`apps/server/src/chrome_bridge_mcp/protocol_v1.schema.json` is canonical for protocol v1
+`packages/mcp/src/chrome_bridge_mcp/protocol_v1.schema.json` is canonical for protocol v1
 envelopes and command parameters, while `protocol_v2.schema.json` is canonical for the v2
 identity hello. Request IDs are lowercase UUIDv4 values, and every object rejects unknown
 fields. A success response contains `result`; an error response contains only a non-empty

@@ -2,6 +2,18 @@
 
 ## 2026-07-24
 
+### Colocated Python workspace packages
+
+- Moved the `chrome-bridge-mcp` subproject from `apps/server` to `packages/mcp`, placing
+  both published Python distributions under one workspace package boundary while keeping
+  the Chrome extension under `apps`.
+- Updated uv workspace metadata, extension schema imports and E2E startup paths, CI and
+  release workflows, validation scripts, generated protocol output, and canonical docs.
+  Public distribution, import, and CLI names remain unchanged.
+- Passed 147 MCP tests, 7 SDK tests, 52 extension tests, two-profile isolated Chromium
+  E2E, lint/format/static validation, release artifact builds, and clean-install artifact
+  validation from the new layout.
+
 ### v0.3.0 staged Chrome Web Store submission
 
 - Uploaded the verified GitHub Release ZIP with SHA-256

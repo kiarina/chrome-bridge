@@ -36,7 +36,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          package_version="$(uv run python -c 'import tomllib; print(tomllib.load(open("apps/server/pyproject.toml", "rb"))["project"]["version"])')"
+          package_version="$(uv run python -c 'import tomllib; print(tomllib.load(open("packages/mcp/pyproject.toml", "rb"))["project"]["version"])')"
           test "$RELEASE_TAG" = "v$package_version"
       - run: uv run python scripts/validate_static.py
       - run: uv run python scripts/build_release.py

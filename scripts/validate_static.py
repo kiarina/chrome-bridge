@@ -10,7 +10,7 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
-SERVER_PACKAGE = ROOT / "apps" / "server"
+SERVER_PACKAGE = ROOT / "packages" / "mcp"
 SDK_PACKAGE = ROOT / "packages" / "sdk"
 
 

@@ -93,9 +93,9 @@ Sources: [Browser MCP server setup](https://docs.browsermcp.io/setup-server),
 
 ```text
 apps/
-├── extension/  # Manifest V3 Chrome extension
-└── server/     # Python FastMCP + Streamable HTTP + WebSocket bridge
+└── extension/  # Manifest V3 Chrome extension
 packages/
+├── mcp/        # Python FastMCP + Streamable HTTP + WebSocket bridge
 └── sdk/        # Direct API Python SDK and managed-server launcher
 ```
 
@@ -168,8 +168,8 @@ Local CI-equivalent validation:
 
 ```bash
 uv sync --all-groups --locked
-uv run ruff check apps/server packages/sdk scripts
-uv run ruff format --check apps/server packages/sdk scripts
+uv run ruff check packages/mcp packages/sdk scripts
+uv run ruff format --check packages/mcp packages/sdk scripts
 uv run pytest
 uv run python scripts/validate_static.py
 npm --prefix apps/extension ci

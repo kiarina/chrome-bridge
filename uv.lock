@@ -165,7 +165,7 @@ wheels = [
 [[package]]
 name = "chrome-bridge-mcp"
 version = "0.3.0"
-source = { editable = "apps/server" }
+source = { editable = "packages/mcp" }
 dependencies = [
     { name = "jsonschema" },
     { name = "mcp", extra = ["cli"] },
@@ -212,7 +212,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "chrome-bridge-mcp", editable = "apps/server" },
+    { name = "chrome-bridge-mcp", editable = "packages/mcp" },
     { name = "httpx2", specifier = ">=2,<3" },
 ]
 
@@ -241,7 +241,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "chrome-bridge-mcp", editable = "apps/server" },
+    { name = "chrome-bridge-mcp", editable = "packages/mcp" },
     { name = "chrome-bridge-sdk", editable = "packages/sdk" },
 ]
 

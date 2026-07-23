@@ -269,7 +269,7 @@ Manual validation never becomes a prerequisite for ordinary pull requests.
 - `apps/extension/e2e/harness.js`: process, ports, artifact copy, contexts, MCP client, logs, teardown.
 - `apps/extension/e2e/multiple-profiles.spec.js`: the minimum contract above.
 - `apps/extension/playwright.e2e.config.js`: serial `channel: "chromium"`, timeouts, artifact policy.
-- `apps/server/tests/e2e_server.py`: production app startup with pre-bound port and JSON readiness.
+- `packages/mcp/tests/e2e_server.py`: production app startup with pre-bound port and JSON readiness.
 - `apps/extension/package.json` / lockfile: E2E scripts and MCP SDK development dependency.
 - `.github/workflows/ci.yml`: isolated E2E job and failure-artifact upload.
 - `scripts/validate_static.py`: production/runtime artifact config validation.

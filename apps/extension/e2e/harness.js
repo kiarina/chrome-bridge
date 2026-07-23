@@ -55,8 +55,8 @@ export async function startServer({ port } = {}) {
   const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
   const command = installedPython || "uv";
   const args = installedPython
-    ? ["-u", path.join(repoDir, "apps/server/tests/e2e_server.py")]
-    : ["run", "python", "-u", "apps/server/tests/e2e_server.py"];
+    ? ["-u", path.join(repoDir, "packages/mcp/tests/e2e_server.py")]
+    : ["run", "python", "-u", "packages/mcp/tests/e2e_server.py"];
   const child = spawn(command, args, {
     cwd: repoDir,
     env: {
@@ -382,7 +382,7 @@ export async function connectMcp(mcpUrl) {
 export async function runSdkProbe(httpUrl) {
   const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
   const command = installedPython || "uv";
-  const script = path.join(repoDir, "apps/server/tests/e2e_sdk.py");
+  const script = path.join(repoDir, "packages/mcp/tests/e2e_sdk.py");
   const port = new URL(httpUrl).port;
   const args = installedPython
     ? [script, "--port", port]

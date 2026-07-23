@@ -50,9 +50,9 @@ When `extensionConnected` is `true` in the health response, at least one extensi
 ```bash
 uv run pytest
 uv run pytest packages/sdk/tests
-uv run ruff check apps/server packages/sdk scripts
-uv run ruff format --check apps/server packages/sdk scripts
-uv run python -m compileall -q apps/server/src packages/sdk/src
+uv run ruff check packages/mcp packages/sdk scripts
+uv run ruff format --check packages/mcp packages/sdk scripts
+uv run python -m compileall -q packages/mcp/src packages/sdk/src
 npm --prefix apps/extension test
 npm --prefix apps/extension run lint
 npm --prefix apps/extension audit --audit-level=high
@@ -112,7 +112,7 @@ For multi-profile validation, Load unpacked from the same `apps/extension` direc
 6. Reload one profile and confirm it reconnects with the same ID while the other connection and target remain intact.
 7. Confirm active tab/window focus in both profiles remains unchanged throughout.
 
-Reloading an extension may initialize that profile's own `chrome.storage.session`, so clearing its target is acceptable. Reconnect validation requires that stable `browserId` be restored from `chrome.storage.local` and that the non-reloaded profile's connection, target, and pending state remain unaffected. Serve `apps/server/tests/fixtures/multiple-profile.html` over loopback as the reproducible page.
+Reloading an extension may initialize that profile's own `chrome.storage.session`, so clearing its target is acceptable. Reconnect validation requires that stable `browserId` be restored from `chrome.storage.local` and that the non-reloaded profile's connection, target, and pending state remain unaffected. Serve `packages/mcp/tests/fixtures/multiple-profile.html` over loopback as the reproducible page.
 
 To use MCP Inspector:
 
@@ -131,11 +131,11 @@ Set the URL to `http://127.0.0.1:8765/mcp`. For real-Chrome validation, check fi
 Never close existing user tabs during validation.
 
 For the Python SDK release smoke, use the Chrome Web Store extension in normal branded
-Chrome. Serve `apps/server/tests/fixtures/multiple-profile.html` over loopback, open one
+Chrome. Serve `packages/mcp/tests/fixtures/multiple-profile.html` over loopback, open one
 dedicated fixture tab with `?profile=store-sdk-smoke`, and run:
 
 ```bash
-uv run python apps/server/tests/branded_chrome_sdk_smoke.py \
+uv run python packages/mcp/tests/branded_chrome_sdk_smoke.py \
   --fixture-url http://127.0.0.1:<fixture-port>/multiple-profile.html?profile=store-sdk-smoke
 ```
 
@@ -150,7 +150,7 @@ For the 0.3.0 wait/download release smoke, enable exactly one 0.3.0 extension in
 Chrome, start the server, and run:
 
 ```bash
-uv run python apps/server/tests/branded_chrome_v03_smoke.py
+uv run python packages/mcp/tests/branded_chrome_v03_smoke.py
 ```
 
 The script owns a random loopback fixture and one inactive Chrome tab. It waits for an
