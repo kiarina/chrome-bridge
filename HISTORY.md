@@ -2,6 +2,20 @@
 
 ## 2026-07-23
 
+### Quiet optional-server reconnect
+
+- Changed normal local-server downtime from `error` to `disconnected`. The extension now
+  probes the configured origin's `/health` endpoint before creating a WebSocket, retains
+  the existing exponential backoff, and uses `chrome.alarms` so a suspended Manifest V3
+  worker still retries after the server is started later.
+- Added reachability unit coverage and an isolated-Chromium offline-start E2E that checks
+  for no worker WebSocket error, confirms the reconnect alarm, starts the server on the
+  same port, and observes automatic protocol v2 connection without Reload.
+- Reloaded the fixed unpacked 0.3.0 artifact in branded Chrome, stopped the server, and
+  confirmed `disconnected` plus no new `ERR_CONNECTION_REFUSED` entry after clearing the
+  error list and waiting 35 seconds. Starting the server again restored the single 0.3.0
+  protocol v2 connection without extension Reload in approximately 16 seconds.
+
 ### Fixed unpacked-extension preparation
 
 - Added `scripts/prepare_unpacked_extension.py` and the visible, gitignored repository

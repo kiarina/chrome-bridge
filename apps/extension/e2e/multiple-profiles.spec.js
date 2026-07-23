@@ -7,6 +7,7 @@ import {
   connectMcp,
   launchProfile,
   prepareExtensionArtifact,
+  reserveLoopbackPort,
   runSdkProbe,
   startFixtureServer,
   startServer,
@@ -15,6 +16,51 @@ import {
   toolValue,
   waitFor,
 } from "./harness.js";
+
+test("stays quietly disconnected until the server starts", async () => {
+  const profiles = [];
+  let artifact;
+  let server;
+  try {
+    const port = await reserveLoopbackPort();
+    const extensionUrl = `ws://127.0.0.1:${port}/extension`;
+    artifact = await prepareExtensionArtifact(extensionUrl);
+    const profile = await launchProfile({
+      artifactDir: artifact.artifactDir,
+      userDataDir: artifact.profileDir("offline"),
+      name: "offline-profile",
+      viewport: { width: 1_280, height: 720 },
+    });
+    profiles.push(profile);
+
+    await expect.poll(() => profile.worker.evaluate(async () =>
+      (await chrome.storage.local.get("connectionStatus")).connectionStatus,
+    )).toMatchObject({
+      status: "disconnected",
+      detail: `Server unavailable at ${extensionUrl}`,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    expect(profile.logs.filter((line) => line.startsWith("[worker error]")))
+      .toEqual([]);
+    await expect.poll(() => profile.worker.evaluate(async () =>
+      Boolean(await chrome.alarms.get("chrome-bridge-connection-retry")),
+    )).toBe(true);
+
+    server = await startServer({ port });
+    await expect.poll(async () => (await health(server)).connectedBrowserCount, {
+      timeout: 15_000,
+    }).toBe(1);
+    await expect.poll(() => profile.worker.evaluate(async () =>
+      (await chrome.storage.local.get("connectionStatus")).connectionStatus,
+    )).toMatchObject({ status: "connected", detail: extensionUrl });
+    expect(profile.logs.some((line) => line.includes("WebSocket connection")))
+      .toBe(false);
+  } finally {
+    await Promise.allSettled(profiles.map((profile) => profile.close()));
+    await server?.close();
+    await artifact?.close();
+  }
+});
 
 async function health(server) {
   const response = await fetch(`${server.httpUrl}/health`);

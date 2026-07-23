@@ -17,6 +17,13 @@ flowchart LR
 
 Because an extension cannot open a listening socket inside the browser, it connects outward to the server's loopback WebSocket. The MCP transport and extension protocol are separate, keeping Chrome API implementation details hidden from MCP clients.
 
+Normal server downtime is not a protocol failure. Before creating a WebSocket, the
+extension performs a bounded request to the same origin's `/health` endpoint. An
+unreachable health endpoint leaves the UI in `disconnected` and schedules exponential
+backoff through both a short-lived timer and `chrome.alarms`, so Manifest V3 worker
+suspension cannot lose a later retry. A healthy response permits the WebSocket handshake;
+configuration and protocol rejection remain `error` states.
+
 ## Shared operation coordination
 
 MCP and Direct API adapters invoke the same transport-neutral browser controller through

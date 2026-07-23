@@ -37,7 +37,7 @@ Open profile-local settings through “Open settings” in the extension popup.
 - `Browser ID`: A read-only UUID per installation. It changes if extension local storage is cleared or the extension is reinstalled.
 - `Extension WebSocket URL`: The server's `/extension` endpoint. It accepts `ws://` or `wss://`, though the current server allows only loopback operation.
 
-On save, the service worker closes the current socket and reconnects with the new settings. The target may be cleared after Reload, but Browser ID and label are restored from local storage.
+On save, the service worker closes the current socket and reconnects with the new settings. The target may be cleared after Reload, but Browser ID and label are restored from local storage. A stopped server is a normal `disconnected` state: the extension checks `/health` with exponential backoff before opening a WebSocket and uses an alarm so retries survive service-worker suspension. Starting the server later requires no extension Reload.
 
 ## Start, stop, and restart
 
@@ -136,7 +136,8 @@ During normal operation, do not inspect Chrome profile directories, cookies, or 
 | Symptom | Check and recovery |
 | --- | --- |
 | Server does not start; address already in use | Find the owner with `lsof -nP -iTCP:8765 -sTCP:LISTEN`. Reuse an intended existing process; normally stop only an unneeded process. For another port, change server, extension, and MCP client to the same port. |
-| Health responds but `extensionConnected: false` | Check popup details and the Options WebSocket URL. If it does not connect within 30 seconds, Reload the extension and inspect the service-worker console. |
+| Health responds but `extensionConnected: false` | Wait up to 30 seconds for the next reachability retry, then check popup details and the Options WebSocket URL. Reload and inspect the service-worker console only if it remains disconnected. |
+| Chrome lists `ERR_CONNECTION_REFUSED` for `/extension` | A pre-0.3.0 build attempted WebSocket reconnect while the optional server was stopped, or the server stopped in the narrow interval after a successful health probe. Start the server and clear the historical entry; persistent offline retries in 0.3.0 remain `disconnected` without creating WebSockets. |
 | `connectedBrowserCount` is higher than expected | Check IDs and labels with `browser_instances`. Disable the extension in unneeded profiles or pass explicit `browser_id` to every tool. |
 | Ambiguous browser error | Call `browser_instances` and pass the intended `browser_id` to the same tool call. |
 | Target unavailable / not selected | Find the tab ID with `browser_tabs` and call `browser_tab_select`. Use `browser_tab_activate` only when foregrounding is necessary. |

@@ -1,6 +1,7 @@
 {
   "runtime": [
     "background.js",
+    "connection-probe.js",
     "connection-ui.js",
     "debugger-session.js",
     "dist/content-runtime.js",

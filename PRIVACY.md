@@ -56,7 +56,7 @@ Websites and MCP clients may retain data independently of Chrome Bridge. Users s
 
 ## Permissions
 
-Chrome Bridge requests access to HTTP and HTTPS pages and the `debugger`, `downloads`, `offscreen`, `scripting`, `storage`, `tabs`, and `webNavigation` permissions. These permissions are used only to provide the browser-control and explicitly requested recording features described above. Detailed permission reasons are maintained in the project's [Chrome Web Store submission guide](docs/chrome-web-store.md#permission-justifications).
+Chrome Bridge requests access to HTTP and HTTPS pages and the `alarms`, `debugger`, `downloads`, `offscreen`, `scripting`, `storage`, `tabs`, and `webNavigation` permissions. These permissions are used only to provide resilient local-server reconnection, browser control, and explicitly requested recording features described above. Detailed permission reasons are maintained in the project's [Chrome Web Store submission guide](docs/chrome-web-store.md#permission-justifications).
 
 ## Security
 

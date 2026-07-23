@@ -9,6 +9,7 @@ import {
   shouldReconnectForIdentityChange,
 } from "./identity.js";
 import { connectionActionPresentation } from "./connection-ui.js";
+import { serverIsReachable } from "./connection-probe.js";
 import {
   openDebuggerSession,
   withDebuggerSession,
@@ -29,6 +30,7 @@ import { DEFAULT_SERVER_URL } from "./runtime-config.js";
 const PROTOCOL_VERSION = 2;
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
+const RECONNECT_ALARM_NAME = "chrome-bridge-connection-retry";
 const TARGET_TAB_KEY = "targetTabId";
 const OPERATING_TAB_KEY = "operatingTabId";
 const OPERATING_TOKEN_KEY = "operatingToken";
@@ -1634,10 +1636,20 @@ function scheduleReconnect() {
   }
   const delay = Math.min(500 * 2 ** reconnectAttempt, MAX_RECONNECT_DELAY_MS);
   reconnectAttempt += 1;
+  void chrome.alarms.create(RECONNECT_ALARM_NAME, {
+    when: Date.now() + delay,
+  });
   reconnectTimer = setTimeout(() => {
     reconnectTimer = undefined;
+    void chrome.alarms.clear(RECONNECT_ALARM_NAME);
     void connect();
   }, delay);
+}
+
+function clearReconnectSchedule() {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = undefined;
+  void chrome.alarms.clear(RECONNECT_ALARM_NAME);
 }
 
 function connect() {
@@ -1662,6 +1674,11 @@ async function connectOnce() {
   }
 
   const url = new URL(serverUrl);
+  if (!(await serverIsReachable(serverUrl))) {
+    await setConnectionStatus("disconnected", `Server unavailable at ${serverUrl}`);
+    scheduleReconnect();
+    return;
+  }
   await setConnectionStatus("connecting");
   const connectingSocket = new WebSocket(url.toString());
   socket = connectingSocket;
@@ -1670,6 +1687,7 @@ async function connectOnce() {
     if (socket !== connectingSocket) {
       return;
     }
+    clearReconnectSchedule();
     reconnectAttempt = 0;
     sendInitialMessage({
       type: "hello",
@@ -1703,7 +1721,7 @@ async function connectOnce() {
     if (socket !== connectingSocket) {
       return;
     }
-    await setConnectionStatus("error", `Could not connect to ${serverUrl}`);
+    await setConnectionStatus("disconnected", `Server unavailable at ${serverUrl}`);
   });
 }
 
@@ -1967,8 +1985,7 @@ function summarizeTab(tab, targeted = false) {
 
 async function reconnectWithNewSettings() {
   intentionallyDisconnected = true;
-  clearTimeout(reconnectTimer);
-  reconnectTimer = undefined;
+  clearReconnectSchedule();
   stopHeartbeat();
   if (socket) {
     socket.close(1000, "Settings changed");
@@ -1980,6 +1997,12 @@ async function reconnectWithNewSettings() {
 
 chrome.runtime.onInstalled.addListener(() => void connect());
 chrome.runtime.onStartup.addListener(() => void connect());
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== RECONNECT_ALARM_NAME) return;
+  clearTimeout(reconnectTimer);
+  reconnectTimer = undefined;
+  void connect();
+});
 chrome.tabs.onRemoved.addListener(
   (tabId) => void clearTargetTabIfClosed(tabId),
 );

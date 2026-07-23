@@ -132,6 +132,11 @@ routing, while B's existing tab and target remain the uninterrupted-state assert
 
 The initial implementation contains one serial test with bounded waits and these assertions:
 
+An additional offline-start test launches the production extension before its random
+server port is listening. It requires `disconnected` status, a scheduled reconnect alarm,
+and no worker WebSocket error, then starts the server on that same port and verifies
+automatic protocol v2 connection without Reload.
+
 1. Health reports zero connections and exposes no browser identity.
 2. Profiles A and B connect with distinct stable IDs, protocol version 2, and the expected extension version.
 3. `browser_tabs` without `browser_id` returns an ambiguous error and sends no browser command.

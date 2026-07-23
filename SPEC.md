@@ -187,7 +187,10 @@ viewport without moving `scrollY` or substituting document-top content.
 
 - The extension popup exposes `connected`, `connecting`, `disconnected`, and `error` states.
 - The toolbar icon is a faceless silhouette with thick white shape-following padding. It is bright pink when `connected` and gray when `connecting`, `disconnected`, or `error`; the tooltip also displays connection status.
-- When the server is not running, reconnect with exponential backoff capped at 30 seconds.
+- When the server is not running, report normal `disconnected` state and probe `/health`
+  with exponential backoff capped at 30 seconds before creating a WebSocket. Persist the
+  retry through Manifest V3 worker suspension with `chrome.alarms`; reserve `error` for
+  invalid configuration and protocol failures.
 - Send a heartbeat every 20 seconds to keep the service worker alive (Chrome 116+).
 - Display a virtual cursor at the operation location during page operations.
 - Indicate the target tab with a leading `◉ ` in the title and switch to `● ` only while a page command runs. Track dynamic title changes and restore the latest page title when the target is cleared. Do not inject a target/operating badge into the page; the popup remains the detailed Target/Operating display and the page viewport stays unobstructed.

@@ -39,7 +39,19 @@ function childExit(child) {
   return new Promise((resolve) => child.once("exit", resolve));
 }
 
-export async function startServer() {
+export async function reserveLoopbackPort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const { port } = server.address();
+  await new Promise((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())));
+  return port;
+}
+
+export async function startServer({ port } = {}) {
   const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
   const command = installedPython || "uv";
   const args = installedPython
@@ -47,7 +59,11 @@ export async function startServer() {
     : ["run", "python", "-u", "apps/server/tests/e2e_server.py"];
   const child = spawn(command, args, {
     cwd: repoDir,
-    env: { ...process.env, PYTHONNOUSERSITE: "1" },
+    env: {
+      ...process.env,
+      ...(port === undefined ? {} : { CHROME_BRIDGE_E2E_PORT: String(port) }),
+      PYTHONNOUSERSITE: "1",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const stdout = [];

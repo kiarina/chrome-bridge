@@ -36,9 +36,11 @@ remain to be measured with the first non-artificial update.
 
 Version 0.3.0 is the first planned Store runtime update. It adds accessible-text
 condition waiting and strict-ref downloads observed through the selected target's CDP
-Page events. It adds no manifest permission: `debugger` already supports target-scoped
-input and observation, while `downloads` remains required for explicitly requested WebM
-recording output. Upload only the 0.3.0 ZIP that passed source and clean-installed
+Page events. It also adds the non-warning `alarms` permission so a dormant Manifest V3
+worker can resume quiet local-server reachability checks without treating normal server
+downtime as an extension error. `debugger` already supports target-scoped input and
+observation, while `downloads` remains required for explicitly requested WebM recording
+output. Upload only the 0.3.0 ZIP that passed source and clean-installed
 two-profile E2E, then keep the item Unlisted and use staged publication. Public visibility
 and final-publication automation remain out of scope until the real update preserves the
 Store extension ID, browser ID, label, endpoint, background behavior, and rollback path.
@@ -146,6 +148,7 @@ Single-purpose text for the Privacy tab:
 
 | Permission | Required use |
 | --- | --- |
+| `alarms` | Wake the Manifest V3 service worker for bounded, backoff-based reachability checks while the optional local server is stopped; no browsing data is collected by the alarm. |
 | `debugger` | Attach temporarily to the selected page target for trusted mouse/keyboard input, screenshots, current-document console messages, file-chooser assignment, exact-target download completion events, and explicitly requested target recording frames; detach after each operation. |
 | `downloads` | Save only an explicitly requested silent WebM recording below `Downloads/chrome-bridge/`, use uniquified names rather than overwrite, and remove only an interrupted partial download created by that command. |
 | `offscreen` | Host the extension-packaged canvas and MediaRecorder needed to encode requested target-tab frames; the document is closed after each bounded recording. |
