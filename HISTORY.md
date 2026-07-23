@@ -1,5 +1,21 @@
 # History
 
+## 2026-07-24
+
+### v0.3.0 GitHub and PyPI publication
+
+- Pushed final commit `b28be3f` to `main`, created annotated tag `v0.3.0` at that exact
+  commit, and completed release workflow run `30018897326`. Static validation,
+  clean-installed artifact E2E, reproducibility, generated-file checks, GitHub Release
+  creation, and trusted publishing of both Python distributions all passed.
+- Downloaded the six public GitHub Release assets and verified all five build artifacts
+  against `SHA256SUMS`. The extension ZIP SHA-256 is
+  `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`.
+- Confirmed the four PyPI wheel/sdist SHA-256 values exactly match the GitHub assets. A
+  no-cache public-index install of `chrome-bridge-sdk==0.3.0` installed and imported SDK
+  0.3.0, its `chrome-bridge-mcp==0.3.0` dependency, and the new immutable download result
+  types. The Chrome Web Store 0.3.0 staged update remains the next task.
+
 ## 2026-07-23
 
 ### Branded-Chrome 0.3 wait/download release smoke

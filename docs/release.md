@@ -9,7 +9,7 @@ The current build produces five synchronized 0.3.0 local artifacts plus checksum
 - `chrome_bridge_sdk-0.3.0-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
 - `SHA256SUMS`: SHA-256 checksums for all five artifacts.
 
-Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and the pending `chrome-bridge-sdk` project uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; the server project successfully published v0.1.0 through this boundary.
+Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and `chrome-bridge-sdk` uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; both projects successfully published v0.3.0 through this boundary.
 
 ## Canonical file selection
 

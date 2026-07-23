@@ -1,20 +1,16 @@
 # Next task
 
-## P1.12: publish and validate the v0.3.0 runtime update
+## P1.12: stage and validate the v0.3.0 Chrome Web Store update
 
-The source tree prepares server, SDK, and extension 0.3.0 with 23 MCP tools. The new
-`browser_wait_for` and strict-ref `browser_download_file` paths pass unit/static and
-two-profile isolated Chromium validation, including background operation, exact-target
-CDP events, outcome-unknown timeout cleanup, and the maximum 60-second public range. The
-fixed unpacked ZIP also passed branded-Chrome 0.3.0 smoke for visible/hidden wait,
-immediate/delayed downloads, `timeout=60`, timeout recovery, exact result fields,
-foreground preservation, and exact test-file cleanup.
-No tag, GitHub/PyPI publication, or Chrome Web Store upload has been performed yet.
+Server, SDK, and extension 0.3.0 with 23 MCP tools are tagged and published. GitHub
+Release and both PyPI projects passed the tag workflow, release checksum verification,
+PyPI/GitHub hash comparison, and a no-cache public-index SDK install. The same extension
+ZIP passed isolated Chromium and branded-Chrome wait/download smoke. No Chrome Web Store
+0.3.0 upload has been performed yet.
 
-- Run the complete release/reproducibility gates from `docs/release.md` on the final main
-  commit, push `v0.3.0`, then verify GitHub/PyPI hashes and a no-cache public-index SDK
-  install before any Store upload.
-- Upload that verified ZIP as the first real Unlisted Store update with staged
+- Upload the verified GitHub Release asset `chrome-bridge-extension-0.3.0.zip` (SHA-256
+  `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`) as the first
+  real Unlisted Store update with staged
   publication. Confirm the Store extension ID, browser ID, label, endpoint, server
   settings, background behavior, and verified old-ZIP fallback after the update.
 - Keep Public visibility and Store final-publication automation deferred until the first
