@@ -9,9 +9,6 @@ remain 0.1.0; no content-free Store update was created for this Python-only rele
 - `v0.2.0` is published on GitHub and PyPI. All GitHub assets passed `SHA256SUMS`, both
   PyPI projects matched the GitHub wheel/sdist hashes, and a no-cache public-index SDK
   install pulled server/SDK 0.2.0 successfully.
-- Update pinned `actions/upload-artifact` and `actions/download-artifact` revisions to
-  Node 24-native releases when available. GitHub currently forces their Node 20 metadata
-  onto Node 24 and emits deprecation warnings, but the v0.2.0 release completed normally.
 - Track an upstream MCP JavaScript SDK release that can adopt `@hono/node-server>=2.0.5`.
   The current advisory is moderate and only affects an E2E development dependency; do
   not force a transitive major override solely to silence it.

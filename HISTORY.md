@@ -1,5 +1,15 @@
 # History
 
+## 2026-07-23
+
+### Node 24-native artifact actions
+
+- Updated every CI and release use of `actions/upload-artifact` from v4 to the pinned
+  v7.0.1 commit and `actions/download-artifact` from v4 to the pinned v8.0.1 commit.
+  Both actions now declare the Node 24 runtime, removing the release workflow's Node 20
+  deprecation warning while preserving the existing artifact names, paths, and failure
+  behavior.
+
 ## 2026-07-22
 
 ### Direct API SDK and shared managed server

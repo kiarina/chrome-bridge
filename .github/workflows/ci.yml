@@ -91,7 +91,7 @@ jobs:
       - run: uv run python scripts/check_release_reproducible.py
       - name: Upload E2E failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: isolated-chrome-e2e
           path: apps/extension/test-results/e2e
