@@ -2,6 +2,17 @@
 
 ## 2026-07-25
 
+### Initial target bootstrap for agent workflows
+
+- Changed tab open to target its newly created tab only when the browser has no target;
+  later opens preserve the existing shared target.
+- Changed navigation with no target to create an inactive `about:blank` target before
+  using the normal navigation and optional-recording pipeline, without foregrounding the
+  user's Chrome UI.
+- Added isolated two-profile coverage for conditional open targeting, non-retargeting,
+  and recorded navigation from an empty target state, and aligned public API, architecture,
+  development, Store-review, and component changelog documentation.
+
 ### Component changelog policy and initial histories
 
 - Defined component changelog ownership and release procedure in the release guide.

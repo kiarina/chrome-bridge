@@ -340,22 +340,56 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       url: `${fixture.baseUrl}/a`,
       active: false,
     }));
-    const openedB = successful(await call("browser_tab_open", {
-      browser_id: browserB,
-      url: `${fixture.baseUrl}/b`,
+    expect(openedA).toMatchObject({
+      active: false,
+      targeted: true,
+      browserId: browserA,
+    });
+
+    const openedWithoutRetargetingA = successful(await call("browser_tab_open", {
+      browser_id: browserA,
+      url: "about:blank",
       active: false,
     }));
-    expect(openedA).toMatchObject({ active: false, browserId: browserA });
-    expect(openedB).toMatchObject({ active: false, browserId: browserB });
-
-    expect(successful(await call("browser_tab_select", {
+    expect(openedWithoutRetargetingA).toMatchObject({
+      active: false,
+      targeted: false,
+      browserId: browserA,
+    });
+    expect(successful(await call("browser_tabs", { browser_id: browserA }))
+      .find((tab) => tab.targeted).id).toBe(openedA.id);
+    expect(successful(await call("browser_tab_close", {
       browser_id: browserA,
-      tab_id: openedA.id,
-    }))).toMatchObject({ id: openedA.id, active: false, targeted: true, browserId: browserA });
-    expect(successful(await call("browser_tab_select", {
+      tab_id: openedWithoutRetargetingA.id,
+    }))).toMatchObject({ closed: true, tabId: openedWithoutRetargetingA.id });
+
+    const initialNavigateB = successful(await call("browser_navigate", {
       browser_id: browserB,
-      tab_id: openedB.id,
-    }))).toMatchObject({ id: openedB.id, active: false, targeted: true, browserId: browserB });
+      url: `${fixture.baseUrl}/b`,
+      video_filename: "initial-target-navigate.webm",
+    }));
+    expect(initialNavigateB.operation.url).toBe(`${fixture.baseUrl}/b`);
+    await verifyRecording(
+      profileB,
+      initialNavigateB.recording,
+      { width: 1_080, height: 1_920 },
+      browserB,
+      1,
+      "initial target navigate",
+    );
+    const openedB = successful(await call("browser_tabs", {
+      browser_id: browserB,
+    })).find((tab) => tab.targeted);
+    expect(openedB).toMatchObject({
+      active: false,
+      targeted: true,
+      url: `${fixture.baseUrl}/b`,
+      browserId: browserB,
+    });
+    expect(successful(await call("browser_tabs", { browser_id: browserA }))
+      .find((tab) => tab.active).id).toBe(activeA);
+    expect(successful(await call("browser_tabs", { browser_id: browserB }))
+      .find((tab) => tab.active).id).toBe(activeB);
 
     const pageA = await fixturePage(profileA, `${fixture.baseUrl}/a`);
     const pageB = await fixturePage(profileB, `${fixture.baseUrl}/b`);
@@ -1380,10 +1414,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
       url: `${fixture.baseUrl}/a`,
       active: false,
     }));
-    successful(await call("browser_tab_select", {
-      browser_id: browserA,
-      tab_id: postCloseFixtureA.id,
-    }));
+    expect(postCloseFixtureA).toMatchObject({ active: false, targeted: true });
     expect((await call("browser_screenshot", { browser_id: browserA })).isError)
       .not.toBe(true);
     expect(successful(await call("browser_tab_close", {

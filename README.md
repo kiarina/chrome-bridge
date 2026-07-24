@@ -41,7 +41,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | --- | --- |
 | `browser_instances` | List IDs and labels of connected browser instances |
 | `browser_tabs` | List tabs across all windows |
-| `browser_tab_open` | Open an HTTP(S) URL or a blank tab |
+| `browser_tab_open` | Open an HTTP(S) URL or a blank tab, targeting it when no target exists |
 | `browser_tab_close` | Close a tab by tab ID |
 | `browser_tab_select` | Select the page-operation target without foregrounding Chrome UI |
 | `browser_tab_activate` | Select the page-operation target and foreground its window |
@@ -53,7 +53,7 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_upload_file` | Assign local files to the chooser opened by a snapshot ref, optionally recording through the resulting snapshot |
 | `browser_select_option` | Select values in a snapshot ref, optionally record, and return a post-operation snapshot |
 | `browser_press_key` | Send a key or chord to the target tab, optionally recording the operation |
-| `browser_navigate` | Navigate to an HTTP(S) URL, optionally recording through the post-operation snapshot |
+| `browser_navigate` | Navigate to an HTTP(S) URL, creating a background target tab when needed, optionally recording through the post-operation snapshot |
 | `browser_go_back` | Go back in history, optionally recording through the post-operation snapshot |
 | `browser_go_forward` | Go forward in history, optionally recording through the post-operation snapshot |
 | `browser_wait` | Wait for a specified number of seconds, optionally recording the target during the wait |

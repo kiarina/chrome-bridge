@@ -13,6 +13,11 @@ here. The format is based on
 - Preserve dialog response routing across MCP client disconnects and complete server
   restarts, including continuation of interrupted recording and download results.
 
+### Changed
+
+- Describe and expose the extension's target bootstrap behavior: tab open selects its
+  new tab only when no target exists, and navigation can create an inactive target.
+
 ### Fixed
 
 - Attach the stable browser identity consistently to recording and download metadata

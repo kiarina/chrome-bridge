@@ -74,9 +74,10 @@ Chrome's `Tab.active` (the tab visible to the user) and the target tab to which 
 
 - `browser_tab_select(tab_id)` / `tabs.select` changes only the target and does not call `chrome.tabs.update(..., {active: true})` or `chrome.windows.update(..., {focused: true})`.
 - `browser_tab_activate(tab_id)` / `tabs.activate` changes the target, then explicitly foregrounds the tab and window.
-- `browser_tab_open` never changes the target implicitly. Explicitly select a newly created tab before operating it.
+- `browser_tab_open` targets its newly created tab only when no target exists; otherwise it preserves the existing target.
+- `browser_navigate` creates an inactive `about:blank` tab as the target when none exists, then runs the ordinary target navigation path without foregrounding Chrome UI.
 - Switching tabs in Chrome UI does not move the target.
-- Closing the target tab clears the target and never selects another tab automatically.
+- Closing the target tab clears the target and never selects an existing replacement automatically.
 - The target is shared state owned by the extension connection, not session state per MCP client.
 
 To survive service-worker suspend/resume, save `targetTabId`, the extension-wide generation counter, and the target's latest snapshot generation in `chrome.storage.session`. Generation issuance is serialized in the service worker. State need not survive a browser restart; if the stored tab does not exist, clear it at startup. Each `browser_tabs` result returns `targeted` separately from Chrome's `active`.

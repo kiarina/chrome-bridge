@@ -95,7 +95,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
     async def browser_tab_open(
         url: str = "about:blank", active: bool = True, browser_id: str | None = None
     ) -> dict[str, Any]:
-        """Open a new Chrome tab and return the created tab."""
+        """Open a tab; if no target exists, make the new tab the target."""
         return await controller.open_tab(url, active, browser_id)
 
     @tool(name="browser_tab_close")
@@ -234,7 +234,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
         video_filename: str | None = None,
         browser_id: str | None = None,
     ) -> dict[str, Any]:
-        """Navigate to an HTTP(S) URL, optionally recording through the snapshot."""
+        """Navigate the target, creating a background target tab if none exists."""
         return await controller.navigate(url, browser_id, video_filename)
 
     @tool(name="browser_go_back")

@@ -18,7 +18,7 @@ Provide a local MCP server that lets LLM agents operate every tab by explicit ta
 
 ### Page operations (implemented)
 
-Page operations run against the single target tab retained by the extension. Change the target with chrome-bridge's `browser_tab_select(tab_id)` tool. This tool does not change Chrome UI's active tab or window focus. The existing `browser_tab_activate(tab_id)` changes the target and explicitly brings it to the foreground only when the user needs to see the page.
+Page operations run against the single target tab retained by the extension. Change the target with chrome-bridge's `browser_tab_select(tab_id)` tool. This tool does not change Chrome UI's active tab or window focus. The existing `browser_tab_activate(tab_id)` changes the target and explicitly brings it to the foreground only when the user needs to see the page. As an initial-state convenience, the first `browser_tab_open` targets its new tab, and `browser_navigate` creates an inactive target tab when none exists.
 
 The following 13 page-operation tools operate on the persistent target; they do not accept a per-tool `tab_id`.
 
@@ -158,7 +158,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 
 Tab result fields are `id`, `windowId`, `index`, `active`, `targeted`, `pinned`, `incognito`, `title`, and `url`.
 
-Each tab result from `tabs.list` includes the additive field `targeted: boolean`. `tabs.open` never changes the target implicitly, regardless of `active`. `tabs.activate` changes the target, then foregrounds the tab and window. If the target tab closes, do not automatically select another tab; the next page command returns a clear target-unavailable error. Preserve the target tab ID after navigation, but invalidate the preceding snapshot. If the content runtime is unavailable, such as after navigation to a restricted page, do not change the target; return a content-unavailable error.
+Each tab result from `tabs.list` includes the additive field `targeted: boolean`. When no target exists, `tabs.open` makes its newly created tab the target; otherwise it preserves the existing target regardless of `active`. `tabs.activate` changes the target, then foregrounds the tab and window. If the target tab closes, do not select an existing replacement automatically. A later `tabs.open` may target its new tab, and `page.navigate` creates a new inactive `about:blank` target before navigating. Other page commands return a clear target-unavailable error. Preserve the target tab ID after navigation, but invalidate the preceding snapshot. If the content runtime is unavailable, such as after navigation to a restricted page, do not change the target; return a content-unavailable error.
 
 New commands and result fields are backward-compatible protocol v1 extensions and do not change the meaning of existing commands.
 
@@ -224,6 +224,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - Hover, type, select, and key succeed on a background target without changing the active tab/window focus.
 - Type accepts only editable refs; select strictly resolves `option.value`.
 - Navigate/back/forward return post-operation snapshots on a background target and distinguish no-history from restricted destinations.
+- With no target, tab open targets only its newly created tab and navigate creates an inactive target tab before navigation; neither replaces an existing target.
 - Wait accepts 0–10 seconds and invalidates the latest snapshot when waiting begins.
 - Screenshot returns the background target viewport as orientation-aware Full HD PNG
   image content without changing the active tab.

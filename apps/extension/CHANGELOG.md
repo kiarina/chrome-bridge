@@ -18,6 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Resume operation-scoped recording and strict-ref download handling after a dialog is
   answered.
 
+### Changed
+
+- Make the first newly opened tab the target when none exists, and let navigation create
+  its own inactive target tab instead of requiring a separate list/select round trip.
+
 ### Fixed
 
 - Preserve the underlying page title across repeated extension reloads without adding

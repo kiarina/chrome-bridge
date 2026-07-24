@@ -21,11 +21,11 @@ The MCP tool schema uses snake-case `browser_id` for the argument, while result 
 
 Page-operation tools do not accept `tab_id` directly. They operate on the single target tab retained for each browser.
 
-1. Obtain a tab ID with `browser_tabs`.
-2. Select the target with `browser_tab_select`.
-3. Call `browser_snapshot` or another page-operation tool.
+1. Open a tab with `browser_tab_open`, which targets the new tab when no target exists; or obtain an existing tab ID with `browser_tabs`.
+2. When using an existing tab or changing targets, select it with `browser_tab_select`.
+3. Call `browser_snapshot` or another page-operation tool. `browser_navigate` can also bootstrap an inactive target tab when none exists.
 
-`browser_tab_select` does not change Chrome UI's active tab or window focus. Use `browser_tab_activate` only when the user needs to see the target. `browser_tab_open` does not change the target, regardless of `active`.
+`browser_tab_select` does not change Chrome UI's active tab or window focus. Use `browser_tab_activate` only when the user needs to see the target. `browser_tab_open` changes the target only when none exists; opening further tabs preserves the current target regardless of `active`.
 
 Closing the target tab clears the target. Switching the active tab in Chrome UI does not change it. The target belongs to the extension connection, not an MCP session, so clients operating the same browser share it.
 
@@ -142,7 +142,7 @@ Lists every tab in every window of the specified browser.
 
 ### `browser_tab_open`
 
-Opens a new tab without changing the target.
+Opens a new tab. If no target exists, the new tab becomes the target. Otherwise the existing target is preserved.
 
 | Argument | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
@@ -195,7 +195,7 @@ Selects the page-operation target, makes the tab active, and brings its window t
 
 ## Snapshot and element tools
 
-Before using the following tools, select an HTTP(S) target with `browser_tab_select` or `browser_tab_activate`. Element operations return a new `Snapshot`, invalidating the ref used for the operation.
+Before using the following tools other than `browser_navigate`, select an HTTP(S) target with `browser_tab_select` or `browser_tab_activate`. `browser_navigate` creates an inactive target tab when needed. Element operations return a new `Snapshot`, invalidating the ref used for the operation.
 
 ### `browser_snapshot`
 
@@ -366,7 +366,7 @@ Named keys include `Alt`, arrow keys, `Backspace`, `Control`, `Delete`, `End`, `
 
 ### `browser_navigate`
 
-Navigates the target tab to a URL and captures a snapshot after load completes. The same URL triggers a reload.
+Navigates the target tab to a URL and captures a snapshot after load completes. The same URL triggers a reload. If no target exists, creates a new inactive tab, makes it the target, and navigates it without foregrounding Chrome UI.
 
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -530,7 +530,7 @@ Tool errors are returned to the client as MCP error results. There is no publish
 | --- | --- | --- |
 | browser unavailable | No extension connection, or specified ID is unknown/disconnected | Check extension settings and `browser_instances` |
 | ambiguous browser | `browser_id` omitted with two or more connections | Pass a `browserId` from `browser_instances` explicitly |
-| target unavailable | No target selected or target tab closed | Call `browser_tab_select` after `browser_tabs` |
+| target unavailable | No target selected or target tab closed | Use `browser_tab_open`/`browser_navigate` to create a target, or call `browser_tab_select` after `browser_tabs` |
 | content unavailable | Restricted page such as `chrome://` or `about:blank` | Target an HTTP(S) tab or recover with navigate/back |
 | stale/invalid ref | Old generation, another target, pre-navigation, or malformed ref | Capture a new `browser_snapshot` |
 | element mismatch | Detached, covered, non-editable, non-select, or missing option | Choose an appropriate ref/value from the latest snapshot |

@@ -147,6 +147,17 @@ async function clearTargetTabIfClosed(tabId) {
   }
 }
 
+async function setTargetTabIfUnset(tabId) {
+  if ((await getTargetTabId()) !== null) return null;
+  return setTargetTabId(tabId);
+}
+
+async function ensureNavigationTarget() {
+  if ((await getTargetTabId()) !== null) return;
+  const tab = await chrome.tabs.create({ url: "about:blank", active: false });
+  await setTargetTabId(tab.id);
+}
+
 async function handleTabRemoved(tabId) {
   await clearTargetTabIfClosed(tabId);
   if (retainedDialogOperation?.tabId === tabId) {
@@ -277,13 +288,14 @@ function nextSnapshotGeneration() {
   return next;
 }
 
-function runPageOperation(operation) {
+function runPageOperation(operation, { ensureTarget = false } = {}) {
   const next = pageOperationQueue.then(async () => {
     if (retainedDialogOperation || (await getRetainedDialogMarker())) {
       throw new Error(
         "A browser dialog is open. Call browser_snapshot and browser_dialog_respond before another page action.",
       );
     }
+    if (ensureTarget) await ensureNavigationTarget();
     const tabId = await getTargetTabId();
     const token = tabId === null ? null : await beginOperatingTarget(tabId);
     try {
@@ -2211,7 +2223,8 @@ async function executeCommand(type, params) {
         url: params.url,
         active: params.active !== false,
       });
-      return summarizeTab(tab, tab.id === (await getTargetTabId()));
+      const targetedTab = await setTargetTabIfUnset(tab.id);
+      return summarizeTab(targetedTab || tab, targetedTab !== null);
     }
     case "tabs.close": {
       const tab = await chrome.tabs.get(requireTabId(params.tabId));
@@ -2341,14 +2354,16 @@ async function executeCommand(type, params) {
       );
     }
     case "page.navigate": {
-      return runPageOperation(() =>
-        runDialogAwareTargetOperation((session) =>
-          runOptionallyRecordedTargetOperation(
-            params,
-            () => navigateTarget(params),
-            session,
+      return runPageOperation(
+        () =>
+          runDialogAwareTargetOperation((session) =>
+            runOptionallyRecordedTargetOperation(
+              params,
+              () => navigateTarget(params),
+              session,
+            ),
           ),
-        ),
+        { ensureTarget: true },
       );
     }
     case "page.goBack": {

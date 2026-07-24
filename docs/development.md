@@ -125,7 +125,7 @@ Set the URL to `http://127.0.0.1:8765/mcp`. For real-Chrome validation, check fi
 
 1. Record existing tab IDs with `browser_tabs`.
 2. Create `https://example.com` as inactive with `browser_tab_open`.
-3. Target the new tab with `browser_tab_select` and confirm the original active tab is unchanged.
+3. Confirm the new tab is automatically targeted when no target existed and the original active tab is unchanged. If another target already existed, select the new tab explicitly with `browser_tab_select`.
 4. Explicitly foreground the new tab with `browser_tab_activate`.
 5. Close only the new tab with `browser_tab_close`.
 
@@ -163,7 +163,7 @@ closes only its fixture tab, and deletes only its two UUID-named CSV files from
 `~/Downloads`. Pass `--download-dir` if Chrome uses a different download directory; a
 non-empty `cleanupRequired` result must be resolved before completing the smoke.
 
-For real-Chrome `browser_snapshot` validation, create an inactive HTTP(S) test tab, select it, and capture a snapshot. Confirm the original active tab ID is unchanged and the result contains a URL, title, YAML, and refs matching `^s\d+e\d+$`. Expect content-unavailable for `about:blank` or `chrome://` targets. Prefer loopback HTTP fixtures for reproducible E2E because external sites can become Chrome error pages in some environments.
+For real-Chrome `browser_snapshot` validation, first clear any dedicated test target, create an inactive HTTP(S) test tab, confirm it is automatically targeted, and capture a snapshot. Also open a second test tab and confirm it does not replace the existing target. Confirm the original active tab ID is unchanged and the result contains a URL, title, YAML, and refs matching `^s\d+e\d+$`. Expect content-unavailable for `about:blank` or `chrome://` targets. Prefer loopback HTTP fixtures for reproducible E2E because external sites can become Chrome error pages in some environments.
 
 For `browser_click`, place two same-named buttons in a loopback fixture, target the background tab, and verify:
 
@@ -187,12 +187,13 @@ For real-Chrome hover/type/select/key validation, place a hover event, editable 
 
 For real-Chrome navigate/back/forward/wait validation, provide two history pages and a delayed-update page on loopback.
 
-1. Click a link on the background target from `/one` to `/two`, then obtain `/one` after back and `/two` after forward.
-2. Navigating to the current URL reloads and produces a new generation.
-3. Expect `Cannot go forward` with no forward history.
-4. Navigate to the delayed-update page, record an old ref, then confirm after wait that the old ref is stale and a new snapshot contains the update.
-5. A link click to `about:blank` returns content-unavailable; back recovers the HTTP page without changing the target.
-6. The active tab ID remains unchanged throughout, and only the test tab is closed at the end.
+1. With no target, call `browser_navigate` and confirm it creates an inactive target tab, returns the destination snapshot, and leaves the original active tab unchanged. Repeat with `video_filename` to cover target creation before recording startup.
+2. Click a link on the background target from `/one` to `/two`, then obtain `/one` after back and `/two` after forward.
+3. Navigating to the current URL reloads and produces a new generation.
+4. Expect `Cannot go forward` with no forward history.
+5. Navigate to the delayed-update page, record an old ref, then confirm after wait that the old ref is stale and a new snapshot contains the update.
+6. A link click to `about:blank` returns content-unavailable; back recovers the HTTP page without changing the target.
+7. The active tab ID remains unchanged throughout, and only the test tab is closed at the end.
 
 For `browser_wait_for`, use an inactive loopback page whose accessible text appears and
 disappears asynchronously. Verify immediate and delayed `visible`, delayed `hidden`,
@@ -289,11 +290,12 @@ Target selection must not take over Chrome UI. In real Chrome, never close exist
 
 1. Record the current `active` tab ID with `browser_tabs`.
 2. Create a test HTTP(S) tab with `browser_tab_open(active=false)`.
-3. Target it with `browser_tab_select`.
+3. With no prior target, confirm the created tab has `targeted: true`. With a prior target, confirm the new tab has `targeted: false` until selected explicitly.
 4. Use `browser_tabs` to confirm the original tab still has `active: true` and only the test tab has `targeted: true`.
 5. Manually foreground another tab and confirm `targeted` does not change.
 6. Run snapshot, click, type, navigate, and screenshot on the background target.
-7. Close the target tab and confirm the next page command returns target-unavailable.
+7. Close the target tab and confirm `browser_snapshot` returns target-unavailable.
+8. With no target, call `browser_navigate` and confirm it creates and targets a new inactive tab without changing the original active tab.
 
 Never call `browser_tab_activate` automatically after a background operation fails. Return an error that identifies a focus dependency and leave activation/retry to the MCP client.
 

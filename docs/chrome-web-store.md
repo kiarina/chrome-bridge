@@ -207,7 +207,7 @@ Suggested dashboard instructions:
 3. Install the submitted extension and wait for its toolbar icon to become pink. Open the popup and confirm `connected`.
 4. Check `http://127.0.0.1:8765/health`; `extensionConnected` should be `true`.
 5. Connect MCP Inspector or another MCP client to `http://127.0.0.1:8765/mcp` using Streamable HTTP.
-6. Call `browser_tabs`, open an HTTP(S) test page as inactive, select it, capture `browser_snapshot`, and use one returned ref with `browser_click`.
+6. Call `browser_tabs`, open an HTTP(S) test page as inactive, confirm it becomes the target when none exists, capture `browser_snapshot`, and use one returned ref with `browser_click`.
 7. On a test page with delayed accessible text, call `browser_wait_for` and confirm it returns a fresh snapshot without activating the tab.
 8. On a test page with a direct attachment link, capture a fresh snapshot and call `browser_download_file` with that exact ref. Confirm completed metadata is returned without a URL or filesystem path, then delete only the reviewer download.
 9. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a

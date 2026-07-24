@@ -225,6 +225,8 @@ def test_tools_include_non_focusing_tab_select() -> None:
         assert tools["browser_instances"]["inputSchema"]["properties"] == {}
         assert "browser_tab_select" in tools
         assert "without focusing" in tools["browser_tab_select"]["description"]
+        assert "if no target exists" in tools["browser_tab_open"]["description"]
+        assert "if none exists" in tools["browser_navigate"]["description"]
         assert "browser_snapshot" in tools
         assert set(tools["browser_snapshot"]["inputSchema"]["properties"]) == {
             "browser_id"

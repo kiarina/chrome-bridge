@@ -200,6 +200,7 @@ loopback bind plus Host/Origin checks remain mandatory, and remote bind still re
 | Server restart | Registry starts empty; v2 reconnects with same stored ID |
 | Label edit | Reconnect updates metadata without changing ID |
 | Empty tab list | Empty list; selected connection still deterministic |
+| No target, then tab open or navigate | Only that selected browser creates and retains its new target; no foregrounding or cross-profile effect |
 | Same tab ID/ref text in two profiles | Explicit browser ID prevents cross-profile operation |
 | Health with multiple profiles | Count only; no ID, label, tab, or page metadata |
 

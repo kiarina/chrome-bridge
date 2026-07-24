@@ -13,6 +13,11 @@ here. The format is based on
 - Model recording and completed-download metadata that can accompany a document state
   after a dialog continuation.
 
+### Changed
+
+- Allow `browser_tab_open` and `browser_navigate` to establish the first target through
+  the connected extension, including recorded navigation from an empty target state.
+
 ## [0.3.0] - 2026-07-24
 
 ### Added
