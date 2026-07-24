@@ -2,6 +2,23 @@
 
 ## 2026-07-25
 
+### v0.4.0 release preparation
+
+- Bumped the extension, MCP server, Python SDK, and workspace to 0.4.0; advanced the
+  SDK's managed-server dependency and runtime compatibility check to the 0.4 series.
+- Added an explicit extension 0.4.0 compatibility gate for dialog responses while
+  retaining the existing extension 0.3.0 gate for wait/download operations. Finalized
+  all three component changelogs and aligned release and Store reviewer documentation.
+- Full local validation passed 170 Python tests, 54 extension unit/DOM tests, lint,
+  formatting, static validation, and seven artifact-based isolated Chromium E2E tests.
+  Clean wheel installation passed, and two independent builds produced byte-identical
+  artifacts. The extension ZIP SHA-256 is
+  `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870`.
+- The exact 0.3.0 Store copy baseline could not be enabled through the available Chrome
+  control surface because Chrome internal extension-manager tabs are intentionally not
+  claimable. No profile configuration was read or modified through an alternate path;
+  retain Store-only 0.4.0 branded validation after review.
+
 ### Initial target bootstrap for agent workflows
 
 - Changed tab open to target its newly created tab only when the browser has no target;

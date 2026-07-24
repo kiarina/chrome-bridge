@@ -741,10 +741,10 @@ def _validate_meta(meta: Mapping[str, Any]) -> None:
     if (
         meta.get("service") != "chrome-bridge"
         or meta.get("apiVersion") != 1
-        or not str(meta.get("serverVersion", "")).startswith("0.3.")
+        or not str(meta.get("serverVersion", "")).startswith("0.4.")
     ):
         raise IncompatibleServerError(
-            "The running Chrome Bridge server is not compatible with SDK 0.3"
+            "The running Chrome Bridge server is not compatible with SDK 0.4"
         )
 
 

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-25
+
 ### Added
 
 - Represent JavaScript dialogs and `beforeunload` prompts as a dominant page state and
@@ -59,6 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Show connection and target state in the popup, Options page, tab title, and virtual
   cursor without injecting an in-page status badge.
 
-[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kiarina/chrome-bridge/compare/v0.1.0...v0.3.0
 [0.1.0]: https://github.com/kiarina/chrome-bridge/releases/tag/v0.1.0

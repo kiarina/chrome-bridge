@@ -280,6 +280,19 @@ class BrowserController:
             )
 
     @staticmethod
+    def _require_extension_04(connection: BrowserConnection) -> None:
+        match = re.fullmatch(
+            r"(\d+)\.(\d+)\.(\d+)(?:\.\d+)?", connection.extension_version
+        )
+        version = tuple(int(part) for part in match.groups()) if match else None
+        if version is None or version < (0, 4, 0):
+            raise ExtensionCommandError(
+                "This tool requires Chrome Bridge extension 0.4.0 or newer; "
+                f"connected extension is {connection.extension_version!r}. Upgrade the "
+                "Chrome extension and retry with the same browser_id."
+            )
+
+    @staticmethod
     def _with_browser_id(
         result: dict[str, Any], connection: BrowserConnection
     ) -> dict[str, Any]:
@@ -413,6 +426,7 @@ class BrowserController:
         if prompt_text is not None and not isinstance(prompt_text, str):
             raise ValueError("prompt_text must be a string or null")
         connection = self._connection(browser_id)
+        self._require_extension_04(connection)
         params: dict[str, Any] = {"dialogRef": dialog_ref, "action": action}
         if prompt_text is not None:
             params["promptText"] = prompt_text

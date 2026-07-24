@@ -84,7 +84,7 @@ A ref is scoped to its source browser, target tab, document, and latest snapshot
   "browserId": "b9d746c1-e245-4f2d-9e5d-65fddf63c587",
   "label": "Work",
   "protocolVersion": 2,
-  "extensionVersion": "0.3.0",
+  "extensionVersion": "0.4.0",
   "identityStable": true
 }
 ```

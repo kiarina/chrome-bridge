@@ -195,7 +195,7 @@ async def test_dialog_state_and_response_use_generation_scoped_ref() -> None:
     hub = BridgeHub(timeout_seconds=1)
     socket = FakeSocket()
     controller = BrowserController(hub)
-    await hub.attach(socket, v2_hello(BROWSER_A, extension_version="0.3.0"))
+    await hub.attach(socket, v2_hello(BROWSER_A, extension_version="0.4.0"))
     dialog_state = {
         "pageState": "browser-dialog",
         "generation": 8,
@@ -237,6 +237,18 @@ async def test_dialog_state_and_response_use_generation_scoped_ref() -> None:
     }
     hub.receive({"id": request["id"], "ok": True, "result": document_state}, BROWSER_A)
     assert await response_task == {**document_state, "browserId": BROWSER_A}
+
+
+async def test_dialog_response_requires_extension_04() -> None:
+    hub = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    await hub.attach(socket, v2_hello(BROWSER_A, extension_version="0.3.0"))
+
+    with pytest.raises(ExtensionCommandError, match="extension 0.4.0 or newer"):
+        await BrowserController(hub).respond_to_dialog(
+            "s8d1", "accept", browser_id=BROWSER_A
+        )
+    assert socket.sent == []
 
 
 @pytest.mark.parametrize("dialog_ref", ["", "s8e1", "s0d2"])
@@ -1000,7 +1012,9 @@ async def test_download_file_can_promote_to_dialog_state() -> None:
 async def test_dialog_response_uses_download_continuation_timeout() -> None:
     registry = BridgeHub(timeout_seconds=0.01)
     socket = FakeSocket()
-    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.4.0")
+    )
     controller = BrowserController(registry)
     task = asyncio.create_task(
         controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)
@@ -1051,7 +1065,9 @@ async def test_dialog_response_enriches_continuation_provenance(
 ) -> None:
     registry = BridgeHub()
     socket = FakeSocket()
-    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.4.0")
+    )
     controller = BrowserController(registry)
     task = asyncio.create_task(
         controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)
@@ -1099,7 +1115,9 @@ async def test_dialog_response_rejects_invalid_continuation_metadata(
 ) -> None:
     registry = BridgeHub()
     socket = FakeSocket()
-    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.4.0")
+    )
     controller = BrowserController(registry)
     task = asyncio.create_task(
         controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)

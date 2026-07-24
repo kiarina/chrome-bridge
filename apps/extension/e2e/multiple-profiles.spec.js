@@ -318,7 +318,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     for (const instance of connected) {
       expect(instance).toMatchObject({
         protocolVersion: 2,
-        extensionVersion: "0.3.0",
+        extensionVersion: "0.4.0",
         identityStable: true,
       });
       expect(instance.browserId).toMatch(/^[0-9a-f-]{36}$/);

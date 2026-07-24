@@ -15,8 +15,8 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
 - v0.3.0 update approved and manually published: 2026-07-24
 - Public visibility approved and manually published: 2026-07-24
 - Status at handoff: dashboard reports `公開済み - 一般公開`; the unauthenticated direct
-  listing exposes `Add to Chrome` and version 0.3.0, while Store search indexing is still
-  catching up
+  listing exposes `Add to Chrome` and version 0.3.0, and Store search returns the exact
+  canonical item
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
 - Current ZIP SHA-256: `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`
 
@@ -74,12 +74,11 @@ staged change; the authoritative item row reports `公開済み - 一般公開` 
 No new ZIP or runtime change was involved.
 
 An unauthenticated fetch of the direct listing returned `Add to Chrome`, the canonical
-item ID, and version 0.3.0 immediately after publication. The exact item was not yet
-returned by a Store web-search check, so search discoverability remains an indexing
-follow-up rather than a reason to resubmit. The local server was stopped during this
-check, leaving one post-visibility confirmation that the installed Store copy still
-connects and reports 0.3.0. The runtime already passed that Store-copy smoke before the
-visibility-only change.
+item ID, and version 0.3.0 immediately after publication. A later Store web-search check
+returned the exact canonical item, completing the discoverability follow-up. The local
+server was stopped during the first check, leaving one post-visibility confirmation that
+the installed Store copy still connects and reports 0.3.0. The runtime already passed
+that Store-copy smoke before the visibility-only change.
 
 Official references:
 
@@ -129,6 +128,7 @@ Suggested detailed description:
 > - Operate tabs across Chrome windows and multiple profiles with explicit routing.
 > - Select a background target independently from Chrome's active tab.
 > - Use generation-scoped accessibility references for click, type, select, drag, and file-upload operations.
+> - Return JavaScript dialogs and beforeunload prompts as explicit page states that can be accepted or dismissed by exact reference.
 > - Wait for accessible page text to appear or disappear and receive a fresh snapshot.
 > - Start a download from an exact accessibility reference and report sanitized completion metadata without exposing its URL or filesystem path.
 > - Capture viewport screenshots and current-document console messages.
@@ -208,12 +208,13 @@ Suggested dashboard instructions:
 4. Check `http://127.0.0.1:8765/health`; `extensionConnected` should be `true`.
 5. Connect MCP Inspector or another MCP client to `http://127.0.0.1:8765/mcp` using Streamable HTTP.
 6. Call `browser_tabs`, open an HTTP(S) test page as inactive, confirm it becomes the target when none exists, capture `browser_snapshot`, and use one returned ref with `browser_click`.
-7. On a test page with delayed accessible text, call `browser_wait_for` and confirm it returns a fresh snapshot without activating the tab.
-8. On a test page with a direct attachment link, capture a fresh snapshot and call `browser_download_file` with that exact ref. Confirm completed metadata is returned without a URL or filesystem path, then delete only the reviewer download.
-9. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a
+7. On a test page whose button opens `confirm()`, click its exact ref, confirm a browser-dialog page state is returned, and call `browser_dialog_respond` with that dialog ref.
+8. On a test page with delayed accessible text, call `browser_wait_for` and confirm it returns a fresh snapshot without activating the tab.
+9. On a test page with a direct attachment link, capture a fresh snapshot and call `browser_download_file` with that exact ref. Confirm completed metadata is returned without a URL or filesystem path, then delete only the reviewer download.
+10. Call `browser_record_video(filename="review.webm", duration=0.5)` and confirm a
    silent WebM appears below `Downloads/chrome-bridge/` without activating the target.
    Delete only that reviewer recording afterward.
-10. Confirm the original active tab remains active. Close only the test tab.
+11. Confirm the original active tab remains active. Close only the test tab.
 
 Explain that the initial permission prompt is expected because operating arbitrary user-selected pages is the extension's single purpose. If review needs a deterministic page, publish a public static fixture that contains no login or credentials; do not ask reviewers to use a private account.
 

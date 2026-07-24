@@ -6,6 +6,8 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-25
+
 ### Added
 
 - Add typed browser-dialog page states and `browser_dialog_respond` support for accepting
@@ -43,6 +45,7 @@ here. The format is based on
 - Reject same-task nested sessions while allowing other tasks and processes to wait
   through the server-wide FIFO coordinator.
 
-[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kiarina/chrome-bridge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kiarina/chrome-bridge/releases/tag/v0.2.0

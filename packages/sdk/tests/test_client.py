@@ -17,6 +17,7 @@ from chrome_bridge_sdk import (
     ConsoleEntry,
     Download,
     DownloadFileResult,
+    IncompatibleServerError,
     KeyPress,
     NestedSessionError,
     OperationError,
@@ -42,6 +43,16 @@ def response(
     )
 
 
+def test_sdk_accepts_only_the_matching_server_minor_series() -> None:
+    client_module._validate_meta(
+        {"service": "chrome-bridge", "apiVersion": 1, "serverVersion": "0.4.0"}
+    )
+    with pytest.raises(IncompatibleServerError, match="SDK 0.4"):
+        client_module._validate_meta(
+            {"service": "chrome-bridge", "apiVersion": 1, "serverVersion": "0.3.0"}
+        )
+
+
 @pytest.fixture
 def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     calls: list[dict[str, Any]] = []
@@ -54,7 +65,7 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.3.0",
+                    "serverVersion": "0.4.0",
                     "extensionConnected": True,
                 },
             )
@@ -469,7 +480,7 @@ async def test_structured_operation_error(monkeypatch: pytest.MonkeyPatch) -> No
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.3.0",
+                    "serverVersion": "0.4.0",
                     "extensionConnected": True,
                 },
             )
@@ -534,7 +545,7 @@ async def test_call_transport_failure_is_not_retried(
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.3.0",
+                    "serverVersion": "0.4.0",
                     "extensionConnected": True,
                 },
             )

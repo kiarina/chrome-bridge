@@ -6,6 +6,8 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-25
+
 ### Added
 
 - Add `browser_dialog_respond` and return browser-native dialogs as a page-state variant
@@ -62,7 +64,8 @@ here. The format is based on
 - Validate protocol envelopes and commands against canonical JSON Schemas, with bounded
   command timeouts and fail-closed Host and Origin checks.
 
-[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kiarina/chrome-bridge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kiarina/chrome-bridge/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kiarina/chrome-bridge/releases/tag/v0.1.0
