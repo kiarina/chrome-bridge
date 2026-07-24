@@ -132,20 +132,35 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                     "browserId": "browser-1",
                 }
             elif method == "browser_dialog_respond":
-                result = {
-                    "pageState": "browser-dialog",
-                    "generation": 6,
-                    "url": "https://example.com/",
-                    "title": "Fixture",
-                    "dialog": {
-                        "type": "prompt",
-                        "message": "Second value?",
-                        "defaultPrompt": "",
-                        "ref": "s6d1",
-                        "actions": ["accept", "dismiss"],
-                    },
-                    "browserId": "browser-1",
-                }
+                if arguments["dialog_ref"] == "s7d1":
+                    result = {
+                        "generation": 8,
+                        "url": "https://example.com/reports",
+                        "title": "Reports",
+                        "snapshot": '- status "Downloaded" [ref=s8e1]',
+                        "download": {
+                            "suggestedFilename": "report.csv",
+                            "state": "complete",
+                            "receivedBytes": 42,
+                            "totalBytes": 42,
+                        },
+                        "browserId": "browser-1",
+                    }
+                else:
+                    result = {
+                        "pageState": "browser-dialog",
+                        "generation": 6,
+                        "url": "https://example.com/",
+                        "title": "Fixture",
+                        "dialog": {
+                            "type": "prompt",
+                            "message": "Second value?",
+                            "defaultPrompt": "",
+                            "ref": "s6d1",
+                            "actions": ["accept", "dismiss"],
+                        },
+                        "browserId": "browser-1",
+                    }
             elif method in {
                 "browser_drag",
                 "browser_type",
@@ -210,22 +225,38 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                     "browserId": "browser-1",
                 }
             elif method == "browser_download_file":
-                result = {
-                    "download": {
-                        "suggestedFilename": "report.csv",
-                        "state": "complete",
-                        "receivedBytes": 42,
-                        "totalBytes": 42,
-                        "browserId": "browser-1",
-                    },
-                    "snapshot": {
+                if arguments["element"] == "Confirm export":
+                    result = {
+                        "pageState": "browser-dialog",
                         "generation": 5,
                         "url": "https://example.com/reports",
                         "title": "Reports",
-                        "snapshot": '- status "Downloaded" [ref=s5e1]',
+                        "dialog": {
+                            "type": "confirm",
+                            "message": "Download report?",
+                            "defaultPrompt": "",
+                            "ref": "s5d1",
+                            "actions": ["accept", "dismiss"],
+                        },
                         "browserId": "browser-1",
-                    },
-                }
+                    }
+                else:
+                    result = {
+                        "download": {
+                            "suggestedFilename": "report.csv",
+                            "state": "complete",
+                            "receivedBytes": 42,
+                            "totalBytes": 42,
+                            "browserId": "browser-1",
+                        },
+                        "snapshot": {
+                            "generation": 5,
+                            "url": "https://example.com/reports",
+                            "title": "Reports",
+                            "snapshot": '- status "Downloaded" [ref=s5e1]',
+                            "browserId": "browser-1",
+                        },
+                    }
             elif method == "browser_record_video":
                 result = {
                     **recording,
@@ -387,6 +418,16 @@ async def test_remaining_typed_result_models(
         assert isinstance(dialog, BrowserDialogSnapshot)
         assert dialog.dialog.ref == "s6d1"
         assert dialog.dialog.actions == ("accept", "dismiss")
+        downloaded_state = await session.browser_dialog_respond(
+            "s7d1", "accept", browser_id="browser-1"
+        )
+        assert isinstance(downloaded_state, Snapshot)
+        assert downloaded_state.download == Download(
+            suggested_filename="report.csv",
+            state="complete",
+            received_bytes=42,
+            total_bytes=42,
+        )
         recorded_wait = await session.browser_wait_for(
             "Ready", video_filename="wait-for.webm"
         )
@@ -409,6 +450,11 @@ async def test_remaining_typed_result_models(
                 browser_id="browser-1",
             ),
         )
+        pending_download = await session.browser_download_file(
+            "Confirm export", "s3e2", 60
+        )
+        assert isinstance(pending_download, BrowserDialogSnapshot)
+        assert pending_download.dialog.message == "Download report?"
         recording = await session.browser_record_video("hold.webm", 1)
         assert isinstance(recording, Recording)
         assert recording.requested_filename == "hold.webm"

@@ -170,6 +170,17 @@ command timeout. Results expose suggested filename and byte counts, not path, UR
 actual saved name, or Chrome ID. Every post-click failure is outcome-unknown; listeners,
 Page domain, generation state, and debugger session are released in `finally`.
 
+If the download click opens a native dialog, reuse this Page-enabled session and promote
+it through the common dialog state machine. After response, continue the original
+observer/deadline and attach sanitized download metadata to the fresh document
+PageState. Client/server disconnect retains the extension-owned session. A minimal
+local-storage recovery marker makes external detach, worker replacement, and extension
+Reload fail fast; after a manual dialog answer, a bounded content-runtime probe restores
+or reinjects the invalidated runtime, restores the marked target, clears the marker, and
+regenerates the snapshot. Browser startup
+discards the marker because native dialogs cannot survive shutdown. Never detach on an
+elapsed lease or choose a dialog outcome implicitly.
+
 ```mermaid
 sequenceDiagram
     participant M as MCP client

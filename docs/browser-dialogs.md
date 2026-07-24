@@ -130,10 +130,33 @@ internal observation only if real usage establishes that between-call dialogs ma
   and close remain separate recovery operations.
 - A response waits for the closing event, the suspended input/navigation continuation,
   DOM or navigation completion, and then returns a fresh `PageState`.
+- A strict-ref download click uses the same promotion path. After an accepted dialog,
+  the original bounded observer finishes and its sanitized metadata is attached to the
+  returned document PageState.
 - A second dialog opened by the resumed JavaScript becomes the next dialog snapshot; it
   is never accepted using the preceding ref or action.
 - Dialog messages are page data. They may appear in explicit tool results but never in
   unauthenticated health, connection listings, or routine logs.
+
+## Disconnect and interruption policy
+
+Client or server disconnect does not answer or detach a live dialog. The extension owns
+the retained session and accepts the exact response after reconnection. There is no
+elapsed-time lease: expiry by detach would lose dialog metadata and strand a destructive
+`beforeunload` or confirm without a safe default action.
+
+The extension mirrors the retained tab ID and synthetic dialog state into a minimal
+`chrome.storage.local` recovery marker. Session storage is insufficient because an
+extensions-page Reload clears it while the native dialog remains open. If external
+detach, worker replacement, or Reload loses the in-memory session,
+`browser_dialog_respond` fails explicitly and the marker prevents ordinary page actions
+from hanging. `browser_snapshot` probes the content runtime for at most 500 ms. While
+the native dialog remains it instructs the user to answer manually or close the target.
+After manual response, the extension reinjects an invalidated content runtime when
+needed, clears the marker, restores the marked target, and returns a fresh document
+snapshot. The recovery attempt remains bounded while the dialog blocks injection.
+Browser startup clears any marker because a native dialog cannot survive complete
+browser shutdown. Cleanup never silently accepts or dismisses a dialog.
 
 ## Branded-Chrome results and remaining failure validation
 
@@ -147,9 +170,21 @@ automated branded-Chrome process, so this matrix used the normal user-loaded ext
 - Measure manual accept in addition to the verified manual dismiss path.
 - Verify accept for `beforeunload`, cross-process navigation, target ID stability, and
   debugger detach ordering.
-- Exercise tab close, target change, external debugger detach, server disconnect,
-  extension reload, browser shutdown, and retained-session lease expiry.
-- Confirm behavior when DevTools is already attached or tries to attach during retention.
+- Branded Chrome passed DevTools opened during retention and chrome-bridge attachment
+  while DevTools was already open; both clients remained usable and no replacement or
+  warning occurred. It also passed extensions-page Reload: the dialog remained, a
+  snapshot failed fast, and manual accept was followed by content-runtime reinjection,
+  marker cleanup, target restoration, and a fresh document snapshot. Browser shutdown
+  also cleared the marker and returned to ordinary target-not-selected state after
+  restart. With `Continue where you left off` enabled, Chrome restored the fixture under
+  a new tab ID but did not restore the native dialog; selecting that tab produced a
+  normal generation-1 snapshot with unchanged page state. Isolated production E2E
+  covers client loss, complete server restart, external detach, orphaned-session fail-
+  fast/manual recovery, and target close.
+- An isolated `chrome.runtime.reload()` experiment disconnected the extension but did
+  not create a replacement worker even after the native dialog was answered manually.
+  Treat this as an automation limitation, not as the result of extensions-page Reload;
+  validate the real Reload path in the user-loaded branded-Chrome profile.
 - Verify two-profile isolation and that one profile's retained session never blocks the other.
 - Verify recorded dialog operations in branded Chrome. The retained recording finalizes
   after response and its metadata is attached to the returned document PageState; no

@@ -389,7 +389,11 @@ class BrowserController:
         params: dict[str, Any] = {"dialogRef": dialog_ref, "action": action}
         if prompt_text is not None:
             params["promptText"] = prompt_text
-        result = await connection.request("page.dialogRespond", params)
+        # A retained download operation can legitimately consume its original
+        # 60-second deadline after the dialog response resumes it.
+        result = await connection.request(
+            "page.dialogRespond", params, timeout_seconds=65
+        )
         if not _is_page_state_result(result):
             raise ExtensionCommandError(
                 "page.dialogRespond returned an invalid response"
@@ -721,6 +725,8 @@ class BrowserController:
             {"element": element, "ref": ref, "timeout": timeout},
             timeout_seconds=timeout + 5,
         )
+        if _is_dialog_result(result):
+            return self._with_browser_id(result, connection)
         if not (
             isinstance(result, dict)
             and set(result) == {"download", "snapshot"}

@@ -95,6 +95,7 @@ class Snapshot:
     snapshot: str
     browser_id: str | None = None
     recording: Recording | None = None
+    download: Download | None = None
 
     @classmethod
     def _from_result(cls, value: Any) -> Snapshot:
@@ -108,6 +109,11 @@ class Snapshot:
             recording=(
                 Recording._from_result(item["recording"])
                 if item.get("recording") is not None
+                else None
+            ),
+            download=(
+                Download._from_result(item["download"])
+                if item.get("download") is not None
                 else None
             ),
         )

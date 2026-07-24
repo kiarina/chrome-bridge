@@ -633,7 +633,7 @@ class ChromeBridgeSession:
         ref: str,
         timeout: float = 10,
         browser_id: str | None = None,
-    ) -> DownloadFileResult:
+    ) -> DownloadFileResult | BrowserDialogSnapshot:
         return await self._typed_call(
             "browser_download_file",
             {
@@ -642,7 +642,12 @@ class ChromeBridgeSession:
                 "timeout": timeout,
                 "browser_id": browser_id,
             },
-            DownloadFileResult._from_result,
+            lambda value: (
+                BrowserDialogSnapshot._from_result(value)
+                if isinstance(value, Mapping)
+                and value.get("pageState") == "browser-dialog"
+                else DownloadFileResult._from_result(value)
+            ),
         )
 
     async def browser_record_video(

@@ -332,6 +332,12 @@ success state `complete`, `receivedBytes`, `totalBytes`, and `browserId`; `snaps
 the fresh post-click accessibility snapshot. The result deliberately omits download
 URLs, MIME, Chrome download IDs, absolute paths, and the actual saved filename.
 
+If the click opens a browser-native dialog, the initial result is a dominant
+`BrowserDialogSnapshot`. Answer it with `browser_dialog_respond`. An accepted dialog that
+starts the download returns a document `PageState` with the same sanitized metadata in
+its optional top-level `download` field. The response continues the original deadline
+and never retries the click.
+
 The command keeps its debugger session and operation queue entry until completion. A
 post-click timeout, cancellation, multiple-download ambiguity, target loss, or snapshot
 failure is outcome-unknown and must not be retried automatically. The maximum 60-second

@@ -36,6 +36,7 @@ const OPERATING_TAB_KEY = "operatingTabId";
 const OPERATING_TOKEN_KEY = "operatingToken";
 const SNAPSHOT_GENERATION_KEY = "snapshotGeneration";
 const LATEST_SNAPSHOT_KEY = "latestSnapshot";
+const RETAINED_DIALOG_KEY = "retainedDialog";
 const CONTENT_RUNTIME_FILE = "dist/content-runtime.js";
 const NAVIGATION_TIMEOUT_MS = 10_000;
 const RECORDED_NAVIGATION_TIMEOUT_MS = 7_000;
@@ -144,6 +145,18 @@ async function clearTargetTabIfClosed(tabId) {
       OPERATING_TOKEN_KEY,
     ]);
   }
+}
+
+async function handleTabRemoved(tabId) {
+  await clearTargetTabIfClosed(tabId);
+  if (retainedDialogOperation?.tabId === tabId) {
+    const held = retainedDialogOperation;
+    retainedDialogOperation = undefined;
+    held.observer.cleanup();
+    await held.session.close();
+  }
+  const marker = await getRetainedDialogMarker();
+  if (marker?.tabId === tabId) await clearRetainedDialogMarker();
 }
 
 async function agentUiStateForTab(tabId) {
@@ -266,7 +279,7 @@ function nextSnapshotGeneration() {
 
 function runPageOperation(operation) {
   const next = pageOperationQueue.then(async () => {
-    if (retainedDialogOperation) {
+    if (retainedDialogOperation || (await getRetainedDialogMarker())) {
       throw new Error(
         "A browser dialog is open. Call browser_snapshot and browser_dialog_respond before another page action.",
       );
@@ -290,6 +303,74 @@ function runPageOperation(operation) {
     () => undefined,
   );
   return next;
+}
+
+async function getRetainedDialogMarker() {
+  const stored = await chrome.storage.local.get(RETAINED_DIALOG_KEY);
+  const marker = stored[RETAINED_DIALOG_KEY];
+  if (
+    !marker ||
+    !Number.isInteger(marker.tabId) ||
+    !marker.state ||
+    marker.state.pageState !== "browser-dialog"
+  ) {
+    return null;
+  }
+  return marker;
+}
+
+async function persistRetainedDialogOperation(held, status = "active", reason) {
+  await chrome.storage.local.set({
+    [RETAINED_DIALOG_KEY]: {
+      tabId: held.tabId,
+      state: held.state,
+      status,
+      ...(reason ? { reason } : {}),
+    },
+  });
+}
+
+async function clearRetainedDialogMarker() {
+  await chrome.storage.local.remove(RETAINED_DIALOG_KEY);
+}
+
+async function contentRuntimeResponds(tabId, timeoutMs = 500) {
+  let timeout;
+  try {
+    return await Promise.race([
+      ensureContentRuntime(tabId).then(() => true, () => false),
+      new Promise((resolve) => {
+        timeout = setTimeout(() => resolve(false), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function recoverInterruptedDialogState(marker, liveOperation) {
+  let tabExists = true;
+  try {
+    await chrome.tabs.get(marker.tabId);
+  } catch {
+    tabExists = false;
+  }
+  if (!tabExists) {
+    if (retainedDialogOperation === liveOperation) retainedDialogOperation = undefined;
+    await clearRetainedDialogMarker();
+    throw new Error("The target tab closed after its browser dialog session ended");
+  }
+  if (!(await contentRuntimeResponds(marker.tabId))) {
+    const reason = marker.reason ? ` (${marker.reason})` : "";
+    throw new Error(
+      `Browser dialog response session was interrupted${reason}. Answer the dialog manually or close its target tab, then call browser_snapshot again.`,
+    );
+  }
+  if (retainedDialogOperation === liveOperation) retainedDialogOperation = undefined;
+  liveOperation?.observer.cleanup();
+  await clearRetainedDialogMarker();
+  await setTargetTabId(marker.tabId);
+  return captureSnapshotForTarget(marker.tabId);
 }
 
 function matchesDebuggee(source, debuggee) {
@@ -388,6 +469,7 @@ async function closeRetainedDialogOperation(held) {
   }
   await held.session.close();
   if (retainedDialogOperation === held) retainedDialogOperation = undefined;
+  await clearRetainedDialogMarker();
 }
 
 function watchManualDialogResponse(held, entry) {
@@ -415,6 +497,7 @@ function watchRetainedDebuggerDetach(held) {
     held.terminalError = new Error(
       `Browser dialog debugger session detached: ${reason}`,
     );
+    await persistRetainedDialogOperation(held, "interrupted", reason || "unknown");
     held.observer.cleanup();
     await held.session.close();
   });
@@ -428,6 +511,7 @@ async function advanceRetainedDialogOperation(held) {
   if (outcome.kind === "dialog") {
     held.entry = outcome.entry;
     held.state = await dialogSnapshot(held.tabId, outcome.entry);
+    await persistRetainedDialogOperation(held);
     watchManualDialogResponse(held, outcome.entry);
     return held.state;
   }
@@ -453,6 +537,17 @@ async function advanceRetainedDialogOperation(held) {
     return {
       ...(await captureSnapshotForTarget(held.tabId)),
       recording: operationResult.recording,
+    };
+  }
+  if (
+    operationResult &&
+    typeof operationResult === "object" &&
+    operationResult.download &&
+    operationResult.snapshot
+  ) {
+    return {
+      ...operationResult.snapshot,
+      download: operationResult.download,
     };
   }
   if (
@@ -500,6 +595,7 @@ async function runDialogAwareTargetOperation(operation) {
       terminalError: undefined,
     };
     retainedDialogOperation = held;
+    await persistRetainedDialogOperation(held);
     watchManualDialogResponse(held, outcome.entry);
     watchRetainedDebuggerDetach(held);
     return held.state;
@@ -563,6 +659,17 @@ async function respondToBrowserDialog(params) {
     );
     await held.entry.closed;
     return await advanceRetainedDialogOperation(held);
+  } catch (error) {
+    if (retainedDialogOperation !== held) throw error;
+    const detail = error instanceof Error ? error.message : String(error);
+    const interrupted = new Error(
+      `Browser dialog debugger session is unavailable: ${detail}`,
+    );
+    held.terminalError = interrupted;
+    await persistRetainedDialogOperation(held, "interrupted", detail);
+    held.observer.cleanup();
+    await held.session.close();
+    throw interrupted;
   } finally {
     held.responding = false;
   }
@@ -1701,7 +1808,7 @@ function outcomeDetail(outcome) {
     : String(outcome.reason);
 }
 
-async function downloadFileTarget(params) {
+async function downloadFileTarget(params, suppliedSession = undefined) {
   const timeout = validateDownloadTimeout(params.timeout);
   const tab = await getCurrentRefTarget(params);
   const point = await prepareRefPoint(
@@ -1709,7 +1816,8 @@ async function downloadFileTarget(params) {
     "chrome-bridge.click.prepare",
     params.ref,
   );
-  const session = await openDebuggerSession(tab.id);
+  const session = suppliedSession || (await openDebuggerSession(tab.id));
+  const ownsSession = suppliedSession === undefined;
   let observer;
   let clickStarted = false;
   try {
@@ -1779,15 +1887,17 @@ async function downloadFileTarget(params) {
     throw error;
   } finally {
     observer?.cleanup();
-    try {
-      await session.run(
-        (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.disable"),
-        { emulateFocus: false },
-      );
-    } catch {
-      // Navigation, target closure, or external detach can disable Page first.
+    if (ownsSession) {
+      try {
+        await session.run(
+          (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.disable"),
+          { emulateFocus: false },
+        );
+      } catch {
+        // Navigation, target closure, or external detach can disable Page first.
+      }
+      await session.close();
     }
-    await session.close();
   }
 }
 
@@ -2113,10 +2223,12 @@ async function executeCommand(type, params) {
         held.observer.cleanup();
         await held.session.close();
       }
+      const marker = await getRetainedDialogMarker();
+      if (marker?.tabId === tab.id) await clearRetainedDialogMarker();
       return { closed: true, tabId: tab.id };
     }
     case "tabs.select": {
-      if (retainedDialogOperation) {
+      if (retainedDialogOperation || (await getRetainedDialogMarker())) {
         throw new Error(
           "A browser dialog is open. Respond to it or close its target tab before selecting another target.",
         );
@@ -2125,7 +2237,7 @@ async function executeCommand(type, params) {
       return summarizeTab(tab, true);
     }
     case "tabs.activate": {
-      if (retainedDialogOperation) {
+      if (retainedDialogOperation || (await getRetainedDialogMarker())) {
         throw new Error(
           "A browser dialog is open. Respond to it or close its target tab before activating another target.",
         );
@@ -2138,7 +2250,24 @@ async function executeCommand(type, params) {
       return summarizeTab(tab, true);
     }
     case "page.snapshot": {
-      if (retainedDialogOperation) return retainedDialogOperation.state;
+      if (retainedDialogOperation) {
+        if (!retainedDialogOperation.terminalError) {
+          return retainedDialogOperation.state;
+        }
+        const marker = await getRetainedDialogMarker();
+        return recoverInterruptedDialogState(
+          marker || {
+            tabId: retainedDialogOperation.tabId,
+            state: retainedDialogOperation.state,
+            status: "interrupted",
+          },
+          retainedDialogOperation,
+        );
+      }
+      const orphanedMarker = await getRetainedDialogMarker();
+      if (orphanedMarker) {
+        return recoverInterruptedDialogState(orphanedMarker);
+      }
       return runPageOperation(async () => {
         const selectedTab = await getTargetTab();
         return captureSnapshotForTarget(selectedTab.id);
@@ -2280,7 +2409,11 @@ async function executeCommand(type, params) {
       );
     }
     case "page.downloadFile": {
-      return runPageOperation(() => downloadFileTarget(params));
+      return runPageOperation(() =>
+        runDialogAwareTargetOperation((session) =>
+          downloadFileTarget(params, session),
+        ),
+      );
     }
     case "page.dialogRespond": {
       return respondToBrowserDialog(params);
@@ -2358,16 +2491,18 @@ async function reconnectWithNewSettings() {
 }
 
 chrome.runtime.onInstalled.addListener(() => void connect());
-chrome.runtime.onStartup.addListener(() => void connect());
+chrome.runtime.onStartup.addListener(() => {
+  // Native dialogs cannot survive a complete browser shutdown. A local marker is
+  // retained only to bridge extension reload/update, so discard it at browser start.
+  void clearRetainedDialogMarker().then(() => connect());
+});
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== RECONNECT_ALARM_NAME) return;
   clearTimeout(reconnectTimer);
   reconnectTimer = undefined;
   void connect();
 });
-chrome.tabs.onRemoved.addListener(
-  (tabId) => void clearTargetTabIfClosed(tabId),
-);
+chrome.tabs.onRemoved.addListener((tabId) => void handleTabRemoved(tabId));
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "chrome-bridge.ui.getState") return false;
   const tabId = sender.tab?.id;

@@ -44,16 +44,35 @@ open, but `Page.enable` stalls, no opening event is replayed, and a queued respo
   `PageState = Snapshot | BrowserDialogSnapshot` plus `browser_dialog_respond`. Use
   [Browser dialogs](docs/browser-dialogs.md) as the canonical contract. Debugger
   observation/retention remains transparent; do not add public monitor start/end actions.
+- `browser_download_file` now participates in the same transparent promotion. If its
+  click opens a native dialog, the response action resumes the original bounded download
+  observer and returns its sanitized result alongside the fresh document snapshot.
 - The explicit monitor passed a 35-second idle window and later worker-call responses for
   alert, confirm, and prompt without foregrounding the target. Dialog-time content
   messaging and `Accessibility.getFullAXTree` both remained pending, so return only the
   stored synthetic dialog state while it is dominant.
 - Isolated production E2E passed alert, confirm, prompt, accepted beforeunload,
   chained dialogs, stale refs, blocked ordinary actions, recording interaction, and the
-  existing two-profile suite. A developer-mode branded Chrome run also passed those
-  non-recorded dialog types, manual user dismiss with automatic continuation and
-  immediate debugger reuse, plus target-close cleanup and new-target recovery. Next
-  measure DevTools conflict, external detach, server/extension lifecycle, extension
-  reload, and browser shutdown. Between-call timer/user dialogs are not guaranteed in
-  the initial scope. Automated Playwright launch did not load the extension in branded
-  Chrome headless or headed mode, so keep the user-loaded unpacked path for this matrix.
+  existing two-profile suite. It also passed client reconnect, complete server restart,
+  external detach, orphaned-session fail-fast/manual recovery, and dialog-interrupted
+  download continuation. Client/server disconnect intentionally leaves the extension-
+  owned retained session intact; external detach, worker replacement, or extension
+  Reload uses a minimal local recovery marker and never silently answers the dialog.
+- A developer-mode branded Chrome run passed the non-recorded dialog types, manual user
+  dismiss with automatic continuation and immediate debugger reuse, plus target-close
+  cleanup and new-target recovery. It now also passed dialog-interrupted download,
+  manual accept, DevTools attach in both orders, and extensions-page Reload with bounded
+  fail-fast plus content-runtime reinjection/target restoration. Browser shutdown cleared
+  the recovery marker and returned to ordinary target-not-selected state. With Chrome's
+  tab restoration enabled, the fixture returned under a new tab ID without its native
+  dialog and produced a normal fresh snapshot after explicit selection. Verify two-
+  profile and recorded-operation isolation if practical. Between-call timer/user dialogs
+  are not guaranteed in the initial scope.
+- Automated Playwright launch did not load the extension in branded Chrome headless or
+  headed mode. An isolated `chrome.runtime.reload()` experiment also failed to produce a
+  replacement worker, so it is not evidence for real extensions-page Reload behavior.
+  Keep the user-loaded unpacked path for the remaining matrix.
+- Repeated extension Reload leaves accumulated `◉`/`●` agent-UI prefixes in the tab
+  title because a new content runtime treats the preceding runtime's decorated title as
+  logical page title. Fix and test reload-safe title ownership separately from dialog
+  state.

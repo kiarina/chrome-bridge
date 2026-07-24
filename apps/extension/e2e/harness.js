@@ -183,6 +183,7 @@ export async function startFixtureServer() {
 <button id="chained-dialog">Open chained dialogs</button>
 <button id="arm-beforeunload">Arm beforeunload</button>
 <a id="download" href="/download/report.csv" download>Export report</a>
+<a id="confirm-download" href="/download/report.csv" download>Confirm export</a>
 <a id="download-delayed" href="/download/delayed.csv" download>Export delayed report</a>
 <a id="download-timeout" href="/download/timeout.csv" download>Export timeout report</a>
 <button id="hover">Hover target</button>
@@ -227,6 +228,9 @@ document.querySelector("#chained-dialog").addEventListener("click", () => {
 document.querySelector("#arm-beforeunload").addEventListener("click", () => {
   globalThis.onbeforeunload = () => "Unsaved fixture changes";
   document.querySelector("[role=status]").textContent = "Beforeunload armed";
+});
+document.querySelector("#confirm-download").addEventListener("click", (event) => {
+  if (!confirm("Download report?")) event.preventDefault();
 });
 document.querySelector("#hover").addEventListener("mouseenter", () => {
   document.querySelector("#hover-status").textContent = "Hover: completed " + label;
@@ -323,6 +327,17 @@ export async function prepareExtensionArtifact(serverUrl) {
         "globalThis.__chromeBridgeRecordingProbe = { measureInputDelayProbe, measureNavigationLifecycleProbe };",
         "globalThis.__chromeBridgeDialogProbe = dialogProbe;",
         background,
+        `globalThis.__chromeBridgeOrphanDialogSession = async () => {
+          const held = retainedDialogOperation;
+          if (!held) throw new Error("No retained dialog operation");
+          retainedDialogOperation = undefined;
+          held.observer.cleanup();
+          await chrome.debugger.detach(held.session.debuggee);
+        };`,
+        `globalThis.__chromeBridgeSimulateReloadedDialogSession = async () => {
+          await chrome.storage.session.clear();
+          await globalThis.__chromeBridgeOrphanDialogSession();
+        };`,
       ].join("\n"),
     );
     await writeFile(

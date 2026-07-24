@@ -20,7 +20,7 @@ function successful(result) {
 
 function refFor(snapshot, label) {
   const match = snapshot.snapshot.match(
-    new RegExp(`button "${label}"[^\\n]*\\[ref=([^\\]]+)\\]`),
+    new RegExp(`(?:button|link) "${label}"[^\\n]*\\[ref=([^\\]]+)\\]`),
   );
   expect(match, snapshot.snapshot).not.toBeNull();
   return match[1];
@@ -271,6 +271,42 @@ test("promotes an operation debugger session into dominant dialog PageState", as
       await chrome.downloads.removeFile(downloadId);
       await chrome.downloads.erase({ id: downloadId });
     }, dialogDownload.id);
+
+    const downloadStart = successful(
+      await call("browser_download_file", {
+        element: "Confirm export",
+        ref: refFor(recordedResume, "Confirm export"),
+        timeout: 10,
+        browser_id: browser.browserId,
+      }),
+    );
+    expect(downloadStart).toMatchObject({
+      pageState: "browser-dialog",
+      dialog: { type: "confirm", message: "Download report?" },
+    });
+    const downloadResume = successful(
+      await call("browser_dialog_respond", {
+        dialog_ref: downloadStart.dialog.ref,
+        action: "accept",
+        browser_id: browser.browserId,
+      }),
+    );
+    expect(downloadResume.download).toMatchObject({
+      suggestedFilename: "report.csv",
+      state: "complete",
+    });
+    const [confirmedDownload] = await profile.worker.evaluate(() =>
+      chrome.downloads.search({
+        state: "complete",
+        orderBy: ["-startTime"],
+        limit: 1,
+      }),
+    );
+    expect(confirmedDownload).toBeTruthy();
+    await profile.worker.evaluate(async (downloadId) => {
+      await chrome.downloads.removeFile(downloadId);
+      await chrome.downloads.erase({ id: downloadId });
+    }, confirmedDownload.id);
   } finally {
     await client?.close();
     await Promise.allSettled(
@@ -289,5 +325,213 @@ test("promotes an operation debugger session into dominant dialog PageState", as
     await artifact.close();
     await fixture.close();
     await server.close();
+  }
+});
+
+test("retains across client loss and recovers safely after debugger interruption", async () => {
+  const port = await reserveLoopbackPort();
+  let server = await startServer({ port });
+  const fixture = await startFixtureServer();
+  const artifact = await prepareExtensionArtifact(
+    `ws://127.0.0.1:${port}/extension`,
+  );
+  let profile;
+  let client;
+  let fixturePage;
+  const playwrightDialogs = [];
+  try {
+    profile = await launchProfile({
+      artifactDir: artifact.artifactDir,
+      userDataDir: artifact.profileDir("dialog-failures"),
+      name: "dialog-failure-profile",
+      viewport: { width: 1_280, height: 720 },
+    });
+    client = await connectMcp(server.mcpUrl);
+    let call = toolCaller(client, []);
+    const browser = await waitFor(
+      async () => successful(await call("browser_instances"))[0],
+      Boolean,
+      "failure-test browser instance",
+    );
+    const url = `${fixture.baseUrl}/a`;
+    const tab = successful(
+      await call("browser_tab_open", {
+        url,
+        active: false,
+        browser_id: browser.browserId,
+      }),
+    );
+    fixturePage = await waitFor(
+      () => Promise.resolve(profile.context.pages().find((page) => page.url() === url)),
+      Boolean,
+      "failure-test fixture page",
+    );
+    fixturePage.on("dialog", (dialog) => playwrightDialogs.push(dialog));
+    successful(
+      await call("browser_tab_select", {
+        tab_id: tab.id,
+        browser_id: browser.browserId,
+      }),
+    );
+    let state = successful(
+      await call("browser_snapshot", { browser_id: browser.browserId }),
+    );
+
+    const clientLossDialog = successful(
+      await call("browser_click", {
+        element: "Open alert",
+        ref: refFor(state, "Open alert"),
+        browser_id: browser.browserId,
+      }),
+    );
+    await client.close();
+    client = await connectMcp(server.mcpUrl);
+    call = toolCaller(client, []);
+    state = successful(
+      await call("browser_dialog_respond", {
+        dialog_ref: clientLossDialog.dialog.ref,
+        action: "accept",
+        browser_id: browser.browserId,
+      }),
+    );
+    expect(state.snapshot).toContain("Isolated fixture");
+
+    const serverLossDialog = successful(
+      await call("browser_click", {
+        element: "Open alert",
+        ref: refFor(state, "Open alert"),
+        browser_id: browser.browserId,
+      }),
+    );
+    await client.close();
+    await server.close();
+    server = await startServer({ port });
+    client = await connectMcp(server.mcpUrl);
+    call = toolCaller(client, []);
+    await waitFor(
+      async () => successful(await call("browser_instances"))[0],
+      (instance) => instance?.browserId === browser.browserId,
+      "browser reconnect after server restart",
+    );
+    state = successful(
+      await call("browser_dialog_respond", {
+        dialog_ref: serverLossDialog.dialog.ref,
+        action: "accept",
+        browser_id: browser.browserId,
+      }),
+    );
+    expect(state.snapshot).toContain("Isolated fixture");
+
+    const detachedDialog = successful(
+      await call("browser_click", {
+        element: "Open alert",
+        ref: refFor(state, "Open alert"),
+        browser_id: browser.browserId,
+      }),
+    );
+    await profile.worker.evaluate(async (tabId) => {
+      const target = (await chrome.debugger.getTargets()).find(
+        (candidate) => candidate.tabId === tabId && candidate.type === "page",
+      );
+      if (!target) throw new Error("dialog target not found");
+      await chrome.debugger.detach({ targetId: target.id });
+    }, tab.id);
+    const detachedResponse = await call("browser_dialog_respond", {
+      dialog_ref: detachedDialog.dialog.ref,
+      action: "accept",
+      browser_id: browser.browserId,
+    });
+    expect(detachedResponse.isError).toBe(true);
+    expect(toolText(detachedResponse)).toContain("unavailable");
+    await waitFor(
+      () => profile.worker.evaluate(async () =>
+        (await chrome.storage.local.get("retainedDialog")).retainedDialog,
+      ),
+      (marker) => marker?.status === "interrupted",
+      "interrupted dialog marker",
+    );
+    const interruptedSnapshot = await call("browser_snapshot", {
+      browser_id: browser.browserId,
+    });
+    expect(interruptedSnapshot.isError).toBe(true);
+    expect(toolText(interruptedSnapshot)).toContain("Answer the dialog manually");
+
+    await playwrightDialogs.at(-1).dismiss();
+    state = await waitFor(
+      async () => {
+        const result = await call("browser_snapshot", {
+          browser_id: browser.browserId,
+        });
+        return result.isError ? null : toolValue(result);
+      },
+      Boolean,
+      "manual response recovery after detach",
+    );
+    expect(state.snapshot).toContain("Isolated fixture");
+    expect(
+      await profile.worker.evaluate(async () =>
+        (await chrome.storage.local.get("retainedDialog")).retainedDialog,
+      ),
+    ).toBeUndefined();
+
+    const orphanedDialog = successful(
+      await call("browser_click", {
+        element: "Open alert",
+        ref: refFor(state, "Open alert"),
+        browser_id: browser.browserId,
+      }),
+    );
+    expect(orphanedDialog.pageState).toBe("browser-dialog");
+    await profile.worker.evaluate(() =>
+      globalThis.__chromeBridgeSimulateReloadedDialogSession(),
+    );
+    const orphanedSnapshot = await call("browser_snapshot", {
+      browser_id: browser.browserId,
+    });
+    expect(orphanedSnapshot.isError).toBe(true);
+    expect(toolText(orphanedSnapshot)).toContain("interrupted");
+    await playwrightDialogs.at(-1).dismiss();
+    state = await waitFor(
+      async () => {
+        const result = await call("browser_snapshot", {
+          browser_id: browser.browserId,
+        });
+        return result.isError ? null : toolValue(result);
+      },
+      Boolean,
+      "orphaned-session manual recovery",
+    );
+    expect(state.snapshot).toContain("Isolated fixture");
+    expect(
+      await profile.worker.evaluate(() =>
+        chrome.storage.session.get("targetTabId"),
+      ),
+    ).toEqual({ targetTabId: tab.id });
+    expect(
+      await profile.worker.evaluate(() =>
+        chrome.storage.local.get("retainedDialog"),
+      ),
+    ).toEqual({});
+
+    successful(
+      await call("browser_tab_close", {
+        tab_id: tab.id,
+        browser_id: browser.browserId,
+      }),
+    );
+  } finally {
+    await client?.close();
+    await Promise.allSettled(playwrightDialogs.map((dialog) => dialog.dismiss()));
+    fixturePage?.removeAllListeners("dialog");
+    try {
+      await profile?.close();
+    } catch (error) {
+      if (!String(error).includes("Page.handleJavaScriptDialog): No dialog is showing")) {
+        throw error;
+      }
+    }
+    await artifact.close();
+    await fixture.close();
+    await server?.close();
   }
 });

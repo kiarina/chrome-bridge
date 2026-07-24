@@ -968,6 +968,56 @@ async def test_download_file_uses_extended_timeout_and_enriches_nested_results()
     }
 
 
+async def test_download_file_can_promote_to_dialog_state() -> None:
+    registry = BridgeHub(timeout_seconds=0.01)
+    socket = FakeSocket()
+    connection = await registry.attach(
+        socket, v2_hello(BROWSER_A, extension_version="0.3.0")
+    )
+    controller = BrowserController(registry)
+    task = asyncio.create_task(
+        controller.download_file("Confirm export", "s3e5", 60, BROWSER_A)
+    )
+    await asyncio.sleep(0)
+    request = socket.sent[0]
+    dialog = {
+        "pageState": "browser-dialog",
+        "generation": 4,
+        "url": "https://example.com/reports",
+        "title": "Reports",
+        "dialog": {
+            "type": "confirm",
+            "message": "Download report?",
+            "defaultPrompt": "",
+            "ref": "s4d1",
+            "actions": ["accept", "dismiss"],
+        },
+    }
+    connection.receive({"id": request["id"], "ok": True, "result": dialog})
+    assert await task == {**dialog, "browserId": BROWSER_A}
+
+
+async def test_dialog_response_uses_download_continuation_timeout() -> None:
+    registry = BridgeHub(timeout_seconds=0.01)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(
+        controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)
+    )
+    await asyncio.sleep(0.02)
+    assert not task.done()
+    request = socket.sent[0]
+    snapshot = {
+        "generation": 5,
+        "url": "https://example.com/reports",
+        "title": "Reports",
+        "snapshot": '- status "Downloaded" [ref=s5e1]',
+    }
+    connection.receive({"id": request["id"], "ok": True, "result": snapshot})
+    assert await task == {**snapshot, "browserId": BROWSER_A}
+
+
 @pytest.mark.parametrize("timeout", [0, 60.1, float("nan"), True])
 async def test_download_file_rejects_invalid_timeout(timeout: Any) -> None:
     registry = BridgeHub()

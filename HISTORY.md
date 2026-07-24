@@ -2,6 +2,56 @@
 
 ## 2026-07-25
 
+### Browser-dialog continuation and interrupted-session recovery
+
+- Extended transparent dialog promotion to `browser_download_file`. A confirm or other
+  native dialog now returns `BrowserDialogSnapshot`; accepting it resumes the original
+  bounded download observer and returns the fresh document snapshot with sanitized
+  download metadata. The MCP response allowance now covers the original 60-second
+  download continuation, and the SDK models the dialog branch and optional completed
+  download without adding a second action.
+- Defined disconnect ownership explicitly: MCP client loss and complete server restart
+  neither answer nor detach the dialog. The extension retains the debugger session and
+  accepts the generation-scoped response after reconnect. There is deliberately no
+  elapsed lease, because detaching on expiry destroys the only reliable opening event
+  and can strand a destructive confirm or `beforeunload` dialog.
+- Added a minimal `chrome.storage.local` interruption marker for external debugger
+  detach, service-worker replacement, or extension Reload. Ordinary actions then fail
+  fast, and `browser_snapshot`
+  uses a 500 ms content-runtime probe. It asks for manual response or target close while
+  the native dialog is still blocking; after manual response it clears the marker and
+  restores the marked target and returns a fresh document snapshot. It never silently
+  accepts or dismisses a dialog. Browser startup clears the marker because native
+  dialogs cannot survive a complete browser shutdown.
+- Isolated production E2E passed MCP-client reconnect, server restart on the same port,
+  external detach, orphaned in-memory session, manual-response recovery, and dialog-
+  interrupted download continuation. Full regression passed 164 Python tests, 52
+  extension tests, and all seven isolated E2E tests in 2.6 minutes.
+- An automated isolated `chrome.runtime.reload()` experiment disconnected the server
+  but did not produce a replacement service worker even after manual dialog response,
+  so it was removed as an unreliable proxy. A branded-Chrome extensions-page Reload
+  then established that `chrome.storage.session` is cleared while the native dialog
+  survives; the recovery marker was therefore moved to local storage and target
+  restoration was added. The corrected run failed safely while the dialog remained,
+  then reinjected the invalidated content runtime after manual accept, cleared the
+  marker, restored the original target, and returned `Confirm result: true` in a fresh
+  snapshot.
+- Branded Chrome allowed DevTools to open docked while a chrome-bridge dialog session
+  was retained. The original response action still accepted the dialog. With DevTools
+  already open, chrome-bridge also attached, detected a second confirm, dismissed it,
+  and returned a fresh snapshot. No debugger replacement or conflict warning occurred.
+- Quitting Chrome with a retained confirm and restarting preserved the stable browser
+  identity. With tab restoration initially disabled, the extension listed only the new
+  ChatGPT tab, no target, and returned the normal target-not-selected error rather than
+  a stale interrupted-dialog error. After enabling `Continue where you left off`, a
+  second run restored the fixture under a new tab ID without its native dialog. Startup
+  again cleared the target and recovery marker; explicitly selecting the restored tab
+  produced a normal generation-1 snapshot with unchanged `Ready` page state.
+- Repeated extensions-page Reload exposed a separate agent-UI issue: the target/
+  operating title glyphs accumulate because a newly injected content runtime treats the
+  prior runtime's prefix as page title. This does not affect dialog ownership but remains
+  a cleanup task.
+
 ### Browser dialogs as dominant PageState
 
 - Implemented transparent Page-domain observation before dialog-capable operations.
