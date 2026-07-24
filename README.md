@@ -134,7 +134,7 @@ For Python SDK use, install both distributions through the SDK dependency:
 uv add chrome-bridge-sdk
 ```
 
-1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.3 release is Unlisted, so use this direct URL.
+1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.3 release is Public.
 2. If needed, set a Browser label in Options to identify the profile.
 3. Connect the MCP client to `http://127.0.0.1:8765/mcp`.
 
@@ -196,8 +196,8 @@ uv run python scripts/check_release_reproducible.py
 
 The verified extension ZIP is also the Chrome Web Store submission artifact; do not create a separate Store build. See the [Chrome Web Store submission guide](docs/chrome-web-store.md) for the Unlisted-first rollout, listing assets, privacy declarations, permission justifications, reviewer instructions, and update automation. The public [privacy policy](PRIVACY.md) describes extension data handling.
 
-After the one-time Public visibility migration and API authentication bootstrap, the tag
-workflow uploads a changed extension ZIP through Chrome Web Store API v2 and enables
+The one-time Public visibility migration and API authentication bootstrap are complete.
+The tag workflow uploads a changed extension ZIP through Chrome Web Store API v2 and enables
 automatic 100% publication after review. Python-only tags detect the already-published
 extension version and skip Store mutation.
 

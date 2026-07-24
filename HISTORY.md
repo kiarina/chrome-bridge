@@ -2,6 +2,23 @@
 
 ## 2026-07-24
 
+### Public Chrome Web Store publication
+
+- Chrome Web Store approved the visibility-only change for version 0.3.0, and the user
+  manually published it as Public. The authoritative dashboard row reports
+  `公開済み - 一般公開` for item `ogmocgobegbjbecakclahodnhhfmccad`; no ZIP, version,
+  payment setting, or runtime changed.
+- An unauthenticated direct-listing fetch returned `Add to Chrome`, the canonical item
+  ID, and version 0.3.0. The exact item did not yet appear in a Store web-search check
+  immediately afterward, so search discoverability remains an indexing follow-up and
+  must not trigger resubmission.
+- The local server was not running during the immediate post-publication check, so the
+  installed Store copy's connection remains to be reconfirmed. Its 0.3.0 runtime already
+  passed the pre-visibility Store background wait/download smoke.
+- This completes the one-time manual Public prerequisite for later Chrome Web Store API
+  v2 publication. The next changed extension release may use the automated fail-closed
+  path; no content-free test upload is needed.
+
 ### Chrome Web Store API v2 automation implementation
 
 - Added a standard-library API v2 client for status preflight, exact release-ZIP upload,

@@ -10,12 +10,13 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
 
 - Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
 - Published version: `0.3.0`
-- Visibility: Unlisted
+- Visibility: Public
 - Initial v0.1.0 publication: 2026-07-21
 - v0.3.0 update approved and manually published: 2026-07-24
-- Pending change: Public visibility submitted for review on 2026-07-24
-- Status at handoff: existing Unlisted publication remains live; Public change is
-  pending review
+- Public visibility approved and manually published: 2026-07-24
+- Status at handoff: dashboard reports `公開済み - 一般公開`; the unauthenticated direct
+  listing exposes `Add to Chrome` and version 0.3.0, while Store search indexing is still
+  catching up
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
 - Current ZIP SHA-256: `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`
 
@@ -64,18 +65,21 @@ fallback remains available from the earlier publication validation. Public visib
 was then submitted separately so the stable runtime update and distribution change
 remain distinguishable.
 
-### Public visibility submission
+### Public visibility publication
 
 On 2026-07-24, changed distribution from Unlisted to Public without changing the free
 payment setting, selected regions, package, or version. Submitted the visibility change
-for review with automatic publication disabled. The authoritative item row returned to
-`審査待ち` at version 0.3.0. Do not resubmit while that state remains authoritative; the
-existing Unlisted publication continues serving users during review.
+for review with automatic publication disabled. After approval, manually published the
+staged change; the authoritative item row reports `公開済み - 一般公開` at version 0.3.0.
+No new ZIP or runtime change was involved.
 
-After approval, manually publish the staged Public visibility and verify the direct
-listing, public discoverability, Store extension ID, installed version, and connection.
-This first manual publication under the changed visibility is also required before later
-updates can be published through API v2 using the existing Public setting.
+An unauthenticated fetch of the direct listing returned `Add to Chrome`, the canonical
+item ID, and version 0.3.0 immediately after publication. The exact item was not yet
+returned by a Store web-search check, so search discoverability remains an indexing
+follow-up rather than a reason to resubmit. The local server was stopped during this
+check, leaving one post-visibility confirmation that the installed Store copy still
+connects and reports 0.3.0. The runtime already passed that Store-copy smoke before the
+visibility-only change.
 
 Official references:
 
@@ -234,8 +238,8 @@ The Store-assigned extension ID is distinct from the random `browserId` used by 
 ## Update automation
 
 The first submissions, visibility changes, and publications were performed manually.
-The Chrome Web Store API v2 can upload later ZIPs and submit them for review after the
-pending Public visibility has been approved and manually published once. Keep API
+The Public visibility was approved and manually published once on 2026-07-24, so the
+Chrome Web Store API v2 can upload later ZIPs and submit them for review. Keep API
 credentials outside the repository and use the existing verified ZIP without
 rebuilding. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
 
@@ -248,11 +252,9 @@ automatically retried after an ambiguous network failure.
 
 ### One-time API v2 bootstrap
 
-Authentication bootstrap and the read-only status check are complete. Do not perform
-the first API upload or publication until the pending Public visibility is approved and
-manually published once: Chrome Web Store does not allow API publication immediately
-after a manual visibility change until the changed visibility has been published
-manually.
+Authentication bootstrap, the read-only status check, and the required one-time manual
+publication of the Public visibility are complete. The next changed extension release
+may use the automated API path; do not create a content-free upload solely to test it.
 
 Current keyless configuration, created 2026-07-24:
 
@@ -270,10 +272,10 @@ account has no user-managed key. Its email is registered as the publisher API se
 account in the Chrome Web Store Developer Dashboard.
 
 Manual GitHub Actions run `30068205181` validated the complete keyless path on
-2026-07-24. API v2 returned `publishedState=PUBLISHED`, `submittedState=STAGED`,
-`warned=false`, and `takenDown=false` for the canonical item. This is the expected state
-while the existing Unlisted publication remains live and the Public visibility change
-awaits manual publication after review.
+2026-07-24. Before the manual Public publication, API v2 returned
+`publishedState=PUBLISHED`, `submittedState=STAGED`, `warned=false`, and
+`takenDown=false` for the canonical item. That result validated the keyless path and the
+then-staged visibility transition without mutating it.
 
 1. Select a dedicated or explicitly approved Google Cloud project, enable Chrome Web
    Store API and IAM Service Account Credentials API, and create a service account with
