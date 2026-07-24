@@ -31,7 +31,7 @@ The following 13 page-operation tools operate on the persistent target; they do 
 | `browser_wait_for` | `text`, `state`, `timeout`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_press_key` | `key`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
-| `browser_dialog_respond` | `dialog_ref`, `action`, optional `prompt_text` | Fresh document or browser-dialog PageState |
+| `browser_dialog_respond` | `dialog_ref`, `action`, optional `prompt_text` | Fresh document or browser-dialog PageState; resumed recording/download metadata may be attached to the document state |
 | `browser_click` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_hover` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_type` | `element`, `ref`, `text`, `submit`, optional `video_filename` | Snapshot, or operation/recording wrapper |

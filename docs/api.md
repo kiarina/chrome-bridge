@@ -224,7 +224,9 @@ the caller does not manage that lifecycle.
 **Returns:** A fresh `PageState`. JavaScript resumed by the answer may open
 another dialog, which receives a new generation/ref and must be answered
 separately. A recorded operation attaches its completed recording metadata to
-the returned document snapshot.
+the returned document snapshot. A resumed download similarly attaches its
+sanitized metadata. With a stable browser identity, the document and either
+nested metadata object carry the same `browserId`.
 
 ### `browser_click`
 

@@ -1018,6 +1018,110 @@ async def test_dialog_response_uses_download_continuation_timeout() -> None:
     assert await task == {**snapshot, "browserId": BROWSER_A}
 
 
+@pytest.mark.parametrize(
+    ("continuation_key", "continuation"),
+    [
+        (
+            "recording",
+            {
+                "requestedFilename": "dialog.webm",
+                "filename": "chrome-bridge/dialog.webm",
+                "mimeType": "video/webm",
+                "durationMs": 2471,
+                "width": 1080,
+                "height": 1088,
+                "frameCount": 22,
+                "droppedFrameCount": 3,
+                "sizeBytes": 37183,
+            },
+        ),
+        (
+            "download",
+            {
+                "suggestedFilename": "report.csv",
+                "state": "complete",
+                "receivedBytes": 42,
+                "totalBytes": 42,
+            },
+        ),
+    ],
+)
+async def test_dialog_response_enriches_continuation_provenance(
+    continuation_key: str, continuation: dict[str, Any]
+) -> None:
+    registry = BridgeHub()
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(
+        controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)
+    )
+    await asyncio.sleep(0)
+    snapshot = {
+        "generation": 5,
+        "url": "https://example.com/reports",
+        "title": "Reports",
+        "snapshot": '- status "Complete" [ref=s5e1]',
+        continuation_key: continuation,
+    }
+    connection.receive({"id": socket.sent[0]["id"], "ok": True, "result": snapshot})
+    assert await task == {
+        **snapshot,
+        continuation_key: {**continuation, "browserId": BROWSER_A},
+        "browserId": BROWSER_A,
+    }
+
+
+@pytest.mark.parametrize(
+    ("continuation_key", "continuation", "message"),
+    [
+        ("recording", {"requestedFilename": "dialog.webm"}, "invalid recording"),
+        (
+            "recording",
+            {
+                "requestedFilename": "../dialog.webm",
+                "filename": "chrome-bridge/dialog.webm",
+                "mimeType": "video/webm",
+                "durationMs": 2471,
+                "width": 1080,
+                "height": 1088,
+                "frameCount": 22,
+                "droppedFrameCount": 3,
+                "sizeBytes": 37183,
+            },
+            "invalid recording",
+        ),
+        ("download", {"state": "complete"}, "invalid download"),
+    ],
+)
+async def test_dialog_response_rejects_invalid_continuation_metadata(
+    continuation_key: str, continuation: dict[str, Any], message: str
+) -> None:
+    registry = BridgeHub()
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    controller = BrowserController(registry)
+    task = asyncio.create_task(
+        controller.respond_to_dialog("s4d1", "accept", browser_id=BROWSER_A)
+    )
+    await asyncio.sleep(0)
+    connection.receive(
+        {
+            "id": socket.sent[0]["id"],
+            "ok": True,
+            "result": {
+                "generation": 5,
+                "url": "https://example.com/reports",
+                "title": "Reports",
+                "snapshot": '- status "Complete" [ref=s5e1]',
+                continuation_key: continuation,
+            },
+        }
+    )
+    with pytest.raises(ExtensionCommandError, match=message):
+        await task
+
+
 @pytest.mark.parametrize("timeout", [0, 60.1, float("nan"), True])
 async def test_download_file_rejects_invalid_timeout(timeout: Any) -> None:
     registry = BridgeHub()

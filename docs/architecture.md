@@ -223,7 +223,9 @@ and their production encoder are implemented. The shared debugger-session module
 and recording while retaining attach/use/detach behavior. It serializes
 critical work, can skip opportunistic capture under contention, observes external
 detach, and owns an attachment only within one command. There is no global
-reference-counted attachment or retained session across MCP commands.
+reference-counted attachment. The only cross-command retention is the narrow
+operation-promoted dialog session described above, which remains owned by its original
+browser and target until an exact dialog response or explicit recovery event.
 
 The production pipeline repeatedly captures the exact background target, sends frames to a
 single offscreen document for canvas/MediaRecorder encoding, and downloads a silent WebM

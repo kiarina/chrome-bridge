@@ -287,6 +287,33 @@ class BrowserController:
             return result
         return {**result, "browserId": connection.browser_id}
 
+    def _with_page_state_browser_id(
+        self, result: dict[str, Any], connection: BrowserConnection
+    ) -> dict[str, Any]:
+        enriched = self._with_browser_id(result, connection)
+        recording = result.get("recording")
+        if recording is not None:
+            requested_filename = (
+                recording.get("requestedFilename")
+                if isinstance(recording, dict)
+                else None
+            )
+            if not isinstance(requested_filename, str) or not _is_recording_result(
+                recording, requested_filename=requested_filename
+            ):
+                raise ExtensionCommandError(
+                    "page.dialogRespond returned an invalid recording"
+                )
+            enriched["recording"] = self._with_browser_id(recording, connection)
+        download = result.get("download")
+        if download is not None:
+            if not _is_download_result(download):
+                raise ExtensionCommandError(
+                    "page.dialogRespond returned an invalid download"
+                )
+            enriched["download"] = self._with_browser_id(download, connection)
+        return enriched
+
     async def _snapshot_operation(
         self,
         command: str,
@@ -398,7 +425,7 @@ class BrowserController:
             raise ExtensionCommandError(
                 "page.dialogRespond returned an invalid response"
             )
-        return self._with_browser_id(result, connection)
+        return self._with_page_state_browser_id(result, connection)
 
     async def click(
         self,
@@ -846,6 +873,10 @@ def _validate_recording_filename(filename: str) -> None:
 
 def _is_recording_result(result: Any, *, requested_filename: str) -> bool:
     if not isinstance(result, dict):
+        return False
+    try:
+        _validate_recording_filename(requested_filename)
+    except ValueError:
         return False
     expected = {
         "requestedFilename",

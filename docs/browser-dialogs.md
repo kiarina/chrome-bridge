@@ -6,19 +6,20 @@ Browser-native JavaScript dialogs are implemented in the public MCP, Direct API,
 and production extension. The isolated Chromium technical probe completed on
 2026-07-24 established the debugger lifecycle constraints; production E2E now covers
 alert, confirm, prompt, beforeunload navigation, stale refs, blocked ordinary actions,
-and chained dialogs.
+chained dialogs, disconnect/recovery paths, recording, download continuation, and
+multiple-browser isolation. The branded-Chrome acceptance matrix is also complete.
 
 This document is canonical for `alert`, `confirm`, `prompt`, and `beforeunload` state,
 CDP attachment ownership and synthetic dialog snapshots. Debugger attachment is an
-internal implementation detail: no public monitor start/end actions are exposed. DOM `<dialog>` elements remain ordinary document content
-and are outside this design.
+internal implementation detail: no public monitor start/end actions are exposed. DOM
+`<dialog>` elements remain ordinary document content and are outside this design.
 
 ## Product model
 
 Treat a browser dialog as a dominant page state rather than as an operation error:
 
 ```text
-PageState = DocumentSnapshot | BrowserDialogSnapshot
+PageState = Snapshot | BrowserDialogSnapshot
 ```
 
 Opening a browser dialog invalidates the latest document snapshot and every element
@@ -31,15 +32,18 @@ Dialog state:
 
 ```yaml
 pageState: browser-dialog
+generation: 13
 url: https://example.test/form
 title: Edit profile
 dialog:
   type: confirm
   message: Save these changes?
+  defaultPrompt: ""
   ref: s13d1
   actions:
     - accept
     - dismiss
+browserId: b9d746c1-e245-4f2d-9e5d-65fddf63c587
 ```
 
 Response action:
@@ -49,7 +53,7 @@ browser_dialog_respond(
     dialog_ref="s13d1",
     action="accept",
     prompt_text=null,
-    browser_id=null,
+    browser_id="b9d746c1-e245-4f2d-9e5d-65fddf63c587",
 )
 ```
 
@@ -133,6 +137,9 @@ internal observation only if real usage establishes that between-call dialogs ma
 - A strict-ref download click uses the same promotion path. After an accepted dialog,
   the original bounded observer finishes and its sanitized metadata is attached to the
   returned document PageState.
+- A recorded operation likewise finalizes only after dialog response and attaches its
+  completed recording metadata to the returned document PageState. With stable routing,
+  the PageState and nested recording/download metadata carry the same browser ID.
 - A second dialog opened by the resumed JavaScript becomes the next dialog snapshot; it
   is never accepted using the preceding ref or action.
 - Dialog messages are page data. They may appear in explicit tool results but never in
@@ -158,7 +165,7 @@ snapshot. The recovery attempt remains bounded while the dialog blocks injection
 Browser startup clears any marker because a native dialog cannot survive complete
 browser shutdown. Cleanup never silently accepts or dismisses a dialog.
 
-## Branded-Chrome results and remaining failure validation
+## Branded-Chrome validation results
 
 A developer-mode unpacked build in branded stable Chrome passed alert, confirm dismiss,
 prompt text, chained confirm→prompt, accepted beforeunload navigation, repeated dominant
@@ -167,14 +174,15 @@ click continuation, immediate debugger reuse, and target-close/new-target recove
 tabs were removed after the run. Playwright could not load the unpacked extension in an
 automated branded-Chrome process, so this matrix used the normal user-loaded extension.
 
-- Measure manual accept in addition to the verified manual dismiss path.
-- Verify accept for `beforeunload`, cross-process navigation, target ID stability, and
-  debugger detach ordering.
-- Branded Chrome passed DevTools opened during retention and chrome-bridge attachment
-  while DevTools was already open; both clients remained usable and no replacement or
-  warning occurred. It also passed extensions-page Reload: the dialog remained, a
-  snapshot failed fast, and manual accept was followed by content-runtime reinjection,
-  marker cleanup, target restoration, and a fresh document snapshot. Browser shutdown
+- Manual accept and dismiss both resumed their suspended command and returned a fresh
+  document state. Accepted `beforeunload` completed navigation; an immediate debugger-
+  backed operation after response confirmed that the retained attachment was released.
+- Branded Chrome allowed DevTools to open during retention and allowed chrome-bridge to
+  attach while DevTools was already open; both clients remained usable and no replacement
+  or warning occurred.
+- An extensions-page Reload left the native dialog visible. A snapshot failed fast, and
+  manual accept was followed by content-runtime reinjection, marker cleanup, target
+  restoration, and a fresh document snapshot. Browser shutdown
   also cleared the marker and returned to ordinary target-not-selected state after
   restart. With `Continue where you left off` enabled, Chrome restored the fixture under
   a new tab ID but did not restore the native dialog; selecting that tab produced a
@@ -183,23 +191,39 @@ automated branded-Chrome process, so this matrix used the normal user-loaded ext
   fast/manual recovery, and target close.
 - An isolated `chrome.runtime.reload()` experiment disconnected the extension but did
   not create a replacement worker even after the native dialog was answered manually.
-  Treat this as an automation limitation, not as the result of extensions-page Reload;
-  validate the real Reload path in the user-loaded branded-Chrome profile.
-- Verify two-profile isolation and that one profile's retained session never blocks the other.
-- Verify recorded dialog operations in branded Chrome. The retained recording finalizes
-  after response and its metadata is attached to the returned document PageState; no
-  screenshot is attempted while dialog state is dominant.
+  This is an automation limitation and is not used as evidence for the successful real
+  extensions-page Reload path above.
+- Two branded-Chrome profiles passed simultaneous retained-session isolation. While one
+  profile retained a confirm with the same generation/ref, the other completed a strict-
+  ref click, PNG screenshot, and its own alert/accept cycle. The first dialog remained
+  independently actionable, the second profile's document state survived the first
+  response, and neither profile's active tab changed.
+- Branded Chrome passed a recorded alert on a background target. The click returned only
+  the dominant dialog state; accepting it finalized a 2,461 ms, 22-frame VP9/WebM and
+  attached recording metadata with stable browser provenance to the returned document
+  PageState. The original active tab stayed active, and an immediate screenshot reused
+  the debugger successfully after finalization. No screenshot was attempted while the
+  dialog state was dominant.
 
 ## Reproduction
 
-Run only the isolated technical probe:
+Run the isolated production dialog suite and technical probe:
 
 ```bash
 npm --prefix apps/extension run test:e2e -- --grep dialog
 ```
 
-Implementation files:
+Production implementation touchpoints:
 
+- `apps/extension/background.js`
+- `packages/mcp/src/chrome_bridge_mcp/bridge.py`
+- `packages/mcp/src/chrome_bridge_mcp/app.py`
+- `packages/sdk/src/chrome_bridge_sdk/client.py`
+- `packages/sdk/src/chrome_bridge_sdk/models.py`
+
+Automated validation files:
+
+- `apps/extension/e2e/browser-dialogs.spec.js`
 - `apps/extension/e2e/dialog-probe/dialog-probe.js`
 - `apps/extension/e2e/dialog-probe.spec.js`
 - `apps/extension/e2e/harness.js`

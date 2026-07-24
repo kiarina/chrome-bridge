@@ -384,6 +384,14 @@ blue/green region; the red document top never appeared. The one scroll event mov
 which every frame stayed there. The virtual cursor, before/after states, both margins,
 active-tab preservation, and immediate debugger reuse all passed.
 
+A branded-Chrome recorded alert then validated the narrow dialog-scoped lease. A strict-
+ref click on an inactive 1080×1088 fixture returned the dominant dialog state without
+finalizing; accepting the alert returned a fresh document snapshot with a 2,461 ms,
+22-frame, 37,183-byte VP9/WebM recording. The result carried the stable browser ID, the
+original active tab remained unchanged, and an immediate debugger-backed screenshot
+succeeded. This run also exposed and fixed missing provenance enrichment for nested
+recording and download metadata returned by `page.dialogRespond`.
+
 Acceptance requires unit tests, isolated two-profile Chromium E2E, and branded-Chrome
 manual measurements on background targets. Recording must never foreground the target,
 reroute to another browser or tab, leave a debugger attached, delay trusted input to

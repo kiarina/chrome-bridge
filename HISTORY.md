@@ -2,6 +2,37 @@
 
 ## 2026-07-25
 
+### Public Store search discoverability recheck
+
+- The public Chrome Web Store search page for `Chrome Bridge` now includes the exact
+  item ID and canonical detail link as a search result. The direct listing also returned
+  HTTP 200 with `Chrome Bridge`, version 0.3.0, and `Add to Chrome`, closing the
+  post-publication indexing wait.
+- A narrow read-only check found the exact 0.3.0 Store installation present but disabled
+  in Chrome configuration. The two developer-validation connections therefore do not by
+  themselves prove that the Store-ID runtime reconnects after Public visibility; retain
+  that check until the Store copy is enabled without a duplicate unpacked copy.
+
+### Branded-Chrome recorded-dialog and profile-isolation validation
+
+- A background branded-Chrome fixture opened an alert from a recorded strict-ref click,
+  returned the dominant `BrowserDialogSnapshot`, and finalized the retained recording
+  only after `browser_dialog_respond(accept)` returned the fresh document snapshot. The
+  successful rerun produced a 2,461 ms, 22-frame, 37,183-byte VP9/WebM at 1080×1088,
+  preserved the original active tab, and allowed an immediate debugger-backed screenshot.
+- The first run exposed missing stable-browser provenance on continuation metadata:
+  the PageState had `browserId`, but its nested `recording.browserId` was null. The MCP
+  bridge now validates and enriches retained recording and download results returned by
+  `page.dialogRespond`. Full MCP/script regression passed 169 tests, and the branded
+  rerun returned the expected stable browser ID on both the PageState and recording.
+- Both generated validation recordings were checked as WebM files and moved individually
+  from Downloads to Trash; the two temporary fixture tabs were closed.
+- Two stable 0.3.0 profile connections then passed simultaneous retained-session
+  isolation. While profile A held a confirm with an unchanged generation/ref, profile B
+  completed a strict-ref click, PNG screenshot, and an independent alert/accept cycle.
+  Profile A remained dominant until its own dismiss, profile B retained `Updated B`
+  afterward, both original active tabs stayed unchanged, and both temporary tabs closed.
+
 ### Reload-safe agent UI title ownership
 
 - Added a versioned DOM ownership marker containing the logical page title, the exact
