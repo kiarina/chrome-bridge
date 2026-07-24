@@ -2,6 +2,25 @@
 
 ## 2026-07-24
 
+### v0.3.0 Chrome Web Store publication and validation
+
+- Chrome Web Store approved the staged 0.3.0 update for existing Unlisted item
+  `ogmocgobegbjbecakclahodnhhfmccad`, and it was manually published with automatic
+  publication still disabled.
+- Disabled the fixed unpacked 0.3.0 copy and enabled only the updated Store copy. It
+  connected as the single protocol v2 browser with extension version 0.3.0, browser ID
+  `44a25852-87a1-4165-9876-b7735888d339`, label `Browser 44a25852`, and the existing
+  default loopback endpoint. This was distinct from the unpacked copy's browser ID.
+- Ran the branded-Chrome 0.3 smoke against the Store copy. Background selection
+  preserved the original active tab; visible/hidden accessible waits, stale-ref
+  rejection, immediate and delayed strict-ref downloads including `timeout=60`, the
+  0.1-second outcome-unknown contract, and immediate post-timeout debugger reuse all
+  passed. The test closed only its temporary fixture tab and deleted exactly its two
+  completed CSV downloads with no cleanup remaining.
+- The user accepted the already-established fallback guidance and chose not to repeat
+  the old-ZIP fallback exercise after this update. Public visibility and final Store
+  publication automation remain deferred follow-ups; P1.12 is otherwise complete.
+
 ### Colocated Python workspace packages
 
 - Moved the `chrome-bridge-mcp` subproject from `apps/server` to `packages/mcp`, placing

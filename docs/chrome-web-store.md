@@ -6,16 +6,16 @@ Chrome Web Store is the canonical distribution channel for the Chrome extension.
 
 The initial Store release should be **Unlisted**, with deferred publishing when the dashboard exposes that control. Anyone with the Store URL can install an Unlisted item, but it is not shown in Store search. Public, Unlisted, and Private items all receive policy review. The publisher account is registered and currently declared Non-Trader for the present personal, non-commercial open-source distribution; update and verify that declaration if the publishing activity becomes related to a trade, business, craft, or profession. Do not submit until the public privacy-policy URL, support URL, and reviewer-accessible server package are ready.
 
-### Current v0.1 publication
+### Current publication
 
 - Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
-- Published version: `0.1.0`
+- Published version: `0.3.0`
 - Visibility: Unlisted
-- Submitted: 2026-07-18, after GitHub Release and PyPI publication succeeded
-- Approved and manually published: 2026-07-21
+- Initial v0.1.0 publication: 2026-07-21
+- v0.3.0 update approved and manually published: 2026-07-24
 - Status at handoff: published and post-publication smoke tested
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
-- Submitted ZIP SHA-256: `029fc7284a29d1b22aaa0f4c4410043b55f891a2ca3c8c3583450a00e8139301`
+- Current ZIP SHA-256: `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`
 
 The dashboard showed the expected warning that broad host permissions can lengthen
 review, then accepted the submission. It exposed neither the automatic-publishing
@@ -29,10 +29,13 @@ selecting, snapshotting, and clicking an inactive controlled fixture. The Store 
 then disabled, the verified ZIP was loaded from a fixed fallback directory, and the same
 inactive snapshot/click smoke passed. After disabling the unpacked fallback and
 re-enabling the Store copy, the Store browser ID and endpoint settings were preserved.
-The actual Store extension ID and browser identity across a real Store version update
-remain to be measured with the first non-artificial update.
+The first real Store update retained the same Store item and installed extension ID. The
+post-update Store installation connected under browser ID
+`44a25852-87a1-4165-9876-b7735888d339` with label `Browser 44a25852` and the default
+loopback endpoint. No pre-update browser ID was recorded in the repository, so storage
+identity continuity cannot be independently compared from the written record.
 
-### Submitted v0.3 update
+### v0.3 update publication and validation
 
 Version 0.3.0 is the first planned Store runtime update. It adds accessible-text
 condition waiting and strict-ref downloads observed through the selected target's CDP
@@ -45,10 +48,18 @@ output. The verified 0.3.0 ZIP with SHA-256
 the existing Unlisted item on 2026-07-24. The dashboard required and accepted the new
 `alarms` justification, automatic publication was disabled in the confirmation dialog,
 and the authoritative item row entered `審査待ち` at version 0.3.0. A transient submission
-error toast appeared after that transition; do not retry while the item remains pending
-review. Public visibility and final-publication automation remain out of scope until the
-approved update preserves the Store extension ID, browser ID, label, endpoint,
-background behavior, and rollback path.
+error toast appeared after that transition, so no duplicate submission was made. Review
+later completed successfully and 0.3.0 was manually published on 2026-07-24.
+
+With the fixed unpacked copy disabled, the Store copy connected as the only protocol v2
+browser and reported extension version 0.3.0. The branded-Chrome smoke preserved the
+original active tab while exercising background visible/hidden waits, stale-ref
+rejection, immediate and delayed strict-ref downloads, the 60-second timeout range, an
+intentional outcome-unknown timeout, and immediate debugger reuse. It removed its one
+temporary tab and exactly two completed CSV downloads with no cleanup remaining. The
+user chose not to repeat the old-ZIP fallback exercise after this update; the documented
+fallback remains available from the earlier publication validation. Public visibility
+and final-publication automation remain deferred decisions.
 
 Official references:
 
@@ -211,6 +222,7 @@ The Chrome Web Store API v2 can upload later ZIPs and submit them for review. Ke
 credentials in the CI secret store, use the existing verified ZIP without rebuilding,
 and prefer staged publishing. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
 
-Do not automate the final Store publication action until the first real update has
-confirmed staged-update behavior, Store/browser identity preservation, and the exercised
-fallback procedure under an updated version.
+The first real update confirmed staged review, manual publication, the stable Store item
+ID, and Store-copy background operation. Before automating final publication, make a
+separate release-process decision about credentials, staged rollout, failure handling,
+and whether the accepted but unexercised post-update fallback risk is appropriate.

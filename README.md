@@ -134,7 +134,7 @@ For Python SDK use, install both distributions through the SDK dependency:
 uv add chrome-bridge-sdk
 ```
 
-1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.1 release is Unlisted, so use this direct URL.
+1. Install [Chrome Bridge from Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad). The v0.3 release is Unlisted, so use this direct URL.
 2. If needed, set a Browser label in Options to identify the profile.
 3. Connect the MCP client to `http://127.0.0.1:8765/mcp`.
 
