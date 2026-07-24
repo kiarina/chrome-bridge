@@ -19,6 +19,20 @@
   claimable. No profile configuration was read or modified through an alternate path;
   retain Store-only 0.4.0 branded validation after review.
 
+### v0.4.0 publication
+
+- Pushed annotated tag `v0.4.0` at release commit `9d5c7d3` only after main CI run
+  `30121226932` passed Python 3.11/3.12, extension, isolated Chromium, artifact E2E,
+  clean-install, and reproducibility jobs.
+- Release workflow `30121554355` passed every job. It published the non-draft GitHub
+  Release with all five artifacts and `SHA256SUMS`, then published
+  `chrome-bridge-mcp==0.4.0` and `chrome-bridge-sdk==0.4.0` to PyPI through trusted
+  publishing.
+- The same verified extension ZIP was uploaded through the keyless Chrome Web Store API
+  v2 path. The API reported `uploadState=SUCCEEDED`, version 0.4.0,
+  `submissionState=PENDING_REVIEW`, `publishType=DEFAULT_PUBLISH`, and 100% deployment.
+  Store approval/publication and Store-copy branded validation remain external follow-up.
+
 ### Initial target bootstrap for agent workflows
 
 - Changed tab open to target its newly created tab only when the browser has no target;

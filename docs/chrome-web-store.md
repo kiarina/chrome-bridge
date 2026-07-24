@@ -65,6 +65,15 @@ fallback remains available from the earlier publication validation. Public visib
 was then submitted separately so the stable runtime update and distribution change
 remain distinguishable.
 
+### v0.4 update submission
+
+Release workflow `30121554355` uploaded the verified 0.4.0 ZIP with SHA-256
+`0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870` through the
+keyless Chrome Web Store API v2 path on 2026-07-25. The API reported
+`uploadState=SUCCEEDED`, `submissionState=PENDING_REVIEW`, `publishType=DEFAULT_PUBLISH`,
+and a 100% deployment target. Approval will publish automatically; do not make a second
+submission while this review remains pending.
+
 ### Public visibility publication
 
 On 2026-07-24, changed distribution from Unlisted to Public without changing the free
