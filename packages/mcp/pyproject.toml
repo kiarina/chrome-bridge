@@ -13,6 +13,9 @@ dependencies = [
     "websockets>=15,<17",
 ]
 
+[project.urls]
+Changelog = "https://github.com/kiarina/chrome-bridge/blob/main/packages/mcp/CHANGELOG.md"
+
 [project.scripts]
 chrome-bridge-mcp = "chrome_bridge_mcp.__main__:main"
 

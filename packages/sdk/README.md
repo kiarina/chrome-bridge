@@ -2,6 +2,8 @@
 
 Python SDK for using chrome-bridge directly without an MCP client.
 
+See the [changelog](CHANGELOG.md) for user-visible changes.
+
 ```python
 from chrome_bridge_sdk import ChromeBridge, SessionStatus
 

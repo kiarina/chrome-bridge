@@ -2,6 +2,18 @@
 
 ## 2026-07-25
 
+### Component changelog policy and initial histories
+
+- Defined component changelog ownership and release procedure in the release guide.
+  Extension, MCP server, and Python SDK changes are recorded separately from the
+  detailed engineering and validation history in this file.
+- Added user-facing changelogs for all three distributions, backfilled only the versions
+  each component actually released, and recorded post-0.3 browser-dialog work under
+  `Unreleased` from each component's user perspective.
+- Linked the changelogs from the root and package READMEs and exposed the MCP and SDK
+  changelog URLs through Python package metadata. The extension changelog remains outside
+  the runtime ZIP allowlist.
+
 ### Public Store search discoverability recheck
 
 - The public Chrome Web Store search page for `Chrome Bridge` now includes the exact

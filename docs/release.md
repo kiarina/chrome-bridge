@@ -53,6 +53,45 @@ shasum -a 256 -c SHA256SUMS       # macOS
 sha256sum -c SHA256SUMS           # Linux
 ```
 
+## Changelogs
+
+Maintain one user-facing changelog for each independently distributed component:
+
+- [`apps/extension/CHANGELOG.md`](../apps/extension/CHANGELOG.md) for Chrome Web Store
+  and extension ZIP changes.
+- [`packages/mcp/CHANGELOG.md`](../packages/mcp/CHANGELOG.md) for the
+  `chrome-bridge-mcp` distribution.
+- [`packages/sdk/CHANGELOG.md`](../packages/sdk/CHANGELOG.md) for the
+  `chrome-bridge-sdk` distribution.
+
+Each changelog is canonical for the user-visible changes to that component. Keep
+`HISTORY.md` as the detailed chronological engineering record, including validation,
+measurements, publication work, and past decisions; do not copy that operational detail
+into a changelog. Generated GitHub Release notes supplement the component changelogs but
+do not replace them.
+
+Use an `Unreleased` section followed by dated release sections in descending order. Add
+an entry to every affected component's `Unreleased` section in the same change that
+introduces the behavior. Describe the impact from that component's user's perspective,
+and use only the applicable `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and
+`Security` categories. Omit empty categories. Cross-component features belong in each
+affected changelog, phrased for that component rather than copied mechanically.
+
+When preparing a release:
+
+1. Move the relevant `Unreleased` entries under the component's actual version and ISO
+   release date, then restore an empty `Unreleased` heading.
+2. Do not add a version section to a component that was not released. In particular, a
+   server/SDK-only tag must not create a matching extension entry.
+3. Keep server and SDK versions synchronized as required below, while retaining separate
+   changelogs because they are distinct PyPI distributions with different users.
+4. Check the three changelogs while reviewing the generated GitHub Release notes and the
+   Chrome Web Store listing text.
+
+The changelogs are repository documentation. Do not add the extension changelog to the
+runtime ZIP allowlist. Link the Python changelogs from package metadata so PyPI users can
+reach the current record without requiring the files in the wheels.
+
 ## Version bump
 
 Update server and SDK together:

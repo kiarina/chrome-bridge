@@ -202,7 +202,7 @@ The tag workflow uploads a changed extension ZIP through Chrome Web Store API v2
 automatic 100% publication after review. Python-only tags detect the already-published
 extension version and skip Store mutation.
 
-See [docs/development.md](docs/development.md) for detailed procedures, [docs/api.md](docs/api.md) for the tool API, [docs/architecture.md](docs/architecture.md) for design, [docs/release.md](docs/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/operations.md](docs/operations.md) is canonical for routine operation, configuration, logging, and incident response.
+See [docs/development.md](docs/development.md) for detailed procedures, [docs/api.md](docs/api.md) for the tool API, [docs/architecture.md](docs/architecture.md) for design, [docs/release.md](docs/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/operations.md](docs/operations.md) is canonical for routine operation, configuration, logging, and incident response. User-visible changes are tracked separately for the [extension](apps/extension/CHANGELOG.md), [MCP server](packages/mcp/CHANGELOG.md), and [Python SDK](packages/sdk/CHANGELOG.md).
 
 ## License
 

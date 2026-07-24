@@ -11,6 +11,9 @@ dependencies = [
     "httpx2>=2,<3",
 ]
 
+[project.urls]
+Changelog = "https://github.com/kiarina/chrome-bridge/blob/main/packages/sdk/CHANGELOG.md"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
