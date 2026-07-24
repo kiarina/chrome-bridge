@@ -24,4 +24,5 @@ members = ["packages/mcp", "packages/sdk"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["packages/mcp/tests"]
+pythonpath = ["."]
+testpaths = ["packages/mcp/tests", "scripts/tests"]

@@ -13,3 +13,4 @@ test-results/
 release/
 unpacked-extension/
 apps/extension/tests/.generated/
+gha-creds-*.json

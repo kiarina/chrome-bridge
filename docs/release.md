@@ -11,6 +11,13 @@ The current build produces five synchronized 0.3.0 local artifacts plus checksum
 
 Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and `chrome-bridge-sdk` uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; both projects successfully published v0.3.0 through this boundary.
 
+After the Public visibility migration is manually published once and API authentication
+is bootstrapped, the same tag workflow passes the verified extension ZIP to
+`scripts/chrome_web_store.py`. A changed extension version is uploaded and submitted
+with `DEFAULT_PUBLISH`, `blockOnWarnings=true`, and 100% deployment, so Store approval
+completes publication without another manual action. A Python-only tag whose extension
+version is already published performs only a status read and skips Store mutation.
+
 ## Canonical file selection
 
 [`apps/extension/extension-files.json`](../apps/extension/extension-files.json) is canonical for extension runtime and notice files. The E2E harness, static validation, and release build use the same allowlist. Do not include source TypeScript, tests, `node_modules`, Playwright output, or Chrome profile data in the release ZIP.
@@ -123,5 +130,9 @@ Complete the following before publication:
    Push tag `v0.3.0` only after the version commit is on `main`; the workflow publishes
    both Python wheel/sdist pairs and attaches all five verified artifacts to the GitHub
    Release.
-5. Publish `PRIVACY.md` and support information at stable HTTPS URLs, prepare Store listing assets, and complete the permission/data declarations in the [Chrome Web Store guide](chrome-web-store.md).
-6. Upload the same verified extension ZIP as an Unlisted item with deferred publishing, pass review, and complete the Store-specific branded-Chrome smoke test before considering Public visibility.
+5. Confirm the `chrome-web-store` GitHub environment contains the Workload Identity
+   provider and service account variables documented in the
+   [Chrome Web Store guide](chrome-web-store.md), with no long-lived Google key.
+6. Publish `PRIVACY.md` and support information at stable HTTPS URLs, keep the Store
+   listing and permission/data declarations aligned with the release, and inspect any
+   API warning or rejected status in the Developer Dashboard before retrying.

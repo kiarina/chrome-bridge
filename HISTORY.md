@@ -2,6 +2,36 @@
 
 ## 2026-07-24
 
+### Chrome Web Store API v2 automation implementation
+
+- Added a standard-library API v2 client for status preflight, exact release-ZIP upload,
+  bounded asynchronous-upload polling, and publish submission. It blocks on warnings,
+  active review, takedown, rejection/cancellation, response identity mismatch, and
+  version regression without retrying ambiguous mutations.
+- Extended the tag release workflow to authenticate through GitHub OIDC and Google
+  Workload Identity Federation, reuse the checksum-verified release artifact, and submit
+  changed extension versions with `DEFAULT_PUBLISH` at 100%. Python-only tags detect an
+  already-published extension version and perform no Store mutation.
+- Added a daily/manual Store status workflow that fails on policy or submission states
+  requiring attention. Repository-side tests cover automatic publication payloads,
+  asynchronous upload, existing-version skip, active-review/warning refusal, version
+  mismatch, and rejection monitoring.
+- External authentication bootstrap remains pending a Google Cloud project choice. Its
+  read-only status check may run during Public review, while the first API upload remains
+  gated on approval and one manual publication of the pending Public visibility.
+- Created dedicated Google Cloud project `chrome-bridge` (project number
+  `1091874734794`), enabled the Store, IAM Credentials, and STS APIs, and created
+  `chrome-web-store@chrome-bridge.iam.gserviceaccount.com` without a user-managed key.
+  The active GitHub OIDC provider admits only `kiarina/chrome-bridge`, and only that
+  repository principal set has `roles/iam.workloadIdentityUser` on the service account.
+- Created the unprotected `chrome-web-store` GitHub environment and set its provider and
+  service-account variables. Registered the service account email in the Chrome Web Store
+  publisher account. A local read-only impersonation probe was not used as acceptance
+  because newly granted IAM token-creation permission had not propagated; its temporary
+  bindings were removed, leaving only the repository-bound WIF principal on the service
+  account. The checked-in status workflow is the canonical end-to-end authentication
+  probe.
+
 ### Public visibility review submitted
 
 - Changed the existing Chrome Web Store item's distribution from Unlisted to Public

@@ -236,11 +236,95 @@ The Store-assigned extension ID is distinct from the random `browserId` used by 
 The first submissions, visibility changes, and publications were performed manually.
 The Chrome Web Store API v2 can upload later ZIPs and submit them for review after the
 pending Public visibility has been approved and manually published once. Keep API
-credentials in the CI secret store, use the existing verified ZIP without rebuilding,
-and prefer staged publishing. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
+credentials outside the repository and use the existing verified ZIP without
+rebuilding. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
 
 The first real update confirmed staged review, manual publication, the stable Store item
-ID, and Store-copy background operation. Implement upload, submission, and status polling
-first with `STAGED_PUBLISH` plus a protected manual final-publication approval. Consider
-`DEFAULT_PUBLISH` only after multiple automated updates are stable and the credential,
-warning, failure, and rollback paths are established.
+ID, and Store-copy background operation. The automated tag workflow now uses
+`DEFAULT_PUBLISH`, `blockOnWarnings=true`, and a 100% deployment target. A changed
+extension version is published automatically after approval; a Python-only release whose
+extension version is already published skips Store mutation. API mutation is never
+automatically retried after an ambiguous network failure.
+
+### One-time API v2 bootstrap
+
+Authentication bootstrap and the read-only status check may be completed while the
+Public visibility review is pending. Do not perform the first API upload or publication
+until that visibility is approved and manually published once: Chrome Web Store does
+not allow API publication immediately after a manual visibility change until the changed
+visibility has been published manually.
+
+Current keyless configuration, created 2026-07-24:
+
+| Resource | Value |
+| --- | --- |
+| Google Cloud project | `chrome-bridge` (`1091874734794`) |
+| Service account | `chrome-web-store@chrome-bridge.iam.gserviceaccount.com` |
+| Workload Identity Pool | `projects/1091874734794/locations/global/workloadIdentityPools/github` |
+| Provider | `projects/1091874734794/locations/global/workloadIdentityPools/github/providers/chrome-bridge` |
+| GitHub environment | `chrome-web-store`, no required reviewers or branch restriction |
+
+The provider condition admits only `kiarina/chrome-bridge`; its repository principal
+set alone has `roles/iam.workloadIdentityUser` on the service account. The service
+account has no user-managed key. Its email is registered as the publisher API service
+account in the Chrome Web Store Developer Dashboard.
+
+1. Select a dedicated or explicitly approved Google Cloud project, enable Chrome Web
+   Store API and IAM Service Account Credentials API, and create a service account with
+   no project-level roles. Chrome Web Store authorization comes from the publisher
+   dashboard rather than a Google Cloud project role.
+2. In the Chrome Web Store Developer Dashboard account settings, add that service
+   account email as the publisher's single API service account.
+3. Create a GitHub OIDC Workload Identity Pool and provider. Map
+   `attribute.repository=assertion.repository`, require
+   `assertion.repository == "kiarina/chrome-bridge"`, and grant only that repository's
+   principal set `roles/iam.workloadIdentityUser` on the service account. Do not create
+   or download a JSON service-account key.
+4. Create the GitHub environment `chrome-web-store` without required reviewers, because
+   the intended release path is fully automatic after a trusted tag. Add these
+   environment variables:
+
+   | Variable | Value |
+   | --- | --- |
+   | `CWS_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name beginning with `projects/<number>/locations/global/...` |
+   | `CWS_SERVICE_ACCOUNT` | Service account email registered in the Store dashboard |
+
+   The non-secret publisher ID
+   `2e079875-55db-4c84-ba1f-0a083549945a` and item ID
+   `ogmocgobegbjbecakclahodnhhfmccad` are fixed in the workflows so they cannot drift
+   through environment configuration.
+
+5. Run the `Chrome Web Store status` workflow manually. It must authenticate without a
+   stored key and report the canonical item ID without warning, takedown, rejection, or
+   cancellation.
+
+Google supports only one service account per publisher at present. Changing it is an
+explicit credential rotation: update the Store dashboard, Google IAM binding, and GitHub
+environment variable together, then rerun the status workflow before the next tag.
+
+### Automated release contract
+
+The tag workflow waits for reproducible artifact validation, GitHub Release creation,
+and both PyPI publications. It then downloads the same `release-assets` artifact,
+verifies `SHA256SUMS`, obtains a short-lived scoped access token through GitHub OIDC, and
+runs:
+
+```bash
+python scripts/chrome_web_store.py submit \
+  --extension-zip release/chrome-bridge-extension-<version>.zip \
+  --publish-type DEFAULT_PUBLISH \
+  --deploy-percentage 100
+```
+
+The client performs a read-only preflight before upload. It stops without mutation for
+an active submission, policy warning, takedown, previous rejection/cancellation, version
+mismatch, or a Store version newer than the artifact. Upload and publish calls are not
+retried. An asynchronous upload is polled for at most five minutes; warnings block the
+publish request. Successful submission may report `PENDING_REVIEW` or `PUBLISHED`, and
+approval of a pending `DEFAULT_PUBLISH` submission completes publication automatically.
+
+The daily and manually dispatchable `Chrome Web Store status` workflow fails when the
+item is warned, taken down, rejected, or cancelled, and writes the current published,
+submitted, and upload states to the GitHub Actions summary. Inspect the Developer
+Dashboard before any manual retry. Never re-upload merely because the caller did not
+receive a response: first use the status workflow to establish authoritative state.

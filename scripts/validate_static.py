@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
 SERVER_PACKAGE = ROOT / "packages" / "mcp"
 SDK_PACKAGE = ROOT / "packages" / "sdk"
+STORE_ITEM_ID = "ogmocgobegbjbecakclahodnhhfmccad"
+STORE_PUBLISHER_ID = "2e079875-55db-4c84-ba1f-0a083549945a"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -198,10 +200,47 @@ def validate_protocol_schemas() -> None:
     )
 
 
+def validate_store_automation() -> None:
+    store_script = ROOT / "scripts" / "chrome_web_store.py"
+    release_workflow = ROOT / ".github" / "workflows" / "release-pypi.yml"
+    status_workflow = ROOT / ".github" / "workflows" / "chrome-web-store-status.yml"
+    require(store_script.is_file(), "Chrome Web Store API script is missing")
+    require(status_workflow.is_file(), "Chrome Web Store status workflow is missing")
+
+    release_text = release_workflow.read_text(encoding="utf-8")
+    status_text = status_workflow.read_text(encoding="utf-8")
+    require(
+        "scripts/chrome_web_store.py submit" in release_text,
+        "release workflow must submit the extension to Chrome Web Store",
+    )
+    require(
+        "--publish-type DEFAULT_PUBLISH" in release_text,
+        "Store release must publish automatically after approval",
+    )
+    require(
+        "scripts/chrome_web_store.py status" in status_text,
+        "Store status workflow must use the canonical API client",
+    )
+    require(
+        STORE_ITEM_ID in release_text and STORE_ITEM_ID in status_text,
+        "Store workflows must target the canonical extension item",
+    )
+    require(
+        STORE_PUBLISHER_ID in release_text and STORE_PUBLISHER_ID in status_text,
+        "Store workflows must target the canonical publisher",
+    )
+    require(
+        "google-github-actions/auth@" in release_text
+        and "google-github-actions/auth@" in status_text,
+        "Store workflows must use short-lived Google authentication",
+    )
+
+
 def main() -> None:
     validate_manifest()
     validate_protocol_schemas()
-    print("Static manifest and protocol validation passed.")
+    validate_store_automation()
+    print("Static manifest, protocol, and release validation passed.")
 
 
 if __name__ == "__main__":

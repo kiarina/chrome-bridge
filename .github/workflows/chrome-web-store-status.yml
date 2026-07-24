@@ -1,0 +1,41 @@
+name: Chrome Web Store status
+
+on:
+  schedule:
+    - cron: "17 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    name: Check Store item status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: chrome-web-store
+      url: https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Authenticate as the Store service account
+        id: google-auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.CWS_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CWS_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_lifetime: 300s
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore.readonly
+      - name: Fetch Store status
+        env:
+          CHROME_WEB_STORE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          CHROME_WEB_STORE_PUBLISHER_ID: 2e079875-55db-4c84-ba1f-0a083549945a
+          CHROME_WEB_STORE_ITEM_ID: ogmocgobegbjbecakclahodnhhfmccad
+        run: python scripts/chrome_web_store.py status

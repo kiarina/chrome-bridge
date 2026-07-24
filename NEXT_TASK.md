@@ -1,6 +1,6 @@
 # Next task
 
-## Publish the approved Public visibility and automate later Store updates
+## Complete the Public migration and activate Store API v2 automation
 
 Server, SDK, and extension 0.3.0 with 23 MCP tools are published. The first real Chrome
 Web Store update is also published as Unlisted and passed branded-Chrome background
@@ -13,10 +13,17 @@ new ZIP or runtime change was submitted.
   `審査待ち`. After approval, manually publish the staged Public visibility and confirm
   that the direct listing is publicly discoverable while the installed Store copy still
   connects and reports 0.3.0.
-- After the first manual Public publication, implement Chrome Web Store API v2 upload,
-  submission, and status polling for later verified release ZIPs. Start with
-  `STAGED_PUBLISH` and a protected manual approval for the final publication action;
-  consider `DEFAULT_PUBLISH` only after multiple automated updates are stable.
+- Google Cloud project `chrome-bridge`, its keyless service account and repository-bound
+  Workload Identity provider, and the unprotected `chrome-web-store` GitHub environment
+  are configured. `chrome-web-store@chrome-bridge.iam.gserviceaccount.com` is registered
+  as the publisher's API service account in the Chrome Web Store dashboard. Push this
+  workflow implementation, then run the manual read-only status workflow through the
+  repository-bound WIF path.
+- The status workflow may be validated during Public review, but no API upload may run
+  until Public is manually published once.
+- The repository-side API v2 client, fail-closed tests, automatic tag job, and daily
+  status workflow are implemented. The tag job uses `DEFAULT_PUBLISH` for fully
+  automatic publication after approval and skips Store mutation for Python-only tags.
 - Track an upstream MCP JavaScript SDK release that can adopt
   `@hono/node-server>=2.0.5`. The current advisory is moderate and only affects an E2E
   development dependency; do not force a transitive major override solely to silence it.

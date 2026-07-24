@@ -50,6 +50,7 @@ When `extensionConnected` is `true` in the health response, at least one extensi
 ```bash
 uv run pytest
 uv run pytest packages/sdk/tests
+uv run pytest scripts/tests
 uv run ruff check packages/mcp packages/sdk scripts
 uv run ruff format --check packages/mcp packages/sdk scripts
 uv run python -m compileall -q packages/mcp/src packages/sdk/src
