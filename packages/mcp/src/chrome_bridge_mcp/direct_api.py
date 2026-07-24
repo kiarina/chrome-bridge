@@ -64,6 +64,13 @@ class DirectDispatcher:
             return await controller.activate_tab(values["tab_id"], browser_id)
         if method == "browser_snapshot":
             return await controller.snapshot(browser_id)
+        if method == "browser_dialog_respond":
+            return await controller.respond_to_dialog(
+                values["dialog_ref"],
+                values["action"],
+                values["prompt_text"],
+                browser_id,
+            )
         if method == "browser_click":
             return await controller.click(
                 values["element"], values["ref"], browser_id, video

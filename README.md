@@ -35,7 +35,7 @@ Omit `video_filename` to preserve the tool's original return value and avoid rec
 overhead. The standalone `browser_record_video` tool records a bounded hold without
 performing another page action.
 
-The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 23 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
+The current vertical slice supports simultaneous connections from multiple Chrome profiles and provides the following 24 tools. When multiple browsers are connected, use `browser_instances` to find their IDs and pass `browser_id` to each tool. It may be omitted when only one browser is connected.
 
 | Tool | Function |
 | --- | --- |
@@ -45,7 +45,8 @@ The current vertical slice supports simultaneous connections from multiple Chrom
 | `browser_tab_close` | Close a tab by tab ID |
 | `browser_tab_select` | Select the page-operation target without foregrounding Chrome UI |
 | `browser_tab_activate` | Select the page-operation target and foreground its window |
-| `browser_snapshot` | Capture an accessibility snapshot of the target tab |
+| `browser_snapshot` | Return the target's accessibility snapshot or dominant browser-dialog state |
+| `browser_dialog_respond` | Accept or dismiss the exact browser dialog returned in PageState |
 | `browser_click` | Click a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_hover` | Move to a snapshot ref, optionally record the operation, and return a post-operation snapshot |
 | `browser_type` | Type into a snapshot ref, optionally record the operation, and return a post-operation snapshot |

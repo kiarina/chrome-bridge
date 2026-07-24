@@ -31,3 +31,29 @@ the dashboard reports `公開済み - 一般公開` for version 0.3.0.
 - Track an upstream MCP JavaScript SDK release that can adopt
   `@hono/node-server>=2.0.5`. The current advisory is moderate and only affects an E2E
   development dependency; do not force a transitive major override solely to silence it.
+
+## Validate browser dialogs in branded Chrome
+
+The isolated Chromium CDP probe is complete. It supports a synthetic dialog-only
+snapshot and generation-scoped response action, but rules out detach-and-reattach as a
+reliable way to recover opening metadata. Reattach succeeds while the dialog remains
+open, but `Page.enable` stalls, no opening event is replayed, and a queued response sees
+`No dialog is showing`.
+
+- The production extension, MCP/Direct API, and SDK now implement
+  `PageState = Snapshot | BrowserDialogSnapshot` plus `browser_dialog_respond`. Use
+  [Browser dialogs](docs/browser-dialogs.md) as the canonical contract. Debugger
+  observation/retention remains transparent; do not add public monitor start/end actions.
+- The explicit monitor passed a 35-second idle window and later worker-call responses for
+  alert, confirm, and prompt without foregrounding the target. Dialog-time content
+  messaging and `Accessibility.getFullAXTree` both remained pending, so return only the
+  stored synthetic dialog state while it is dominant.
+- Isolated production E2E passed alert, confirm, prompt, accepted beforeunload,
+  chained dialogs, stale refs, blocked ordinary actions, recording interaction, and the
+  existing two-profile suite. A developer-mode branded Chrome run also passed those
+  non-recorded dialog types, manual user dismiss with automatic continuation and
+  immediate debugger reuse, plus target-close cleanup and new-target recovery. Next
+  measure DevTools conflict, external detach, server/extension lifecycle, extension
+  reload, and browser shutdown. Between-call timer/user dialogs are not guaranteed in
+  the initial scope. Automated Playwright launch did not load the extension in branded
+  Chrome headless or headed mode, so keep the user-loaded unpacked path for this matrix.

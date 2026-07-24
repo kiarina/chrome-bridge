@@ -14,6 +14,7 @@ Provide a local MCP server that lets LLM agents operate every tab by explicit ta
 - Loopback-only binding and Host/Origin validation
 - Connection status in the extension popup and connection settings in Options
 - Non-foreground selection of a single target tab, accessibility snapshots, and element operations through strict refs
+- Browser-native dialogs as dominant PageState with transparent debugger retention and an exact-ref response action
 
 ### Page operations (implemented)
 
@@ -30,6 +31,7 @@ The following 13 page-operation tools operate on the persistent target; they do 
 | `browser_wait_for` | `text`, `state`, `timeout`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_press_key` | `key`, optional `video_filename` | Completion message, or operation/recording wrapper |
 | `browser_snapshot` | None | URL, title, ARIA snapshot |
+| `browser_dialog_respond` | `dialog_ref`, `action`, optional `prompt_text` | Fresh document or browser-dialog PageState |
 | `browser_click` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_hover` | `element`, `ref`, optional `video_filename` | Snapshot, or operation/recording wrapper |
 | `browser_type` | `element`, `ref`, `text`, `submit`, optional `video_filename` | Snapshot, or operation/recording wrapper |
@@ -136,6 +138,7 @@ Protocol v2 adds required `browserId` and `browserLabel` fields to hello. Becaus
 - `tabs.select {tabId: integer}`: changes only the target tab and does not foreground Chrome UI.
 - `tabs.activate {tabId: integer}`
 - `page.snapshot {}`
+- `page.dialogRespond {dialogRef: string, action: "accept" | "dismiss", promptText?: string}`
 - `page.click {element: string, ref: string, videoFilename?: string}`
 - `page.hover {element: string, ref: string, videoFilename?: string}`
 - `page.type {element: string, ref: string, text: string, submit: boolean, videoFilename?: string}`

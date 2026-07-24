@@ -137,7 +137,7 @@ def test_direct_api_metadata_and_tool_catalog() -> None:
         assert meta.json()["apiVersion"] == 1
         assert meta.json()["mode"] == "persistent"
         tools = client.get("/api/v1/tools").json()["tools"]
-        assert len(tools) == 23
+        assert len(tools) == 24
         assert {tool["name"] for tool in tools} >= {
             "browser_instances",
             "browser_snapshot",
@@ -221,7 +221,7 @@ def test_tools_include_non_focusing_tab_select() -> None:
         )
         assert response.status_code == 200
         tools = {tool["name"]: tool for tool in response.json()["result"]["tools"]}
-        assert len(tools) == 23
+        assert len(tools) == 24
         assert tools["browser_instances"]["inputSchema"]["properties"] == {}
         assert "browser_tab_select" in tools
         assert "without focusing" in tools["browser_tab_select"]["description"]

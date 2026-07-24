@@ -45,6 +45,7 @@ const MAX_WAIT_SECONDS = 10;
 const MAX_CONSOLE_ENTRIES = 100;
 const CONSOLE_REPLAY_WAIT_MS = 100;
 const ARIA_REF_PATTERN = /^s(\d+)e(\d+)$/;
+const DIALOG_REF_PATTERN = /^s(\d+)d1$/;
 const MODIFIER_BITS = { Alt: 1, Control: 2, Meta: 4, Shift: 8 };
 const KEY_DEFINITIONS = {
   Alt: { key: "Alt", code: "AltLeft", keyCode: 18, location: 1 },
@@ -75,6 +76,7 @@ let intentionallyDisconnected = false;
 let connectPromise;
 let snapshotGenerationQueue = Promise.resolve();
 let pageOperationQueue = Promise.resolve();
+let retainedDialogOperation;
 
 async function loadConfig() {
   const stored = await chrome.storage.local.get(["serverUrl"]);
@@ -182,13 +184,14 @@ async function beginOperatingTarget(tabId) {
   return token;
 }
 
-async function finishOperatingTarget(tabId, token) {
+async function finishOperatingTarget(tabId, token, syncUi = true) {
   const stored = await chrome.storage.session.get(OPERATING_TOKEN_KEY);
   if (stored[OPERATING_TOKEN_KEY] !== token) return;
   await chrome.storage.session.remove([
     OPERATING_TAB_KEY,
     OPERATING_TOKEN_KEY,
   ]);
+  if (!syncUi) return;
   await syncAgentUiForTab(tabId);
   const currentTargetTabId = await getTargetTabId();
   if (currentTargetTabId !== null && currentTargetTabId !== tabId) {
@@ -263,12 +266,23 @@ function nextSnapshotGeneration() {
 
 function runPageOperation(operation) {
   const next = pageOperationQueue.then(async () => {
+    if (retainedDialogOperation) {
+      throw new Error(
+        "A browser dialog is open. Call browser_snapshot and browser_dialog_respond before another page action.",
+      );
+    }
     const tabId = await getTargetTabId();
     const token = tabId === null ? null : await beginOperatingTarget(tabId);
     try {
       return await operation();
     } finally {
-      if (token !== null) await finishOperatingTarget(tabId, token);
+      if (token !== null) {
+        await finishOperatingTarget(
+          tabId,
+          token,
+          retainedDialogOperation?.tabId !== tabId,
+        );
+      }
     }
   });
   pageOperationQueue = next.then(
@@ -278,8 +292,288 @@ function runPageOperation(operation) {
   return next;
 }
 
-async function runOptionallyRecordedTargetOperation(params, operation) {
-  if (params.videoFilename === undefined) return operation();
+function matchesDebuggee(source, debuggee) {
+  return (
+    (debuggee.targetId && source.targetId === debuggee.targetId) ||
+    (debuggee.tabId && source.tabId === debuggee.tabId)
+  );
+}
+
+function observeJavaScriptDialogs(session) {
+  const openings = [];
+  const openingWaiters = [];
+  let lastOpenEntry;
+  let resolveDetached;
+  const detached = new Promise((resolve) => {
+    resolveDetached = resolve;
+  });
+  const onEvent = (source, method, params) => {
+    if (!matchesDebuggee(source, session.debuggee)) return;
+    if (method === "Page.javascriptDialogOpening") {
+      let resolveClosed;
+      const entry = {
+        params,
+        closed: new Promise((resolve) => {
+          resolveClosed = resolve;
+        }),
+        resolveClosed,
+      };
+      lastOpenEntry = entry;
+      const waiter = openingWaiters.shift();
+      if (waiter) waiter(entry);
+      else openings.push(entry);
+    } else if (method === "Page.javascriptDialogClosed" && lastOpenEntry) {
+      lastOpenEntry.resolveClosed(params);
+      lastOpenEntry = undefined;
+    }
+  };
+  const onDetach = (source, reason) => {
+    if (matchesDebuggee(source, session.debuggee)) resolveDetached(reason);
+  };
+  chrome.debugger.onEvent.addListener(onEvent);
+  chrome.debugger.onDetach.addListener(onDetach);
+  return {
+    detached,
+    nextOpening() {
+      if (openings.length) return Promise.resolve(openings.shift());
+      return new Promise((resolve) => openingWaiters.push(resolve));
+    },
+    cleanup() {
+      chrome.debugger.onEvent.removeListener(onEvent);
+      chrome.debugger.onDetach.removeListener(onDetach);
+    },
+  };
+}
+
+function normalizedOutcome(promise) {
+  return promise.then(
+    (value) => ({ kind: "operation", ok: true, value }),
+    (error) => ({ kind: "operation", ok: false, error }),
+  );
+}
+
+async function dialogSnapshot(tabId, entry) {
+  await clearLatestSnapshotGeneration();
+  const generation = await nextSnapshotGeneration();
+  const tab = await chrome.tabs.get(tabId);
+  const type = entry.params?.type;
+  const actions = type === "alert" ? ["accept"] : ["accept", "dismiss"];
+  return {
+    pageState: "browser-dialog",
+    generation,
+    url: typeof entry.params?.url === "string" ? entry.params.url : tab.url || "",
+    title: tab.title || "",
+    dialog: {
+      type,
+      message: typeof entry.params?.message === "string" ? entry.params.message : "",
+      defaultPrompt:
+        typeof entry.params?.defaultPrompt === "string"
+          ? entry.params.defaultPrompt
+          : "",
+      ref: `s${generation}d1`,
+      actions,
+    },
+  };
+}
+
+async function closeRetainedDialogOperation(held) {
+  held.observer.cleanup();
+  try {
+    await held.session.run(
+      (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.disable"),
+      { emulateFocus: false },
+    );
+  } catch {
+    // Target closure, navigation, or external detach can disable Page first.
+  }
+  await held.session.close();
+  if (retainedDialogOperation === held) retainedDialogOperation = undefined;
+}
+
+function watchManualDialogResponse(held, entry) {
+  void entry.closed.then(async () => {
+    await Promise.resolve();
+    if (
+      retainedDialogOperation !== held ||
+      held.entry !== entry ||
+      held.responding
+    ) {
+      return;
+    }
+    try {
+      await advanceRetainedDialogOperation(held);
+    } catch (error) {
+      held.terminalError = error;
+      await closeRetainedDialogOperation(held);
+    }
+  });
+}
+
+function watchRetainedDebuggerDetach(held) {
+  void held.observer.detached.then(async (reason) => {
+    if (retainedDialogOperation !== held) return;
+    held.terminalError = new Error(
+      `Browser dialog debugger session detached: ${reason}`,
+    );
+    held.observer.cleanup();
+    await held.session.close();
+  });
+}
+
+async function advanceRetainedDialogOperation(held) {
+  const outcome = await Promise.race([
+    held.operationOutcome,
+    held.observer.nextOpening().then((entry) => ({ kind: "dialog", entry })),
+  ]);
+  if (outcome.kind === "dialog") {
+    held.entry = outcome.entry;
+    held.state = await dialogSnapshot(held.tabId, outcome.entry);
+    watchManualDialogResponse(held, outcome.entry);
+    return held.state;
+  }
+  if (!outcome.ok) {
+    await closeRetainedDialogOperation(held);
+    throw outcome.error;
+  }
+  const operationResult = outcome.value;
+  await closeRetainedDialogOperation(held);
+  if (
+    operationResult &&
+    typeof operationResult === "object" &&
+    operationResult.operation &&
+    operationResult.recording
+  ) {
+    const operationState = operationResult.operation;
+    if (
+      Number.isSafeInteger(operationState.generation) &&
+      typeof operationState.snapshot === "string"
+    ) {
+      return { ...operationState, recording: operationResult.recording };
+    }
+    return {
+      ...(await captureSnapshotForTarget(held.tabId)),
+      recording: operationResult.recording,
+    };
+  }
+  if (
+    operationResult &&
+    typeof operationResult === "object" &&
+    Number.isSafeInteger(operationResult.generation) &&
+    typeof operationResult.snapshot === "string"
+  ) {
+    return operationResult;
+  }
+  return captureSnapshotForTarget(held.tabId);
+}
+
+async function runDialogAwareTargetOperation(operation) {
+  if (retainedDialogOperation) {
+    throw new Error(
+      "A browser dialog is open. Call browser_snapshot and browser_dialog_respond before another page action.",
+    );
+  }
+  const tab = await getTargetTab();
+  const session = await openDebuggerSession(tab.id);
+  const observer = observeJavaScriptDialogs(session);
+  try {
+    await session.run(
+      (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.enable"),
+      { emulateFocus: false },
+    );
+    const operationOutcome = normalizedOutcome(operation(session));
+    const outcome = await Promise.race([
+      operationOutcome,
+      observer.nextOpening().then((entry) => ({ kind: "dialog", entry })),
+    ]);
+    if (outcome.kind === "operation") {
+      if (!outcome.ok) throw outcome.error;
+      return outcome.value;
+    }
+    const held = {
+      tabId: tab.id,
+      session,
+      observer,
+      operationOutcome,
+      entry: outcome.entry,
+      state: await dialogSnapshot(tab.id, outcome.entry),
+      responding: false,
+      terminalError: undefined,
+    };
+    retainedDialogOperation = held;
+    watchManualDialogResponse(held, outcome.entry);
+    watchRetainedDebuggerDetach(held);
+    return held.state;
+  } catch (error) {
+    observer.cleanup();
+    await session.close();
+    throw error;
+  } finally {
+    if (!retainedDialogOperation || retainedDialogOperation.session !== session) {
+      observer.cleanup();
+      try {
+        await session.run(
+          (debuggee) => chrome.debugger.sendCommand(debuggee, "Page.disable"),
+          { emulateFocus: false },
+        );
+      } catch {
+        // Best-effort Page cleanup before the command-scoped session closes.
+      }
+      await session.close();
+    }
+  }
+}
+
+async function respondToBrowserDialog(params) {
+  const held = retainedDialogOperation;
+  if (!held) throw new Error("No browser dialog is open");
+  if (held.terminalError) throw held.terminalError;
+  if (typeof params.dialogRef !== "string") {
+    throw new Error("dialog_ref must be returned by browser_snapshot");
+  }
+  const match = DIALOG_REF_PATTERN.exec(params.dialogRef);
+  if (
+    !match ||
+    Number(match[1]) !== held.state.generation ||
+    params.dialogRef !== held.state.dialog.ref
+  ) {
+    throw new Error(`Stale browser dialog ref: ${params.dialogRef}`);
+  }
+  if (!held.state.dialog.actions.includes(params.action)) {
+    throw new Error(
+      `${params.action} is not valid for a ${held.state.dialog.type} dialog`,
+    );
+  }
+  if (
+    params.promptText !== undefined &&
+    !(held.state.dialog.type === "prompt" && params.action === "accept")
+  ) {
+    throw new Error("prompt_text is valid only when accepting a prompt dialog");
+  }
+  held.responding = true;
+  try {
+    await chrome.debugger.sendCommand(
+      held.session.debuggee,
+      "Page.handleJavaScriptDialog",
+      {
+        accept: params.action === "accept",
+        ...(params.promptText === undefined
+          ? {}
+          : { promptText: params.promptText }),
+      },
+    );
+    await held.entry.closed;
+    return await advanceRetainedDialogOperation(held);
+  } finally {
+    held.responding = false;
+  }
+}
+
+async function runOptionallyRecordedTargetOperation(
+  params,
+  operation,
+  session = undefined,
+) {
+  if (params.videoFilename === undefined) return operation(session);
   let selectedTab;
   try {
     selectedTab = await getTargetTab();
@@ -293,6 +587,7 @@ async function runOptionallyRecordedTargetOperation(params, operation) {
   return recordTargetOperation({
     tabId: selectedTab.id,
     filename: params.videoFilename,
+    session,
     operation: async (session, captureOperationFrame) => {
       await requireUnchangedTarget(selectedTab.id);
       return runWithRecordedTargetOutcome(selectedTab.id, () =>
@@ -1812,13 +2107,29 @@ async function executeCommand(type, params) {
       const tab = await chrome.tabs.get(requireTabId(params.tabId));
       await chrome.tabs.remove(tab.id);
       await clearTargetTabIfClosed(tab.id);
+      if (retainedDialogOperation?.tabId === tab.id) {
+        const held = retainedDialogOperation;
+        retainedDialogOperation = undefined;
+        held.observer.cleanup();
+        await held.session.close();
+      }
       return { closed: true, tabId: tab.id };
     }
     case "tabs.select": {
+      if (retainedDialogOperation) {
+        throw new Error(
+          "A browser dialog is open. Respond to it or close its target tab before selecting another target.",
+        );
+      }
       const tab = await setTargetTabId(params.tabId);
       return summarizeTab(tab, true);
     }
     case "tabs.activate": {
+      if (retainedDialogOperation) {
+        throw new Error(
+          "A browser dialog is open. Respond to it or close its target tab before activating another target.",
+        );
+      }
       const selectedTab = await setTargetTabId(params.tabId);
       const tab = await chrome.tabs.update(selectedTab.id, { active: true });
       if (typeof tab.windowId === "number") {
@@ -1827,6 +2138,7 @@ async function executeCommand(type, params) {
       return summarizeTab(tab, true);
     }
     case "page.snapshot": {
+      if (retainedDialogOperation) return retainedDialogOperation.state;
       return runPageOperation(async () => {
         const selectedTab = await getTargetTab();
         return captureSnapshotForTarget(selectedTab.id);
@@ -1834,69 +2146,106 @@ async function executeCommand(type, params) {
     }
     case "page.click": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, (session) =>
-          clickTarget(params, session),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession) => clickTarget(params, currentSession),
+            session,
+          ),
         ),
       );
     }
     case "page.hover": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, (session) =>
-          hoverTarget(params, session),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession) => hoverTarget(params, currentSession),
+            session,
+          ),
         ),
       );
     }
     case "page.type": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, (session) =>
-          typeTarget(params, session),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession) => typeTarget(params, currentSession),
+            session,
+          ),
         ),
       );
     }
     case "page.selectOption": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () =>
-          selectOptionTarget(params),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            () => selectOptionTarget(params),
+            session,
+          ),
         ),
       );
     }
     case "page.uploadFile": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(
-          params,
-          (session, captureOperationFrame) =>
-            uploadFilesTarget(params, session, captureOperationFrame),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession, captureOperationFrame) =>
+              uploadFilesTarget(params, currentSession, captureOperationFrame),
+            session,
+          ),
         ),
       );
     }
     case "page.pressKey": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, (session) =>
-          pressKeyTarget(params, session),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession) => pressKeyTarget(params, currentSession),
+            session,
+          ),
         ),
       );
     }
     case "page.navigate": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () =>
-          navigateTarget(params),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            () => navigateTarget(params),
+            session,
+          ),
         ),
       );
     }
     case "page.goBack": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () => goBackTarget(params)),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            () => goBackTarget(params),
+            session,
+          ),
+        ),
       );
     }
     case "page.goForward": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () =>
-          goForwardTarget(params),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            () => goForwardTarget(params),
+            session,
+          ),
         ),
       );
     }
     case "page.wait": {
-      return runPageOperation(async () => {
+      return runPageOperation(() => runDialogAwareTargetOperation(async (session) => {
         if (params.videoFilename === undefined) return waitTarget(params);
         let selectedTab;
         try {
@@ -1911,20 +2260,30 @@ async function executeCommand(type, params) {
         return recordTargetOperation({
           tabId: selectedTab.id,
           filename: params.videoFilename,
+          session,
           operation: () =>
             runWithRecordedTargetOutcome(selectedTab.id, () =>
               waitTarget(params),
             ),
         });
-      });
+      }));
     }
     case "page.waitFor": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(params, () => waitForTarget(params)),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            () => waitForTarget(params),
+            session,
+          ),
+        ),
       );
     }
     case "page.downloadFile": {
       return runPageOperation(() => downloadFileTarget(params));
+    }
+    case "page.dialogRespond": {
+      return respondToBrowserDialog(params);
     }
     case "page.screenshot": {
       return runPageOperation(() => screenshotTarget());
@@ -1950,10 +2309,13 @@ async function executeCommand(type, params) {
     }
     case "page.drag": {
       return runPageOperation(() =>
-        runOptionallyRecordedTargetOperation(
-          params,
-          (session, captureOperationFrame) =>
-            dragTarget(params, session, captureOperationFrame),
+        runDialogAwareTargetOperation((session) =>
+          runOptionallyRecordedTargetOperation(
+            params,
+            (currentSession, captureOperationFrame) =>
+              dragTarget(params, currentSession, captureOperationFrame),
+            session,
+          ),
         ),
       );
     }

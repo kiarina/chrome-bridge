@@ -125,8 +125,10 @@ target.
 
 ## Command-scoped debugger session
 
-Do not implement a process-wide debugger lease map or share an attachment across MCP
-commands. A recording command owns one command-scoped debugger session:
+Do not implement a process-wide debugger lease map. A recording command owns one
+command-scoped debugger session. The narrow exception is a browser dialog opened by
+that operation: ownership is promoted transparently across calls until
+`browser_dialog_respond` (or manual response) resumes the pending command:
 
 ```text
 page-operation queue entry

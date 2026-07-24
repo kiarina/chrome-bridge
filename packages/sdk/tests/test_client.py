@@ -11,6 +11,7 @@ import pytest
 import chrome_bridge_sdk.client as client_module
 from chrome_bridge_sdk import (
     BrowserInstance,
+    BrowserDialogSnapshot,
     ChromeBridge,
     ClosedTab,
     ConsoleEntry,
@@ -128,6 +129,21 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                 result = {
                     "closed": True,
                     "tabId": arguments["tab_id"],
+                    "browserId": "browser-1",
+                }
+            elif method == "browser_dialog_respond":
+                result = {
+                    "pageState": "browser-dialog",
+                    "generation": 6,
+                    "url": "https://example.com/",
+                    "title": "Fixture",
+                    "dialog": {
+                        "type": "prompt",
+                        "message": "Second value?",
+                        "defaultPrompt": "",
+                        "ref": "s6d1",
+                        "actions": ["accept", "dismiss"],
+                    },
                     "browserId": "browser-1",
                 }
             elif method in {
@@ -365,6 +381,12 @@ async def test_remaining_typed_result_models(
         waited = await session.browser_wait(0.5)
         assert waited == WaitResult(waited=True, time=0.5, browser_id="browser-1")
         assert isinstance(await session.browser_wait_for("Ready"), Snapshot)
+        dialog = await session.browser_dialog_respond(
+            "s5d1", "accept", "LLM response", "browser-1"
+        )
+        assert isinstance(dialog, BrowserDialogSnapshot)
+        assert dialog.dialog.ref == "s6d1"
+        assert dialog.dialog.actions == ("accept", "dismiss")
         recorded_wait = await session.browser_wait_for(
             "Ready", video_filename="wait-for.webm"
         )

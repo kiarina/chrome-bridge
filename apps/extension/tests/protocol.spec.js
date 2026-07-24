@@ -17,6 +17,20 @@ test("accepts every protocol v1 command with exact params", () => {
     { id, type: "tabs.select", params: { tabId: 1 } },
     { id, type: "tabs.activate", params: { tabId: 1 } },
     { id, type: "page.snapshot", params: {} },
+    {
+      id,
+      type: "page.dialogRespond",
+      params: { dialogRef: "s2d1", action: "dismiss" },
+    },
+    {
+      id,
+      type: "page.dialogRespond",
+      params: {
+        dialogRef: "s3d1",
+        action: "accept",
+        promptText: "LLM response",
+      },
+    },
     { id, type: "page.click", params: { element: "Save", ref: "s1e2" } },
     {
       id,
@@ -137,7 +151,7 @@ test("accepts every protocol v1 command with exact params", () => {
     },
   ];
 
-  expect(messages).toHaveLength(29);
+  expect(messages).toHaveLength(31);
   for (const message of messages)
     expect(validateServerMessage(message)).toBeNull();
 });
@@ -148,6 +162,16 @@ test("rejects unknown commands, missing params, wrong types, and extra fields", 
     { id, type: "tabs.open", params: { url: "about:blank" } },
     { id, type: "tabs.close", params: { tabId: "1" } },
     { id, type: "page.click", params: { element: "Save", ref: "bad" } },
+    {
+      id,
+      type: "page.dialogRespond",
+      params: { dialogRef: "s1e2", action: "accept" },
+    },
+    {
+      id,
+      type: "page.dialogRespond",
+      params: { dialogRef: "s1d1", action: "close" },
+    },
     { id, type: "page.wait", params: { time: 11 } },
     {
       id,

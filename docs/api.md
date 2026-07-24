@@ -1,6 +1,6 @@
 # MCP tool API reference
 
-This document is the user-facing reference for the 23 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
+This document is the user-facing reference for the 24 tools exposed by the chrome-bridge MCP server. MCP clients connect to the Streamable HTTP endpoint at `http://127.0.0.1:8765/mcp`.
 
 [`packages/mcp/src/chrome_bridge_mcp/app.py`](../packages/mcp/src/chrome_bridge_mcp/app.py) is the runtime source of truth for tool names, input JSON Schemas, and tool descriptions; they are available through MCP `tools/list`. The [Specification](../SPEC.md) is canonical for detailed page-operation semantics and security boundaries, and [Multiple browser routing](multiple-browser-routing.md) is canonical for multi-browser routing rules.
 
@@ -29,7 +29,35 @@ Page-operation tools do not accept `tab_id` directly. They operate on the single
 
 Closing the target tab clears the target. Switching the active tab in Chrome UI does not change it. The target belongs to the extension connection, not an MCP session, so clients operating the same browser share it.
 
-### Snapshot and strict refs
+### PageState, snapshots, dialogs, and strict refs
+
+`PageState` is either a document `Snapshot` or a dominant
+`BrowserDialogSnapshot`. When `alert`, `confirm`, `prompt`, or `beforeunload` is
+open, document input and accessibility inspection are blocked, so chrome-bridge
+returns only the synthetic dialog state:
+
+```json
+{
+  "pageState": "browser-dialog",
+  "generation": 13,
+  "url": "https://example.test/form",
+  "title": "Example form",
+  "dialog": {
+    "type": "confirm",
+    "message": "Save changes?",
+    "defaultPrompt": "",
+    "ref": "s13d1",
+    "actions": ["accept", "dismiss"]
+  },
+  "browserId": "b9d746c1-e245-4f2d-9e5d-65fddf63c587"
+}
+```
+
+Opening a dialog invalidates every document ref. While it remains open,
+`browser_snapshot` repeats this dialog PageState and ordinary page actions fail
+fast. Dialog observation begins transparently before chrome-bridge operations;
+there are no public debugger-monitor start/end actions. Dialogs opened wholly
+between calls by page timers or user activity are not guaranteed in this version.
 
 A snapshot result has the following form:
 
@@ -171,13 +199,32 @@ Before using the following tools, select an HTTP(S) target with `browser_tab_sel
 
 ### `browser_snapshot`
 
-Captures an accessibility snapshot of the target page.
+Returns the target's current document `Snapshot` or dominant
+`BrowserDialogSnapshot`.
 
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `browser_id` | string | no | Browser to route to |
 
-**Returns:** `Snapshot`.
+**Returns:** `PageState`.
+
+### `browser_dialog_respond`
+
+Responds to the exact browser-native dialog in the latest PageState. The
+operation retains its original debugger session until the dialog is answered;
+the caller does not manage that lifecycle.
+
+| Argument | Type | Required | Description |
+| --- | --- | --- | --- |
+| `dialog_ref` | string | yes | Exact `s<generation>d1` ref from the dialog PageState |
+| `action` | `accept` or `dismiss` | yes | For `beforeunload`, accept means leave and dismiss means stay |
+| `prompt_text` | string | no | Valid only when accepting a `prompt` |
+| `browser_id` | string | no | Browser to route to |
+
+**Returns:** A fresh `PageState`. JavaScript resumed by the answer may open
+another dialog, which receives a new generation/ref and must be answered
+separately. A recorded operation attaches its completed recording metadata to
+the returned document snapshot.
 
 ### `browser_click`
 

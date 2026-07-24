@@ -107,7 +107,8 @@ var protocol_v1_schema_default = {
             "page.downloadFile",
             "page.screenshot",
             "page.getConsoleLogs",
-            "page.recordVideo"
+            "page.recordVideo",
+            "page.dialogRespond"
           ]
         },
         params: { type: "object" }
@@ -115,6 +116,26 @@ var protocol_v1_schema_default = {
       required: ["id", "type", "params"],
       additionalProperties: false,
       allOf: [
+        {
+          if: {
+            properties: { type: { const: "page.dialogRespond" } },
+            required: ["type"]
+          },
+          then: {
+            properties: {
+              params: {
+                type: "object",
+                properties: {
+                  dialogRef: { type: "string", pattern: "^s[0-9]+d1$" },
+                  action: { enum: ["accept", "dismiss"] },
+                  promptText: { type: "string" }
+                },
+                required: ["dialogRef", "action"],
+                additionalProperties: false
+              }
+            }
+          }
+        },
         {
           if: {
             properties: { type: { const: "tabs.list" } },

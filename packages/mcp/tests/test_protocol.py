@@ -19,13 +19,14 @@ def test_schema_lists_all_protocol_commands() -> None:
     command_types = PROTOCOL_SCHEMA["$defs"]["commandRequest"]["properties"]["type"][
         "enum"
     ]
-    assert len(command_types) == 22
-    assert len(set(command_types)) == 22
+    assert len(command_types) == 23
+    assert len(set(command_types)) == 23
     assert "page.drag" in command_types
     assert "page.uploadFile" in command_types
     assert "page.recordVideo" in command_types
     assert "page.waitFor" in command_types
     assert "page.downloadFile" in command_types
+    assert "page.dialogRespond" in command_types
 
 
 def test_protocol_v2_requires_stable_browser_identity() -> None:
@@ -103,6 +104,15 @@ def test_protocol_v2_requires_stable_browser_identity() -> None:
             "type": "page.downloadFile",
             "params": {"element": "Export", "ref": "s1e5", "timeout": 60},
         },
+        {
+            "id": ID,
+            "type": "page.dialogRespond",
+            "params": {
+                "dialogRef": "s2d1",
+                "action": "accept",
+                "promptText": "LLM response",
+            },
+        },
         {"type": "pong"},
     ],
 )
@@ -125,6 +135,11 @@ def test_server_message_validation_accepts_valid_messages(message: object) -> No
             "id": ID,
             "type": "page.downloadFile",
             "params": {"element": "Export", "ref": "s1e5", "timeout": 60.1},
+        },
+        {
+            "id": ID,
+            "type": "page.dialogRespond",
+            "params": {"dialogRef": "s1e2", "action": "accept"},
         },
         {
             "id": ID,

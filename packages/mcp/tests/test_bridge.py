@@ -191,6 +191,60 @@ async def test_snapshot_routes_to_target_without_tab_id() -> None:
     assert await task == snapshot
 
 
+async def test_dialog_state_and_response_use_generation_scoped_ref() -> None:
+    hub = BridgeHub(timeout_seconds=1)
+    socket = FakeSocket()
+    controller = BrowserController(hub)
+    await hub.attach(socket, v2_hello(BROWSER_A, extension_version="0.3.0"))
+    dialog_state = {
+        "pageState": "browser-dialog",
+        "generation": 8,
+        "url": "https://example.com/form",
+        "title": "Form",
+        "dialog": {
+            "type": "prompt",
+            "message": "Name?",
+            "defaultPrompt": "Ada",
+            "ref": "s8d1",
+            "actions": ["accept", "dismiss"],
+        },
+    }
+
+    snapshot_task = asyncio.create_task(controller.snapshot(BROWSER_A))
+    await asyncio.sleep(0)
+    hub.receive(
+        {"id": socket.sent[-1]["id"], "ok": True, "result": dialog_state},
+        BROWSER_A,
+    )
+    assert await snapshot_task == {**dialog_state, "browserId": BROWSER_A}
+
+    response_task = asyncio.create_task(
+        controller.respond_to_dialog("s8d1", "accept", "Grace", BROWSER_A)
+    )
+    await asyncio.sleep(0)
+    request = socket.sent[-1]
+    assert request["type"] == "page.dialogRespond"
+    assert request["params"] == {
+        "dialogRef": "s8d1",
+        "action": "accept",
+        "promptText": "Grace",
+    }
+    document_state = {
+        "generation": 9,
+        "url": "https://example.com/form",
+        "title": "Form",
+        "snapshot": '- status "Grace" [ref=s9e1]',
+    }
+    hub.receive({"id": request["id"], "ok": True, "result": document_state}, BROWSER_A)
+    assert await response_task == {**document_state, "browserId": BROWSER_A}
+
+
+@pytest.mark.parametrize("dialog_ref", ["", "s8e1", "s0d2"])
+async def test_dialog_response_rejects_invalid_ref(dialog_ref: str) -> None:
+    with pytest.raises(ValueError, match="dialog_ref"):
+        await BrowserController(BridgeHub()).respond_to_dialog(dialog_ref, "accept")
+
+
 @pytest.mark.parametrize(
     "result",
     [

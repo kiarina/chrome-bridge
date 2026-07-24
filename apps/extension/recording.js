@@ -222,15 +222,16 @@ async function captureFrame(debuggee) {
   return result.data;
 }
 
-async function createTargetRecorder({ tabId, filename }) {
+async function createTargetRecorder({ tabId, filename, session: suppliedSession }) {
   if (!Number.isInteger(tabId)) throw new Error("tabId must be an integer");
   const requestedFilename = validateRecordingFilename(filename);
   const downloadPath = recordingDownloadPath(requestedFilename);
   const id = crypto.randomUUID();
-  let session;
+  let session = suppliedSession;
+  const ownsSession = suppliedSession === undefined;
   let offscreenReady = false;
   try {
-    session = await openDebuggerSession(tabId);
+    if (!session) session = await openDebuggerSession(tabId);
     const { sourceHeight, sourceWidth } = await targetViewport(session);
     const output = fitWithinMediaBounds(sourceWidth, sourceHeight);
     await ensureOffscreenDocument();
@@ -391,7 +392,7 @@ async function createTargetRecorder({ tabId, filename }) {
           }
         }
         await closeOffscreenDocument();
-        await session.close();
+        if (ownsSession) await session.close();
       },
     };
   } catch (error) {
@@ -403,7 +404,7 @@ async function createTargetRecorder({ tabId, filename }) {
       }
       await closeOffscreenDocument();
     }
-    if (session) await session.close();
+    if (session && ownsSession) await session.close();
     throw error;
   }
 }
@@ -420,10 +421,15 @@ export async function recordTargetVideo({ tabId, filename, duration }) {
   }
 }
 
-export async function recordTargetOperation({ tabId, filename, operation }) {
+export async function recordTargetOperation({
+  tabId,
+  filename,
+  operation,
+  session = undefined,
+}) {
   let recorder;
   try {
-    recorder = await createTargetRecorder({ tabId, filename });
+    recorder = await createTargetRecorder({ tabId, filename, session });
   } catch (error) {
     throw new Error(
       `Recording did not start: ${errorDetail(error)}. The operation was not run.`,

@@ -59,7 +59,9 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
             "browser_id when multiple browsers are connected. Use browser_tab_select to "
             "choose the page-operation target without focusing it. Use browser_tab_activate "
             "only when the user needs to see the target tab. Use browser_upload_file with "
-            "absolute local paths and the exact ref that opens a file chooser."
+            "absolute local paths and the exact ref that opens a file chooser. When a "
+            "PageState contains pageState=browser-dialog, inspect it and call "
+            "browser_dialog_respond with its exact dialog ref before other page actions."
         ),
         stateless_http=True,
         json_response=True,
@@ -119,8 +121,20 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
 
     @tool(name="browser_snapshot")
     async def browser_snapshot(browser_id: str | None = None) -> dict[str, Any]:
-        """Capture an accessibility snapshot of the selected target tab."""
+        """Return the selected target's document or dominant browser-dialog state."""
         return await controller.snapshot(browser_id)
+
+    @tool(name="browser_dialog_respond")
+    async def browser_dialog_respond(
+        dialog_ref: str,
+        action: str,
+        prompt_text: str | None = None,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Accept or dismiss the exact browser dialog returned in PageState."""
+        return await controller.respond_to_dialog(
+            dialog_ref, action, prompt_text, browser_id
+        )
 
     @tool(name="browser_click")
     async def browser_click(

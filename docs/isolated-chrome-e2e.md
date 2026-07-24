@@ -200,6 +200,13 @@ the completed Chrome Downloads item, and macOS/Windows conversion has unit cover
 The harness still injects one internal input-contention probe; it does not inject
 recording permissions, encoder files, protocol commands, or a hidden recording API.
 
+The temporary artifact also injects a browser-dialog lifecycle probe. It verifies
+attached alert/confirm/prompt/beforeunload opening and closing, a pending trusted-input
+command across worker calls, detach/reattach limitations, a 35-second explicit monitor,
+blocked content/Accessibility snapshot paths, prompt text, and unchanged active-tab
+state. The probe exposes no production command and is canonicalized in
+[Browser dialogs](browser-dialogs.md).
+
 The first cold 1280×720, 1.5-second run produced 15 frames and a 42,639-byte WebM in
 1,581 ms, with 43 ms mean and 289 ms maximum `Page.captureScreenshot` time. Later
 The final public-tool run produced 15 frames and approximately 58 KB without drops for
@@ -268,6 +275,8 @@ Manual validation never becomes a prerequisite for ordinary pull requests.
 - `apps/extension/runtime-config.js`: production default server URL seam.
 - `apps/extension/e2e/harness.js`: process, ports, artifact copy, contexts, MCP client, logs, teardown.
 - `apps/extension/e2e/multiple-profiles.spec.js`: the minimum contract above.
+- `apps/extension/e2e/dialog-probe.spec.js`: isolated browser-dialog lifecycle and
+  explicit-monitor measurements.
 - `apps/extension/playwright.e2e.config.js`: serial `channel: "chromium"`, timeouts, artifact policy.
 - `packages/mcp/tests/e2e_server.py`: production app startup with pre-bound port and JSON readiness.
 - `apps/extension/package.json` / lockfile: E2E scripts and MCP SDK development dependency.

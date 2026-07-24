@@ -28,6 +28,7 @@ from .errors import (
 )
 from .models import (
     BrowserInstance,
+    BrowserDialogSnapshot,
     ClosedTab,
     ConsoleEntry,
     DownloadFileResult,
@@ -35,10 +36,11 @@ from .models import (
     RecordedResult,
     Recording,
     Screenshot,
-    Snapshot,
+    PageState,
     Tab,
     WaitResult,
     _recorded_result,
+    _page_state,
 )
 
 
@@ -407,9 +409,27 @@ class ChromeBridgeSession:
             Tab._from_result,
         )
 
-    async def browser_snapshot(self, browser_id: str | None = None) -> Snapshot:
+    async def browser_snapshot(self, browser_id: str | None = None) -> PageState:
         return await self._typed_call(
-            "browser_snapshot", {"browser_id": browser_id}, Snapshot._from_result
+            "browser_snapshot", {"browser_id": browser_id}, _page_state
+        )
+
+    async def browser_dialog_respond(
+        self,
+        dialog_ref: str,
+        action: str,
+        prompt_text: str | None = None,
+        browser_id: str | None = None,
+    ) -> PageState:
+        return await self._typed_call(
+            "browser_dialog_respond",
+            {
+                "dialog_ref": dialog_ref,
+                "action": action,
+                "prompt_text": prompt_text,
+                "browser_id": browser_id,
+            },
+            _page_state,
         )
 
     async def browser_click(
@@ -418,7 +438,7 @@ class ChromeBridgeSession:
         ref: str,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_click",
             _element_arguments(element, ref, video_filename, browser_id),
@@ -431,7 +451,7 @@ class ChromeBridgeSession:
         ref: str,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_hover",
             _element_arguments(element, ref, video_filename, browser_id),
@@ -446,7 +466,7 @@ class ChromeBridgeSession:
         end_ref: str,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_drag",
             {
@@ -467,7 +487,7 @@ class ChromeBridgeSession:
         paths: list[str],
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         arguments = _element_arguments(element, ref, video_filename, browser_id)
         arguments["paths"] = paths
         return await self._snapshot_call(
@@ -482,7 +502,7 @@ class ChromeBridgeSession:
         submit: bool = False,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         arguments = _element_arguments(element, ref, video_filename, browser_id)
         arguments.update({"text": text, "submit": submit})
         return await self._snapshot_call(
@@ -496,7 +516,7 @@ class ChromeBridgeSession:
         values: list[str],
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         arguments = _element_arguments(element, ref, video_filename, browser_id)
         arguments["values"] = values
         return await self._snapshot_call(
@@ -508,7 +528,7 @@ class ChromeBridgeSession:
         key: str,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> KeyPress | RecordedResult[KeyPress]:
+    ) -> KeyPress | BrowserDialogSnapshot | RecordedResult[KeyPress]:
         return await self._typed_call(
             "browser_press_key",
             {
@@ -517,7 +537,10 @@ class ChromeBridgeSession:
                 "browser_id": browser_id,
             },
             lambda value: (
-                _recorded_result(value, KeyPress)
+                BrowserDialogSnapshot._from_result(value)
+                if isinstance(value, Mapping)
+                and value.get("pageState") == "browser-dialog"
+                else _recorded_result(value, KeyPress)
                 if video_filename is not None
                 else KeyPress._from_result(value)
             ),
@@ -528,7 +551,7 @@ class ChromeBridgeSession:
         url: str,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_navigate",
             {
@@ -543,7 +566,7 @@ class ChromeBridgeSession:
         self,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_go_back",
             {"video_filename": video_filename, "browser_id": browser_id},
@@ -554,7 +577,7 @@ class ChromeBridgeSession:
         self,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_go_forward",
             {"video_filename": video_filename, "browser_id": browser_id},
@@ -566,7 +589,7 @@ class ChromeBridgeSession:
         time: float,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> WaitResult | RecordedResult[WaitResult]:
+    ) -> WaitResult | BrowserDialogSnapshot | RecordedResult[WaitResult]:
         return await self._typed_call(
             "browser_wait",
             {
@@ -575,7 +598,10 @@ class ChromeBridgeSession:
                 "browser_id": browser_id,
             },
             lambda value: (
-                _recorded_result(value, WaitResult)
+                BrowserDialogSnapshot._from_result(value)
+                if isinstance(value, Mapping)
+                and value.get("pageState") == "browser-dialog"
+                else _recorded_result(value, WaitResult)
                 if video_filename is not None
                 else WaitResult._from_result(value)
             ),
@@ -588,7 +614,7 @@ class ChromeBridgeSession:
         timeout: float = 10,
         video_filename: str | None = None,
         browser_id: str | None = None,
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._snapshot_call(
             "browser_wait_for",
             {
@@ -644,14 +670,17 @@ class ChromeBridgeSession:
 
     async def _snapshot_call(
         self, method: str, arguments: Mapping[str, Any], *, recorded: bool
-    ) -> Snapshot | RecordedResult[Snapshot]:
+    ) -> PageState | RecordedResult[PageState]:
         return await self._typed_call(
             method,
             arguments,
             lambda value: (
-                _recorded_result(value, Snapshot)
+                BrowserDialogSnapshot._from_result(value)
+                if isinstance(value, Mapping)
+                and value.get("pageState") == "browser-dialog"
+                else _recorded_page_state(value)
                 if recorded
-                else Snapshot._from_result(value)
+                else _page_state(value)
             ),
         )
 
@@ -668,6 +697,14 @@ def _element_arguments(
         "video_filename": video_filename,
         "browser_id": browser_id,
     }
+
+
+def _recorded_page_state(value: Any) -> RecordedResult[PageState]:
+    item = value if isinstance(value, Mapping) else {}
+    return RecordedResult(
+        operation=_page_state(item["operation"]),
+        recording=Recording._from_result(item["recording"]),
+    )
 
 
 def _list(value: Any) -> list[Any]:

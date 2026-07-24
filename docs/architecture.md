@@ -115,6 +115,15 @@ Ref operations validate the generation and strictly resolve an `Element` from `e
 
 Do not use `chrome.debugger.attach({tabId}, "1.3")`, because it made the target tab active in this test environment. Obtain the page `targetId` corresponding to the target tab from `chrome.debugger.getTargets()` and attach directly to `{targetId}`. Enabling renderer `Emulation.setFocusEmulationEnabled` only during input allows CDP input without changing Chrome UI's active tab/window focus. Disable focus emulation and detach afterward. If no page target is available, return an error; never fall back to a foregrounding `{tabId}` attachment.
 
+Before an operation that can open a browser-native dialog, enable the Page domain and
+observe `Page.javascriptDialogOpening`. If a dialog opens, return a synthetic dominant
+PageState immediately while retaining the exact debugger session and pending command.
+`page.dialogRespond` bypasses the ordinary page-operation FIFO only to answer that
+generation-scoped dialog, then waits for the suspended continuation and returns a fresh
+PageState. A chained dialog receives a new generation. Never detach and reattach while a
+dialog is open, and never expose debugger monitor start/end actions. See
+[Browser dialogs](browser-dialogs.md).
+
 Hover follows the same strict Element resolution, scrolling, hit-test, and virtual-cursor path as click, then sends only CDP `mouseMoved`. Type follows the same path, verifies that the Element is editable, focuses it with a trusted click, and sends `Input.insertText`; `submit=true` then sends an Enter chord. Select does not use the debugger: it validates every `option.value` on the saved `HTMLSelectElement`, changes selected state, and fires bubbling `input` and `change` events. Press key converts a `+`-delimited modifier chord or single key into keyDown/keyUp.
 
 Click, hover, type, and select clear the latest snapshot after the operation, wait up to three seconds for one second of DOM stability, and return a new snapshot. Press key also clears the latest snapshot and waits for stability, but returns only a completion message, so the next element operation requires a new `browser_snapshot`.

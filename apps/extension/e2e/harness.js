@@ -19,6 +19,10 @@ const recordingProbeFiles = new Map([
     "recording-probe.js",
     path.join(extensionDir, "e2e/recording-probe/recording-probe.js"),
   ],
+  [
+    "dialog-probe.js",
+    path.join(extensionDir, "e2e/dialog-probe/dialog-probe.js"),
+  ],
 ]);
 const runtimeSourceDir = process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR
   ? path.resolve(process.env.CHROME_BRIDGE_E2E_EXTENSION_DIR)
@@ -173,6 +177,11 @@ export async function startFixtureServer() {
 <p id="route-status">Route: ${fixturePath}</p>
 <a id="history-link" href="${fixturePath === "/a" ? "/b" : "/a"}">History destination</a>
 <button id="update">Update</button>
+<button id="alert-dialog">Open alert</button>
+<button id="confirm-dialog">Open confirm</button>
+<button id="prompt-dialog">Open prompt</button>
+<button id="chained-dialog">Open chained dialogs</button>
+<button id="arm-beforeunload">Arm beforeunload</button>
 <a id="download" href="/download/report.csv" download>Export report</a>
 <a id="download-delayed" href="/download/delayed.csv" download>Export delayed report</a>
 <a id="download-timeout" href="/download/timeout.csv" download>Export timeout report</a>
@@ -197,6 +206,27 @@ export async function startFixtureServer() {
 const label = location.pathname.slice(1).toUpperCase();
 document.querySelector("button").addEventListener("click", () => {
   document.querySelector("[role=status]").textContent = "Updated " + label;
+});
+document.querySelector("#alert-dialog").addEventListener("click", () => {
+  alert("Chrome Bridge dialog probe");
+});
+document.querySelector("#confirm-dialog").addEventListener("click", () => {
+  document.querySelector("[role=status]").textContent =
+    "Confirm result: " + confirm("Confirm probe");
+});
+document.querySelector("#prompt-dialog").addEventListener("click", () => {
+  document.querySelector("[role=status]").textContent =
+    "Prompt result: " + prompt("Prompt probe", "default");
+});
+document.querySelector("#chained-dialog").addEventListener("click", () => {
+  if (confirm("First chained dialog")) {
+    document.querySelector("[role=status]").textContent =
+      "Chained result: " + prompt("Second chained dialog", "second");
+  }
+});
+document.querySelector("#arm-beforeunload").addEventListener("click", () => {
+  globalThis.onbeforeunload = () => "Unsaved fixture changes";
+  document.querySelector("[role=status]").textContent = "Beforeunload armed";
 });
 document.querySelector("#hover").addEventListener("mouseenter", () => {
   document.querySelector("#hover-status").textContent = "Hover: completed " + label;
@@ -289,7 +319,9 @@ export async function prepareExtensionArtifact(serverUrl) {
       backgroundPath,
       [
         'import { measureInputDelayProbe, measureNavigationLifecycleProbe } from "./recording-probe.js";',
+        'import { dialogProbe } from "./dialog-probe.js";',
         "globalThis.__chromeBridgeRecordingProbe = { measureInputDelayProbe, measureNavigationLifecycleProbe };",
+        "globalThis.__chromeBridgeDialogProbe = dialogProbe;",
         background,
       ].join("\n"),
     );
@@ -322,7 +354,7 @@ export async function launchProfile({ artifactDir, userDataDir, name, viewport }
   const logs = [];
   let worker;
   const context = await chromium.launchPersistentContext(userDataDir, {
-    channel: "chromium",
+    channel: process.env.CHROME_BRIDGE_E2E_CHANNEL || "chromium",
     headless: process.env.CHROME_BRIDGE_E2E_HEADED !== "1",
     viewport,
     args: [

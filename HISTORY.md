@@ -1,6 +1,55 @@
 # History
 
+## 2026-07-25
+
+### Browser dialogs as dominant PageState
+
+- Implemented transparent Page-domain observation before dialog-capable operations.
+  An opening `alert`, `confirm`, `prompt`, or `beforeunload` promotes the exact debugger
+  session and pending command across calls; no public monitor start/end actions exist.
+- Added synthetic `BrowserDialogSnapshot`, generation-scoped `s<generation>d1` refs,
+  `page.dialogRespond`, MCP/Direct API `browser_dialog_respond`, and SDK `PageState` /
+  `BrowserDialogSnapshot` models. Ordinary page actions fail fast while dialog state is
+  dominant, while `browser_snapshot` repeats the stored state without touching the
+  blocked content runtime.
+- Response validation restricts alert to accept, prompt text to accepted prompts, and
+  gives chained dialogs fresh refs. Recorded operations retain the recorder's debugger
+  session and return completed recording metadata with the post-response document state.
+- Production isolated E2E passed alert, confirm dismiss, prompt text, accepted
+  beforeunload navigation, stale refs, blocked actions, chained confirm→prompt, and a
+  recorded alert. Full regression passed 162 Python tests, 52 extension tests, and six
+  isolated E2E tests including two-profile routing in 2.5 minutes.
+- Branded stable Chrome with a user-loaded unpacked build passed alert, confirm dismiss,
+  prompt text, chained confirm→prompt, accepted beforeunload navigation, repeated
+  dominant snapshots, and blocked ordinary actions. Manual cancellation of a retained
+  confirm resumed the pending click, produced `Confirm result: false`, returned a fresh
+  document generation, and allowed immediate debugger-backed key input. Closing a target
+  with a retained alert cleaned up correctly and a new target was immediately usable;
+  all validation tabs were closed.
+- Playwright's automated branded-Chrome launch did not load the unpacked extension in
+  either headless or headed mode, so the branded run used the ordinary developer-mode
+  load path. DevTools/external detach, extension reload/shutdown, and failure recovery
+  remain follow-up validation.
+
 ## 2026-07-24
+
+### Browser-dialog CDP lifecycle probe
+
+- Added a test-only isolated Chromium probe for `alert`, `confirm`, `prompt`, and
+  `beforeunload` without changing the production extension or public protocol.
+- Confirmed that a pre-attached, Page-enabled debugger observes opening/closing events,
+  can retain a pending trusted-input command across worker calls, and can later accept or
+  dismiss it with exact prompt text. A 35-second explicit monitor retained its worker,
+  debugger, and listener while the target stayed in the background.
+- Confirmed the recovery boundary: detach fails the pending input; reattach succeeds but
+  `Page.enable` stalls and does not replay the opening event. A dialog opened while
+  detached behaves the same, and an immediately queued handler reports no dialog.
+- Both content-script ping and `Accessibility.getFullAXTree` remained pending during the
+  dialog and recovered after response. This supports a dominant synthetic dialog-only
+  PageState. A continuous internal observer remains technically possible, but public
+  monitor start/end actions were rejected in favor of transparent operation ownership;
+  between-command dialogs are outside the initial guarantee. Recorded the remaining branded-Chrome matrix in
+  `docs/browser-dialogs.md`.
 
 ### Public Chrome Web Store publication
 

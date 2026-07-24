@@ -298,11 +298,13 @@ class BrowserController:
             _validate_recording_filename(video_filename)
             params["videoFilename"] = video_filename
         result = await connection.request(command, params)
+        if _is_dialog_result(result):
+            return self._with_browser_id(result, connection)
         if video_filename is not None:
             if not (
                 isinstance(result, dict)
                 and set(result) == {"operation", "recording"}
-                and _is_snapshot_result(result["operation"])
+                and _is_page_state_result(result["operation"])
                 and _is_recording_result(
                     result["recording"], requested_filename=video_filename
                 )
@@ -314,7 +316,7 @@ class BrowserController:
                 "operation": self._with_browser_id(result["operation"], connection),
                 "recording": self._with_browser_id(result["recording"], connection),
             }
-        if not _is_snapshot_result(result):
+        if not _is_page_state_result(result):
             raise ExtensionCommandError(f"{command} returned an invalid response")
         return self._with_browser_id(result, connection)
 
@@ -366,8 +368,32 @@ class BrowserController:
     async def snapshot(self, browser_id: str | None = None) -> dict[str, Any]:
         connection = self._connection(browser_id)
         result = await connection.request("page.snapshot", {})
-        if not _is_snapshot_result(result):
+        if not _is_page_state_result(result):
             raise ExtensionCommandError("page.snapshot returned an invalid response")
+        return self._with_browser_id(result, connection)
+
+    async def respond_to_dialog(
+        self,
+        dialog_ref: str,
+        action: str,
+        prompt_text: str | None = None,
+        browser_id: str | None = None,
+    ) -> dict[str, Any]:
+        if not re.fullmatch(r"s[0-9]+d1", dialog_ref):
+            raise ValueError("dialog_ref must be returned by browser_snapshot")
+        if action not in {"accept", "dismiss"}:
+            raise ValueError("action must be accept or dismiss")
+        if prompt_text is not None and not isinstance(prompt_text, str):
+            raise ValueError("prompt_text must be a string or null")
+        connection = self._connection(browser_id)
+        params: dict[str, Any] = {"dialogRef": dialog_ref, "action": action}
+        if prompt_text is not None:
+            params["promptText"] = prompt_text
+        result = await connection.request("page.dialogRespond", params)
+        if not _is_page_state_result(result):
+            raise ExtensionCommandError(
+                "page.dialogRespond returned an invalid response"
+            )
         return self._with_browser_id(result, connection)
 
     async def click(
@@ -491,6 +517,8 @@ class BrowserController:
         video_filename: str | None = None,
     ) -> str | dict[str, Any]:
         result = await self.press_key_result(key, browser_id, video_filename)
+        if _is_dialog_result(result):
+            return result
         completion = f"Pressed key {key}"
         if video_filename is not None:
             return {
@@ -514,6 +542,8 @@ class BrowserController:
         if video_filename is not None:
             params["videoFilename"] = video_filename
         result = await connection.request("page.pressKey", params)
+        if _is_dialog_result(result):
+            return self._with_browser_id(result, connection)
         if video_filename is not None:
             if not (
                 isinstance(result, dict)
@@ -580,6 +610,8 @@ class BrowserController:
         video_filename: str | None = None,
     ) -> str | dict[str, Any]:
         result = await self.wait_result(time, browser_id, video_filename)
+        if _is_dialog_result(result):
+            return result
         completion = f"Waited for {time:g} seconds"
         if video_filename is not None:
             return {
@@ -609,6 +641,8 @@ class BrowserController:
         if video_filename is not None:
             params["videoFilename"] = video_filename
         result = await connection.request("page.wait", params)
+        if _is_dialog_result(result):
+            return self._with_browser_id(result, connection)
         if video_filename is not None:
             if not (
                 isinstance(result, dict)
@@ -872,6 +906,33 @@ def _is_snapshot_result(result: Any) -> bool:
         and isinstance(result.get("title"), str)
         and isinstance(result.get("snapshot"), str)
     )
+
+
+def _is_dialog_result(result: Any) -> bool:
+    if not (
+        isinstance(result, dict)
+        and result.get("pageState") == "browser-dialog"
+        and isinstance(result.get("generation"), int)
+        and not isinstance(result.get("generation"), bool)
+        and isinstance(result.get("url"), str)
+        and isinstance(result.get("title"), str)
+        and isinstance(result.get("dialog"), dict)
+    ):
+        return False
+    dialog = result["dialog"]
+    dialog_type = dialog.get("type")
+    actions = dialog.get("actions")
+    return (
+        dialog_type in {"alert", "confirm", "prompt", "beforeunload"}
+        and isinstance(dialog.get("message"), str)
+        and isinstance(dialog.get("defaultPrompt"), str)
+        and dialog.get("ref") == f"s{result['generation']}d1"
+        and actions == (["accept"] if dialog_type == "alert" else ["accept", "dismiss"])
+    )
+
+
+def _is_page_state_result(result: Any) -> bool:
+    return _is_snapshot_result(result) or _is_dialog_result(result)
 
 
 def _is_download_result(result: Any) -> bool:

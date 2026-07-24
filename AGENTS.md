@@ -41,5 +41,7 @@ docs 以下にドキュメントを追加した際に、以下に、読む条件
 - target tab の動画録画、debugger session共有、offscreen encoding、Downloads出力、
   screenshot/video解像度を変更する場合:
   [Video recording design](docs/video-recording.md) — 未実装の録画API、command-scoped lease、Full HD縦横切替、段階的検証の正典。
+- browser native dialog、dialog PageState、dialog応答、debugger監視scopeを変更する場合:
+  [Browser dialogs](docs/browser-dialogs.md) — dialog支配snapshot、CDP start/end実測、session所有権、残検証の正典。
 - setup、test、実 Chrome 検証、tool 追加を行う場合:
   [Development guide](docs/development.md) — uv、unpacked extension、validation の正典。

@@ -94,6 +94,7 @@ class Snapshot:
     title: str
     snapshot: str
     browser_id: str | None = None
+    recording: Recording | None = None
 
     @classmethod
     def _from_result(cls, value: Any) -> Snapshot:
@@ -104,7 +105,65 @@ class Snapshot:
             title=str(item["title"]),
             snapshot=str(item["snapshot"]),
             browser_id=_optional_string(item.get("browserId")),
+            recording=(
+                Recording._from_result(item["recording"])
+                if item.get("recording") is not None
+                else None
+            ),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserDialog:
+    type: str
+    message: str
+    default_prompt: str
+    ref: str
+    actions: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserDialogSnapshot:
+    generation: int
+    url: str
+    title: str
+    dialog: BrowserDialog
+    browser_id: str | None = None
+
+    @classmethod
+    def _from_result(cls, value: Any) -> BrowserDialogSnapshot:
+        item = _mapping(value)
+        if item.get("pageState") != "browser-dialog":
+            raise TypeError("result is not a browser-dialog PageState")
+        dialog = _mapping(item["dialog"])
+        actions = dialog["actions"]
+        if not isinstance(actions, list) or not all(
+            isinstance(action, str) for action in actions
+        ):
+            raise TypeError("dialog actions must be strings")
+        return cls(
+            generation=int(item["generation"]),
+            url=str(item["url"]),
+            title=str(item["title"]),
+            dialog=BrowserDialog(
+                type=str(dialog["type"]),
+                message=str(dialog["message"]),
+                default_prompt=str(dialog["defaultPrompt"]),
+                ref=str(dialog["ref"]),
+                actions=tuple(actions),
+            ),
+            browser_id=_optional_string(item.get("browserId")),
+        )
+
+
+PageState = Snapshot | BrowserDialogSnapshot
+
+
+def _page_state(value: Any) -> PageState:
+    item = _mapping(value)
+    if item.get("pageState") == "browser-dialog":
+        return BrowserDialogSnapshot._from_result(item)
+    return Snapshot._from_result(item)
 
 
 @dataclass(frozen=True, slots=True)
