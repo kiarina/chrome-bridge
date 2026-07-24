@@ -16,11 +16,10 @@ new ZIP or runtime change was submitted.
 - Google Cloud project `chrome-bridge`, its keyless service account and repository-bound
   Workload Identity provider, and the unprotected `chrome-web-store` GitHub environment
   are configured. `chrome-web-store@chrome-bridge.iam.gserviceaccount.com` is registered
-  as the publisher's API service account in the Chrome Web Store dashboard. Push this
-  workflow implementation, then run the manual read-only status workflow through the
-  repository-bound WIF path.
-- The status workflow may be validated during Public review, but no API upload may run
-  until Public is manually published once.
+  as the publisher's API service account in the Chrome Web Store dashboard. Manual status
+  run `30068205181` passed through the repository-bound WIF path and returned
+  `publishedState=PUBLISHED`, `submittedState=STAGED`, with no warning or takedown.
+- No API upload may run until Public is manually published once.
 - The repository-side API v2 client, fail-closed tests, automatic tag job, and daily
   status workflow are implemented. The tag job uses `DEFAULT_PUBLISH` for fully
   automatic publication after approval and skips Store mutation for Python-only tags.

@@ -16,9 +16,8 @@
   requiring attention. Repository-side tests cover automatic publication payloads,
   asynchronous upload, existing-version skip, active-review/warning refusal, version
   mismatch, and rejection monitoring.
-- External authentication bootstrap remains pending a Google Cloud project choice. Its
-  read-only status check may run during Public review, while the first API upload remains
-  gated on approval and one manual publication of the pending Public visibility.
+- Kept the first API upload gated on approval and one manual publication of the pending
+  Public visibility; the read-only status check is safe during that review.
 - Created dedicated Google Cloud project `chrome-bridge` (project number
   `1091874734794`), enabled the Store, IAM Credentials, and STS APIs, and created
   `chrome-web-store@chrome-bridge.iam.gserviceaccount.com` without a user-managed key.
@@ -31,6 +30,11 @@
   bindings were removed, leaving only the repository-bound WIF principal on the service
   account. The checked-in status workflow is the canonical end-to-end authentication
   probe.
+- Committed and pushed the automation as `530149b`, then completed GitHub Actions run
+  `30068205181` through the repository-bound WIF path. API v2 reported the canonical item
+  as `publishedState=PUBLISHED`, `submittedState=STAGED`, `warned=false`, and
+  `takenDown=false`, confirming keyless authentication and the expected pending Public
+  transition without mutating the Store item.
 
 ### Public visibility review submitted
 

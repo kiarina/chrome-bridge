@@ -248,11 +248,11 @@ automatically retried after an ambiguous network failure.
 
 ### One-time API v2 bootstrap
 
-Authentication bootstrap and the read-only status check may be completed while the
-Public visibility review is pending. Do not perform the first API upload or publication
-until that visibility is approved and manually published once: Chrome Web Store does
-not allow API publication immediately after a manual visibility change until the changed
-visibility has been published manually.
+Authentication bootstrap and the read-only status check are complete. Do not perform
+the first API upload or publication until the pending Public visibility is approved and
+manually published once: Chrome Web Store does not allow API publication immediately
+after a manual visibility change until the changed visibility has been published
+manually.
 
 Current keyless configuration, created 2026-07-24:
 
@@ -268,6 +268,12 @@ The provider condition admits only `kiarina/chrome-bridge`; its repository princ
 set alone has `roles/iam.workloadIdentityUser` on the service account. The service
 account has no user-managed key. Its email is registered as the publisher API service
 account in the Chrome Web Store Developer Dashboard.
+
+Manual GitHub Actions run `30068205181` validated the complete keyless path on
+2026-07-24. API v2 returned `publishedState=PUBLISHED`, `submittedState=STAGED`,
+`warned=false`, and `takenDown=false` for the canonical item. This is the expected state
+while the existing Unlisted publication remains live and the Public visibility change
+awaits manual publication after review.
 
 1. Select a dedicated or explicitly approved Google Cloud project, enable Chrome Web
    Store API and IAM Service Account Credentials API, and create a service account with
