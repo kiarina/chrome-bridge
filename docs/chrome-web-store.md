@@ -13,7 +13,9 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
 - Visibility: Unlisted
 - Initial v0.1.0 publication: 2026-07-21
 - v0.3.0 update approved and manually published: 2026-07-24
-- Status at handoff: published and post-publication smoke tested
+- Pending change: Public visibility submitted for review on 2026-07-24
+- Status at handoff: existing Unlisted publication remains live; Public change is
+  pending review
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
 - Current ZIP SHA-256: `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`
 
@@ -59,7 +61,21 @@ intentional outcome-unknown timeout, and immediate debugger reuse. It removed it
 temporary tab and exactly two completed CSV downloads with no cleanup remaining. The
 user chose not to repeat the old-ZIP fallback exercise after this update; the documented
 fallback remains available from the earlier publication validation. Public visibility
-and final-publication automation remain deferred decisions.
+was then submitted separately so the stable runtime update and distribution change
+remain distinguishable.
+
+### Public visibility submission
+
+On 2026-07-24, changed distribution from Unlisted to Public without changing the free
+payment setting, selected regions, package, or version. Submitted the visibility change
+for review with automatic publication disabled. The authoritative item row returned to
+`審査待ち` at version 0.3.0. Do not resubmit while that state remains authoritative; the
+existing Unlisted publication continues serving users during review.
+
+After approval, manually publish the staged Public visibility and verify the direct
+listing, public discoverability, Store extension ID, installed version, and connection.
+This first manual publication under the changed visibility is also required before later
+updates can be published through API v2 using the existing Public setting.
 
 Official references:
 
@@ -217,12 +233,14 @@ The Store-assigned extension ID is distinct from the random `browserId` used by 
 
 ## Update automation
 
-The first submission, visibility selection, and publication were performed manually.
-The Chrome Web Store API v2 can upload later ZIPs and submit them for review. Keep API
+The first submissions, visibility changes, and publications were performed manually.
+The Chrome Web Store API v2 can upload later ZIPs and submit them for review after the
+pending Public visibility has been approved and manually published once. Keep API
 credentials in the CI secret store, use the existing verified ZIP without rebuilding,
 and prefer staged publishing. See [Use the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api).
 
 The first real update confirmed staged review, manual publication, the stable Store item
-ID, and Store-copy background operation. Before automating final publication, make a
-separate release-process decision about credentials, staged rollout, failure handling,
-and whether the accepted but unexercised post-update fallback risk is appropriate.
+ID, and Store-copy background operation. Implement upload, submission, and status polling
+first with `STAGED_PUBLISH` plus a protected manual final-publication approval. Consider
+`DEFAULT_PUBLISH` only after multiple automated updates are stable and the credential,
+warning, failure, and rollback paths are established.

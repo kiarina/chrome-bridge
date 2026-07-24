@@ -2,6 +2,17 @@
 
 ## 2026-07-24
 
+### Public visibility review submitted
+
+- Changed the existing Chrome Web Store item's distribution from Unlisted to Public
+  while retaining free distribution and all existing regions.
+- Submitted the visibility change for review with automatic publication disabled. The
+  authoritative item row returned to `審査待ち` for version 0.3.0; no new extension ZIP
+  or runtime change was involved.
+- The currently published 0.3.0 Unlisted item remains available during review. After
+  approval, manually publish the Public visibility once before relying on API v2 for
+  later Store submissions.
+
 ### v0.3.0 Chrome Web Store publication and validation
 
 - Chrome Web Store approved the staged 0.3.0 update for existing Unlisted item
@@ -18,8 +29,7 @@
   passed. The test closed only its temporary fixture tab and deleted exactly its two
   completed CSV downloads with no cleanup remaining.
 - The user accepted the already-established fallback guidance and chose not to repeat
-  the old-ZIP fallback exercise after this update. Public visibility and final Store
-  publication automation remain deferred follow-ups; P1.12 is otherwise complete.
+  the old-ZIP fallback exercise after this update. P1.12 is otherwise complete.
 
 ### Colocated Python workspace packages
 
