@@ -18,12 +18,16 @@ import {
   waitForStableDOM,
 } from "../src/interaction";
 import {
+  claimAgentUiRuntime,
+  disconnectAgentUiForReloadTest,
   disposeAgentUi,
   getAgentUiState,
   getLogicalDocumentTitle,
   setAgentUiState,
 } from "../src/agent-ui";
 import { resizePng } from "../src/image";
+
+claimAgentUiRuntime();
 
 (globalThis as Record<string, unknown>).chromeBridgeSnapshotTest = {
   clearSnapshotState,
@@ -44,6 +48,7 @@ import { resizePng } from "../src/image";
   setAgentUiState,
   getAgentUiState,
   getLogicalDocumentTitle,
+  disconnectAgentUiForReloadTest,
   disposeAgentUi,
   resizePng,
 };

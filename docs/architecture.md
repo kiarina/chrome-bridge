@@ -85,7 +85,23 @@ Clear the latest snapshot generation on target selection and when `chrome.webNav
 
 The agent UI tracks target ownership as `off`, `target`, or `operating`. It stores `operatingTabId` and a unique operation token in `chrome.storage.session`; only a command that has begun execution from the page-operation queue becomes operating. In `finally`, only a matching token clears the state, so stale cleanup cannot erase newer state. At startup, the content runtime queries the background for state and restores the title prefix after navigation. This uses internal extension messages and does not change the extension protocol or MCP results.
 
-The content runtime retains the latest page title as the logical title and applies target/operating prefixes to the Chrome tab. A MutationObserver tracks dynamic title changes, and clearing the target restores the latest logical title. Snapshot results omit the prefix. Target/operating state remains visible in the extension popup; no badge is injected into the page because it could obscure site controls and recording content. The virtual cursor uses a Shadow DOM host and is removed from the old tab when the target changes.
+The content runtime retains the latest page title as the logical title and applies
+target/operating prefixes to the Chrome tab. A versioned DOM marker records the logical
+title, exact decorated title, and a random runtime owner token. On reinjection, recovery
+is allowed only when the marker matches the current title. The newest runtime atomically
+claims a document-level owner token; older listeners ignore messages and older title
+observers disconnect, preventing multiple extension contexts from stacking prefixes
+after Reload. A MutationObserver tracks dynamic title changes, and clearing the target
+restores the latest logical title. Snapshot results omit the prefix, including when the
+page's own title begins with `◉` or `●`. Target/operating state remains visible in the
+extension popup; no badge is injected into the page because it could obscure site
+controls and recording content. The virtual cursor uses a Shadow DOM host and is removed
+from the old tab when the target changes.
+
+A title left decorated by a pre-marker runtime is intentionally not guessed or stripped:
+it is indistinguishable from a legitimate page title beginning with the same glyph. A
+normal page navigation/reload restores that one-time upgrade case. After a marker-capable
+runtime has claimed the document, repeated extension Reload is ownership-safe.
 
 This separation lets the agent operate background tabs without unnecessarily taking over the user's current work. If a background operation fails because of a focus-dependent site, permission prompt, clipboard, or browser-native UI, do not activate automatically; return an error that lets the caller choose `browser_tab_activate`.
 

@@ -262,6 +262,94 @@ test("tracks target and operating state without losing dynamic page titles", asy
   ).toBe(0);
 });
 
+test("retains title ownership across repeated content runtime injection", async ({
+  page,
+}) => {
+  await page.setContent("<!doctype html><title>Original</title><main>Page</main>");
+  await installHarness(page);
+  await page.evaluate(() =>
+    globalThis.chromeBridgeSnapshotTest.setAgentUiState("target"),
+  );
+  await expect(page).toHaveTitle("◉ Original");
+
+  await page.evaluate(() =>
+    globalThis.chromeBridgeSnapshotTest.disconnectAgentUiForReloadTest(),
+  );
+  await installHarness(page);
+  const afterFirstReload = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    const logicalTitle = runtime.getLogicalDocumentTitle();
+    runtime.setAgentUiState("operating");
+    return { logicalTitle, title: document.title };
+  });
+  expect(afterFirstReload).toEqual({
+    logicalTitle: "Original",
+    title: "● Original",
+  });
+
+  await page.evaluate(() => {
+    document.title = "Updated after reload";
+  });
+  await expect(page).toHaveTitle("● Updated after reload");
+  await page.evaluate(() =>
+    globalThis.chromeBridgeSnapshotTest.disconnectAgentUiForReloadTest(),
+  );
+  await installHarness(page);
+  const afterSecondReload = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    const logicalTitle = runtime.getLogicalDocumentTitle();
+    runtime.setAgentUiState("target");
+    return { logicalTitle, title: document.title };
+  });
+  expect(afterSecondReload).toEqual({
+    logicalTitle: "Updated after reload",
+    title: "◉ Updated after reload",
+  });
+
+  await page.evaluate(() =>
+    globalThis.chromeBridgeSnapshotTest.setAgentUiState("off"),
+  );
+  await expect(page).toHaveTitle("Updated after reload");
+  expect(
+    await page.locator("html").getAttribute("data-chrome-bridge-agent-title-v1"),
+  ).toBeNull();
+});
+
+test("preserves page-owned title glyphs and rejects stale ownership", async ({
+  page,
+}) => {
+  await page.setContent(
+    '<!doctype html><title>◉ Page title</title><main>Page</main>',
+  );
+  await installHarness(page);
+  const decorated = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    const logicalTitle = runtime.getLogicalDocumentTitle();
+    runtime.setAgentUiState("target");
+    return { logicalTitle, title: document.title };
+  });
+  expect(decorated).toEqual({
+    logicalTitle: "◉ Page title",
+    title: "◉ ◉ Page title",
+  });
+  await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    runtime.disconnectAgentUiForReloadTest();
+    document.title = "Changed by page";
+  });
+
+  await installHarness(page);
+  expect(
+    await page.evaluate(() => ({
+      logicalTitle:
+        globalThis.chromeBridgeSnapshotTest.getLogicalDocumentTitle(),
+      marker: document.documentElement.getAttribute(
+        "data-chrome-bridge-agent-title-v1",
+      ),
+    })),
+  ).toEqual({ logicalTitle: "Changed by page", marker: null });
+});
+
 test("keeps the virtual cursor visible without injecting screenshot UI", async ({
   page,
 }) => {

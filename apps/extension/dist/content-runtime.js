@@ -1670,14 +1670,51 @@
     target: "\u25C9 ",
     operating: "\u25CF "
   };
+  var RUNTIME_OWNERSHIP_ATTRIBUTE = "data-chrome-bridge-content-runtime-owner-v1";
+  var TITLE_OWNERSHIP_ATTRIBUTE = "data-chrome-bridge-agent-title-v1";
   var currentState = "off";
   var logicalTitle = document.title;
   var appliedTitle = null;
   var applyingTitle = false;
   var titleObserver;
+  var runtimeOwnerId = null;
+  function claimAgentUiRuntime() {
+    if (ownsAgentUiRuntime()) return;
+    const recoveredTitleOwnership = readTitleOwnership();
+    runtimeOwnerId = createRuntimeOwnerId();
+    document.documentElement.setAttribute(
+      RUNTIME_OWNERSHIP_ATTRIBUTE,
+      runtimeOwnerId
+    );
+    currentState = "off";
+    logicalTitle = recoveredTitleOwnership?.logicalTitle ?? document.title;
+    appliedTitle = recoveredTitleOwnership?.appliedTitle ?? null;
+    applyingTitle = false;
+    titleObserver?.disconnect();
+    titleObserver = void 0;
+    if (recoveredTitleOwnership) {
+      writeTitleOwnership({
+        ...recoveredTitleOwnership,
+        ownerId: runtimeOwnerId
+      });
+    }
+  }
+  function createRuntimeOwnerId() {
+    const words = crypto.getRandomValues(new Uint32Array(4));
+    return Array.from(words, (word) => word.toString(16).padStart(8, "0")).join(
+      ""
+    );
+  }
+  function ownsAgentUiRuntime() {
+    return runtimeOwnerId !== null && document.documentElement.getAttribute(RUNTIME_OWNERSHIP_ATTRIBUTE) === runtimeOwnerId;
+  }
   function setAgentUiState(state) {
     if (!isAgentUiState(state)) {
       throw new Error(`Invalid agent UI state: ${String(state)}`);
+    }
+    if (!ownsAgentUiRuntime()) {
+      disconnectAgentUiForReloadTest();
+      return;
     }
     captureExternalTitleChange();
     removeLegacyIndicator();
@@ -1685,8 +1722,13 @@
     applyTitle();
   }
   function getLogicalDocumentTitle() {
+    if (!ownsAgentUiRuntime()) return logicalTitle;
     captureExternalTitleChange();
     return logicalTitle;
+  }
+  function disconnectAgentUiForReloadTest() {
+    titleObserver?.disconnect();
+    titleObserver = void 0;
   }
   function removeLegacyIndicator() {
     document.getElementById(LEGACY_INDICATOR_HOST_ID)?.remove();
@@ -1694,10 +1736,45 @@
   function isAgentUiState(value) {
     return value === "off" || value === "target" || value === "operating";
   }
+  function readTitleOwnership() {
+    const encoded = document.documentElement.getAttribute(
+      TITLE_OWNERSHIP_ATTRIBUTE
+    );
+    if (!encoded) return null;
+    try {
+      const value = JSON.parse(encoded);
+      if (typeof value.logicalTitle !== "string" || typeof value.appliedTitle !== "string" || typeof value.ownerId !== "string" || !value.ownerId || document.title !== value.appliedTitle || !Object.values(TITLE_PREFIXES).some(
+        (prefix) => value.appliedTitle === `${prefix}${value.logicalTitle}`
+      )) {
+        clearTitleOwnership();
+        return null;
+      }
+      return {
+        logicalTitle: value.logicalTitle,
+        appliedTitle: value.appliedTitle
+      };
+    } catch {
+      clearTitleOwnership();
+      return null;
+    }
+  }
+  function writeTitleOwnership(ownership) {
+    document.documentElement.setAttribute(
+      TITLE_OWNERSHIP_ATTRIBUTE,
+      JSON.stringify(ownership)
+    );
+  }
+  function clearTitleOwnership() {
+    document.documentElement.removeAttribute(TITLE_OWNERSHIP_ATTRIBUTE);
+  }
   function ensureTitleObserver() {
     if (titleObserver) return;
     titleObserver = new MutationObserver(() => {
       if (applyingTitle) return;
+      if (!ownsAgentUiRuntime()) {
+        disconnectAgentUiForReloadTest();
+        return;
+      }
       captureExternalTitleChange();
       applyTitle();
     });
@@ -1712,6 +1789,7 @@
     if (appliedTitle === null || currentTitle !== appliedTitle) {
       logicalTitle = currentTitle;
       appliedTitle = null;
+      clearTitleOwnership();
     }
   }
   function applyTitle() {
@@ -1719,11 +1797,29 @@
     const nextTitle = currentState === "off" ? logicalTitle : `${TITLE_PREFIXES[currentState]}${logicalTitle}`;
     if (document.title === nextTitle) {
       appliedTitle = currentState === "off" ? null : nextTitle;
+      if (appliedTitle === null) {
+        clearTitleOwnership();
+      } else {
+        writeTitleOwnership({
+          logicalTitle,
+          appliedTitle,
+          ownerId: runtimeOwnerId
+        });
+      }
       return;
     }
     applyingTitle = true;
     document.title = nextTitle;
     appliedTitle = currentState === "off" ? null : nextTitle;
+    if (appliedTitle === null) {
+      clearTitleOwnership();
+    } else {
+      writeTitleOwnership({
+        logicalTitle,
+        appliedTitle,
+        ownerId: runtimeOwnerId
+      });
+    }
     queueMicrotask(() => {
       applyingTitle = false;
     });
@@ -1733,8 +1829,10 @@
   var RUNTIME_MARKER = "__chromeBridgeContentRuntimeV1";
   if (!globalThis[RUNTIME_MARKER]) {
     globalThis[RUNTIME_MARKER] = true;
+    claimAgentUiRuntime();
     chrome.runtime.onMessage.addListener(
       (message, _sender, sendResponse) => {
+        if (!ownsAgentUiRuntime()) return false;
         if (message?.type === "chrome-bridge.content.ping") {
           sendResponse({ ok: true, version: 1 });
           return false;
@@ -1934,7 +2032,9 @@
       }
     );
     void chrome.runtime.sendMessage({ type: "chrome-bridge.ui.getState" }).then((response) => {
-      if (response?.ok && response.state) setAgentUiState(response.state);
+      if (ownsAgentUiRuntime() && response?.ok && response.state) {
+        setAgentUiState(response.state);
+      }
     }).catch(() => {
     });
   }

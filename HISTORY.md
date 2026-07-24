@@ -2,6 +2,23 @@
 
 ## 2026-07-25
 
+### Reload-safe agent UI title ownership
+
+- Added a versioned DOM ownership marker containing the logical page title, the exact
+  decorated title, and a random runtime owner token. A newly injected content runtime
+  recovers the logical title only when the marker matches the current document title;
+  stale markers and page-owned titles beginning with `◉` or `●` remain page data.
+- Added a document-level runtime owner token in addition to the existing isolated-world
+  singleton. After extension Reload, the newest context atomically claims ownership;
+  older message listeners ignore commands and older title observers disconnect instead
+  of reapplying their state.
+- DOM tests passed repeated reinjection, target/operating transitions, dynamic page title
+  changes, `off` cleanup, page-owned glyphs, and stale ownership rejection. In branded
+  Chrome, two consecutive extensions-page Reloads retained exactly one `◉` in the tab
+  title while both returned snapshots kept the undecorated `Chrome Bridge E2E` title.
+- Full regression passed 54 extension tests, lint/static validation, and all seven
+  isolated E2E tests including dialog lifecycle, two-profile routing, and recording.
+
 ### Browser-dialog continuation and interrupted-session recovery
 
 - Extended transparent dialog promotion to `browser_download_file`. A confirm or other
@@ -47,10 +64,8 @@
   second run restored the fixture under a new tab ID without its native dialog. Startup
   again cleared the target and recovery marker; explicitly selecting the restored tab
   produced a normal generation-1 snapshot with unchanged `Ready` page state.
-- Repeated extensions-page Reload exposed a separate agent-UI issue: the target/
-  operating title glyphs accumulate because a newly injected content runtime treats the
-  prior runtime's prefix as page title. This does not affect dialog ownership but remains
-  a cleanup task.
+- Repeated extensions-page Reload exposed an agent-UI title ownership issue, which the
+  reload-safe runtime ownership work above subsequently resolved.
 
 ### Browser dialogs as dominant PageState
 

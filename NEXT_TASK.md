@@ -72,7 +72,8 @@ open, but `Page.enable` stalls, no opening event is replayed, and a queued respo
   headed mode. An isolated `chrome.runtime.reload()` experiment also failed to produce a
   replacement worker, so it is not evidence for real extensions-page Reload behavior.
   Keep the user-loaded unpacked path for the remaining matrix.
-- Repeated extension Reload leaves accumulated `◉`/`●` agent-UI prefixes in the tab
-  title because a new content runtime treats the preceding runtime's decorated title as
-  logical page title. Fix and test reload-safe title ownership separately from dialog
-  state.
+- A title already decorated by a pre-marker extension build has no trustworthy
+  provenance and is intentionally not stripped, because a page may legitimately begin
+  its own title with `◉` or `●`. Page navigation/reload restores that one-time migration
+  case; once the marker-capable runtime claims the page, repeated extension Reload is
+  stable. Include one clean page navigation in the next extension upgrade smoke.

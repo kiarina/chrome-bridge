@@ -19,7 +19,9 @@ import {
 import { resizePng } from "./image";
 import {
   type AgentUiState,
+  claimAgentUiRuntime,
   getLogicalDocumentTitle,
+  ownsAgentUiRuntime,
   setAgentUiState,
 } from "./agent-ui";
 
@@ -47,8 +49,10 @@ type ContentMessage = {
 
 if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
   (globalThis as Record<string, unknown>)[RUNTIME_MARKER] = true;
+  claimAgentUiRuntime();
   chrome.runtime.onMessage.addListener(
     (message: ContentMessage, _sender, sendResponse) => {
+      if (!ownsAgentUiRuntime()) return false;
       if (message?.type === "chrome-bridge.content.ping") {
         sendResponse({ ok: true, version: 1 });
         return false;
@@ -254,7 +258,9 @@ if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
   void chrome.runtime
     .sendMessage({ type: "chrome-bridge.ui.getState" })
     .then((response) => {
-      if (response?.ok && response.state) setAgentUiState(response.state);
+      if (ownsAgentUiRuntime() && response?.ok && response.state) {
+        setAgentUiState(response.state);
+      }
     })
     .catch(() => {
       // The background can be restarting while a document initializes.
