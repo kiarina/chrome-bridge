@@ -13,7 +13,7 @@
     "test:e2e:release": "playwright test --config=playwright.e2e.config.js"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@playwright/test": "1.61.1",
     "esbuild": "0.25.5",
     "eslint": "10.4.0"

@@ -1,5 +1,17 @@
 # History
 
+## 2026-08-10
+
+### Dependabot advisory remediation
+
+- Updated the extension's E2E-only `@modelcontextprotocol/sdk` development dependency
+  from 1.29.0 to 1.30.0 after the upstream SDK allowed `@hono/node-server>=2.0.5`.
+- Refreshed the compatible transitive lockfile entries for `@hono/node-server`, `hono`,
+  `brace-expansion`, `fast-uri`, and `ip-address`. `npm audit` now reports zero
+  vulnerabilities, closing the previously documented upstream wait without a forced
+  major override. A clean `npm ci`, all 54 extension tests, extension lint, and static
+  validation passed.
+
 ## 2026-07-25
 
 ### v0.4.0 release preparation

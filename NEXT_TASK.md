@@ -18,6 +18,3 @@ and returned `uploadState=SUCCEEDED`, `submissionState=PENDING_REVIEW`,
   update the published version/status/checksum in `docs/chrome-web-store.md`, and update
   the README's Public-version statement. Keep this file limited to anything still
   outstanding afterward.
-- Track an upstream MCP JavaScript SDK release that can adopt
-  `@hono/node-server>=2.0.5`. The current moderate advisory affects only an E2E
-  development dependency; do not force a transitive major override solely to silence it.
