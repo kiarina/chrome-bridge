@@ -1,5 +1,25 @@
 # History
 
+## 2026-08-27
+
+### Dependency and CI maintenance
+
+- Refreshed 21 compatible Python lockfile dependencies and added the new
+  `httpx2-jsfetch` transitive package. Updated the extension's build and lint tooling to
+  esbuild 0.28.2 and ESLint 10.9.1; `npm audit` remained at zero vulnerabilities.
+- Updated setup-python to 7.0.0, setup-node to 7.0.0, setup-uv to 10.0.1, and the PyPI
+  publish action to 1.14.2 using immutable commit SHAs.
+- Ruff 0.16.4 introduced 38 new diagnostics that include non-mechanical exception and
+  error-type decisions, so the development dependency is temporarily constrained to
+  `ruff<0.16` and the migration is tracked in `NEXT_TASK.md`.
+- Playwright 1.62.1 with Chromium 151 failed three isolated E2E tests involving extension
+  connection startup and debugger reattachment. Restored the verified 1.61.1 pin and
+  recorded the upgrade investigation in `NEXT_TASK.md`.
+- Passed 178 Python tests, all Python lint/format/static/compile gates, 54 extension tests,
+  extension lint, and the zero-vulnerability npm audit. All seven isolated Chromium E2E
+  tests passed both from the source tree and the release artifact; clean wheel install
+  and two byte-identical release builds also passed.
+
 ## 2026-08-10
 
 ### Dependabot advisory remediation
