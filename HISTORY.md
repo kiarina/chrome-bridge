@@ -8,7 +8,8 @@
   `httpx2-jsfetch` transitive package. Updated the extension's build and lint tooling to
   esbuild 0.28.2 and ESLint 10.9.1; `npm audit` remained at zero vulnerabilities.
 - Updated setup-python to 7.0.0, setup-node to 7.0.0, setup-uv to 10.0.1, and the PyPI
-  publish action to 1.14.2 using immutable commit SHAs.
+  publish action to 1.14.2 using immutable commit SHAs. Added a manual CI dispatch entry
+  so the complete matrix can be rerun when a push event does not create an Actions run.
 - Ruff 0.16.4 introduced 38 new diagnostics that include non-mechanical exception and
   error-type decisions, so the development dependency is temporarily constrained to
   `ruff<0.16` and the migration is tracked in `NEXT_TASK.md`.
