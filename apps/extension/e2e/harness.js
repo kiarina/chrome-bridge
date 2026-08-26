@@ -160,12 +160,19 @@ export async function startFixtureServer() {
       }, delay);
       return;
     }
-    const fixturePath = ["/slow-a", "/timeout-a"].includes(request.url)
-      ? "/a"
-      : request.url;
-    if (fixturePath !== "/a" && fixturePath !== "/b") {
-      response.writeHead(404).end("Not found");
-      return;
+    let fixturePath;
+    switch (request.url) {
+      case "/a":
+      case "/slow-a":
+      case "/timeout-a":
+        fixturePath = "/a";
+        break;
+      case "/b":
+        fixturePath = "/b";
+        break;
+      default:
+        response.writeHead(404).end("Not found");
+        return;
     }
     const sendFixture = () => {
       if (response.destroyed) return;

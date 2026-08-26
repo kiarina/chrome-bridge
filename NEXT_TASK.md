@@ -1,17 +1,5 @@
 # Next task
 
-## Review initial CodeQL findings
-
-CodeQL default setup is enabled and its initial scan succeeded. It reported two findings
-that need source-context review rather than automatic dismissal:
-
-- High: reflected XSS in the isolated E2E harness
-  (`apps/extension/e2e/harness.js`). Confirm whether loopback-only fixture inputs make
-  the reported flow unreachable from untrusted input, or escape the rendered value.
-- Medium: identity replacement in vendored Playwright code
-  (`apps/extension/src/vendor/playwright-v1.51.1/stringUtils.ts`). Compare the vendored
-  implementation with upstream and either update it or document a precise dismissal.
-
 ## Migrate to Ruff 0.16
 
 Ruff 0.16 expands the enabled lint rules for the current configuration and reports

@@ -2,6 +2,22 @@
 
 ## 2026-08-27
 
+### Initial CodeQL finding remediation
+
+- Reviewed the initial CodeQL data flows rather than suppressing them. The reflected-XSS
+  finding reached the E2E fixture response through `request.url`, but the fixture had
+  already restricted the value to `/a` or `/b` and listened only on an ephemeral
+  loopback port. Rewrote the route selection as constant assignments in an exhaustive
+  switch so untrusted request text no longer reaches the HTML response.
+- The vendored Playwright 1.51.1 backtick branch replaced a backtick with itself. The
+  upstream 1.51.1 source has the same defect, while the installed Playwright 1.61.1 code
+  escapes it. Backported that one-character correction and added a regression test for
+  backtick-quoted strings. No alert dismissal or CodeQL exclusion was used.
+- Passed extension lint, all 55 extension tests, and the zero-vulnerability npm audit.
+  All seven isolated Chromium E2E tests passed from both the source tree and clean
+  release artifacts; clean wheel installation and two byte-identical release builds
+  also passed.
+
 ### Security scanning and pytest advisory remediation
 
 - Enabled Dependabot vulnerability alerts, automated security fixes, and CodeQL default

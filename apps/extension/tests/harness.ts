@@ -26,6 +26,7 @@ import {
   setAgentUiState,
 } from "../src/agent-ui";
 import { resizePng } from "../src/image";
+import { escapeWithQuotes } from "../src/vendor/playwright-v1.51.1/stringUtils";
 
 claimAgentUiRuntime();
 
@@ -51,4 +52,5 @@ claimAgentUiRuntime();
   disconnectAgentUiForReloadTest,
   disposeAgentUi,
   resizePng,
+  escapeWithQuotes,
 };
