@@ -1,15 +1,16 @@
 # Next task
 
-## Enable Dependabot alerts
+## Review initial CodeQL findings
 
-The repository's Dependabot alerts API returns `403` because alerts are disabled.
-`npm audit` currently reports zero vulnerabilities, but GitHub cannot provide continuous
-Python and extension alert coverage until the repository security setting is enabled.
+CodeQL default setup is enabled and its initial scan succeeded. It reported two findings
+that need source-context review rather than automatic dismissal:
 
-- Enable Dependabot alerts in the GitHub repository security settings after explicit
-  approval for the settings change.
-- Review any alerts created by the initial dependency-graph scan and add a compatible
-  version-update configuration if ongoing pull requests are desired.
+- High: reflected XSS in the isolated E2E harness
+  (`apps/extension/e2e/harness.js`). Confirm whether loopback-only fixture inputs make
+  the reported flow unreachable from untrusted input, or escape the rendered value.
+- Medium: identity replacement in vendored Playwright code
+  (`apps/extension/src/vendor/playwright-v1.51.1/stringUtils.ts`). Compare the vendored
+  implementation with upstream and either update it or document a precise dismissal.
 
 ## Migrate to Ruff 0.16
 

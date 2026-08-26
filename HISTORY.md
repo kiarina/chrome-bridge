@@ -2,6 +2,20 @@
 
 ## 2026-08-27
 
+### Security scanning and pytest advisory remediation
+
+- Enabled Dependabot vulnerability alerts, automated security fixes, and CodeQL default
+  setup. The initial CodeQL scan succeeded; its two findings remain tracked in
+  `NEXT_TASK.md` for source-context review.
+- Dependabot identified GHSA-6w46-j5rx-g56g in pytest 8.4.2. Raised the root, MCP, and
+  SDK development constraints to `pytest>=9.0.3,<10` and refreshed the lockfile to
+  pytest 9.1.1, clearing the vulnerable dependency range.
+- Passed 178 Python tests and all lint, format, compile, and static validation gates with
+  pytest 9.1.1. Extension lint, all 54 extension tests, and the zero-vulnerability npm
+  audit passed. All seven isolated Chromium E2E tests passed from both the source tree
+  and clean release artifacts; clean wheel installation and two byte-identical release
+  builds also passed.
+
 ### Dependency and CI maintenance
 
 - Refreshed 21 compatible Python lockfile dependencies and added the new
