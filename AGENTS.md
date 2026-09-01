@@ -7,41 +7,112 @@
 あらゆるタスクを開始する前に、下記を必ず把握してください。
 
 - `README.md`
-- `SPEC.md` - 仕様書
-- `NEXT_TASK.md` — 現在の残タスク
+- `SPEC.md` — protocol と tool の規範仕様
+- 下の「タスク一覧」と、着手するタスクの `tasks/` ファイル
 
-完了タスク・実測値・過去の意思決定を辿るときは `HISTORY.md`（作業手順は `docs/` を正典とする）。
+完了タスク・実測値・過去の意思決定を辿るときは `HISTORY.md` を参照し、
+設計知識・公開契約・作業手順は `docs/` を正典とします。
 
-## コミットするとき
+### タスク管理の使い分け
 
-**次の作業は別の担当者に引き継がれる**前提で作業してください。コミットの際、次に着手する人へ
-追加で伝えるべきことがあれば `NEXT_TASK.md` に記載してください（残タスク・未検証の懸念・
-踏んだ落とし穴・次の一手など）。仕組みとして残す価値のある知見は該当する `docs/` へ、
-完了した作業の記録は `HISTORY.md` へ振り分け、`NEXT_TASK.md` は残タスクに保ちます。
+- `tasks/` — 未完了タスク。1 タスク 1 ファイルで、背景・やること・進捗・申し送りを
+  そのファイルに直接記載する
+- `HISTORY.md` — 完了した作業、実測値、過去の意思決定
+- `docs/` — 設計知識、公開契約、再利用する手順
+- 各 component の `CHANGELOG.md` — 配布物ごとの利用者向け変更履歴
+
+運用ルール:
+
+- タスクに着手したら、進捗・未検証の懸念・踏んだ落とし穴・次の一手を該当の
+  `tasks/` ファイルへ直接追記する
+- 新しいタスク（今すぐ着手しない将来候補も含む）は `tasks/` にファイルを作り、
+  下の「タスク一覧」へ 1 行追記する
+- **タスクが完了したら、実測値・意思決定を `HISTORY.md` へ、再利用する知見を該当する
+  `docs/` へ移した上で、タスクファイルを削除し、「タスク一覧」から行を消す。**
+  削除したファイルの全文は git 履歴で辿れるため、転記は要点だけで良い
+
+## ドキュメントの扱い
+
+**現在の状態・仕様・方針を表す記述の矛盾は放置せず、発見したら解消してください。**
+どちらが正しいか根拠から判断できる場合は、正典と影響する記述を更新します。判断できない
+場合は、修正する前に必ずユーザーへ相談します。特に次の食い違いを対象とします。
+
+- ドキュメント間で仕様が食い違っている
+- 同じものが別の名前で呼ばれている
+- ユーザーの指示とドキュメントの記述が食い違っている
+- 実装とドキュメントの記述が食い違っている
+
+誤字、リンク切れ、実在しないパス、実装済みだが記載が漏れている事項など、判断を伴わない
+ものは相談せずに直して構いません。役割の分担、名称の方針、値の定義など判断が要るものは
+相談します。
+
+ただし `HISTORY.md` は、ある時点の事実・判断を記録するデータです。現在の知識と食い違っても
+矛盾とはみなさず、現在に合わせて過去の記録を改変しないでください。
+
+このリポジトリは公開 OSS です。`README.md`、`SPEC.md`、`PRIVACY.md`、`docs/` は英語で
+書き、`AGENTS.md` と `tasks/` は作業者向けの記述として現在の言語を保ってください。
 
 ## docs 以下の参照ガイド
 
 作業内容に応じて、`docs/` 以下の該当ドキュメントを着手前に読んでください。
-docs 以下にドキュメントを追加した際に、以下に、読む条件とサマリとリンクを追記してください。
+`docs/` 以下にドキュメントを追加・更新した場合は、ここに、読む条件とファイルパスを記載して
+ください。**必ずファイル単位で記載します。** ディレクトリの役割分担は `docs/README.md` を
+参照してください。
 
-- component 境界、transport、extension protocol、security を変更する場合:
-  [Architecture](docs/architecture.md) — Streamable HTTP と WebSocket bridge の責務・制約。
-- 通常運用、server設定、MCP client接続、ログ、障害復旧を変更する場合:
-  [Operations guide](docs/operations.md) — loopback運用、設定値、health、複数profile、troubleshootingの正典。
-- MCP toolの追加・変更、公開引数、戻り値、利用例、error contractを変更する場合:
-  [MCP tool API reference](docs/api.md) — 21 toolの入力、結果、共通routing、target/ref lifecycleの利用者向け正典。
-- 複数 Chrome profile、browser identity、connection registry、tool routing を変更する場合:
-  [Multiple browser routing](docs/multiple-browser-routing.md) — stable ID、protocol移行、公開schema、状態遷移、test matrix。
-- isolated Chromium、extension E2E、test process/profile lifecycle、failure artifactを変更する場合:
-  [Isolated Chrome E2E](docs/isolated-chrome-e2e.md) — headless実測、2 profile topology、cleanup、CI/manual境界。
-- extension ZIP、Python wheel/sdist、checksum、install/upgrade/rollback、release公開を扱う場合:
-  [Release artifacts](docs/release.md) — file allowlist、決定的build、clean smoke、license/公開境界。
-- Chrome Web Store のlisting、privacy申告、権限説明、審査、公開・更新を扱う場合:
-  [Chrome Web Store submission](docs/chrome-web-store.md) — 同一ZIP、Unlisted初版、listing素材、reviewer手順、Store更新境界の正典。
-- target tab の動画録画、debugger session共有、offscreen encoding、Downloads出力、
-  screenshot/video解像度を変更する場合:
-  [Video recording design](docs/video-recording.md) — 未実装の録画API、command-scoped lease、Full HD縦横切替、段階的検証の正典。
-- browser native dialog、dialog PageState、dialog応答、debugger監視scopeを変更する場合:
-  [Browser dialogs](docs/browser-dialogs.md) — dialog支配snapshot、CDP start/end実測、session所有権、残検証の正典。
-- setup、test、実 Chrome 検証、tool 追加を行う場合:
-  [Development guide](docs/development.md) — uv、unpacked extension、validation の正典。
+### 設計・公開契約・調査・確定値（`docs/concepts/`）
+
+- component 境界、transport、shared operation coordination、connection 所有、
+  page operation 設計、security 判断を変更するとき:
+  `docs/concepts/architecture.md`
+- MCP tool の公開引数、戻り値、共通 routing、target/ref lifecycle、error contract、
+  利用例を変更するとき: `docs/concepts/api.md`
+- 複数 Chrome profile、browser identity、connection registry、protocol v1/v2 移行、
+  tool routing を変更するとき: `docs/concepts/multiple-browser-routing.md`
+- browser native dialog、dialog PageState、dialog 応答、debugger 監視 scope を
+  変更するとき: `docs/concepts/browser-dialogs.md`
+- target tab の動画録画、debugger session 共有、offscreen encoding、Downloads 出力、
+  screenshot/video 解像度を変更するとき: `docs/concepts/video-recording.md`
+- isolated Chromium、extension E2E、test process/profile lifecycle、failure artifact を
+  変更するとき: `docs/concepts/isolated-chrome-e2e.md`
+- Chrome Web Store の listing、privacy 申告、権限説明、審査、公開・更新、API 自動化の
+  設定値を扱うとき: `docs/concepts/chrome-web-store.md`
+
+### 判断を含む作業の型（`docs/playbooks/`）
+
+- 新しい MCP tool や page operation を追加するとき、実装順と検証範囲を決めるとき:
+  `docs/playbooks/adding-tools-and-page-operations.md`
+
+### 実行手順（`docs/runbooks/`）
+
+- setup、test、validation 一式、isolated Chromium E2E、複数 profile 検証を行うとき:
+  `docs/runbooks/development.md`
+- 通常運用、server 設定、MCP client 接続、health、ログ、障害復旧を扱うとき:
+  `docs/runbooks/operations.md`
+- extension ZIP、Python wheel/sdist、checksum、changelog、version 更新、
+  install/upgrade/rollback、公開手順を扱うとき: `docs/runbooks/release.md`
+
+## タスク一覧
+
+各タスクの内容は `tasks/` のファイルだけに書き、ここはポインタ（1 ファイル 1 行）に保ちます。
+docs 参照ガイドと同じく、ファイルの追加・削除のたびにこの一覧を更新してください。
+
+### 次に着手・進行中
+
+- [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
+  — 新規 38 診断の方針決定と `ruff<0.16` 制約の解除
+- [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
+  — Chromium 151 で失敗する 3 件の E2E の原因特定
+
+### 待機中（前提が揃ったら着手する）
+
+- [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
+  — Store 審査の完了待ち。審査中は再提出しない
+
+## コミットするとき
+
+**次の作業は別の担当者に引き継がれる**前提で作業してください。コミット後の担当者へ追加で
+伝えるべきこと（未検証の懸念・踏んだ落とし穴・次の一手）は、該当する `tasks/` ファイルへ
+記載します。今すぐ着手しない作業候補は新しい `tasks/` ファイル、仕組みとして残す価値のある
+知見は該当する `docs/`、完了した作業の記録は `HISTORY.md` へ振り分けてください。
+利用者から見える変更は、該当する component の `CHANGELOG.md` の `Unreleased` にも
+同じ変更の中で追記します。

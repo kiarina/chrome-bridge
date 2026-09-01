@@ -65,7 +65,7 @@ For multi-profile routing, store a random UUIDv4 `browserId` and a user-editable
 
 List connected instances with `browser_instances` and add optional `browser_id` to every tool except instance discovery. For backward compatibility, omission is allowed when exactly one browser is connected. Omission with multiple connections, unknown IDs, and disconnected IDs are errors; never fall back to the latest connection or another browser. Do not keep a server-global browser-selection tool or state because it would conflict across stateless MCP clients.
 
-Use protocol v2 for the identity hello. A new server accepts v1 in one legacy slot for migration, while distinct v2 IDs coexist and only a reconnect with the same ID replaces the old connection with code 1012. [Multiple browser routing](docs/multiple-browser-routing.md) is canonical for the detailed contract and test matrix.
+Use protocol v2 for the identity hello. A new server accepts v1 in one legacy slot for migration, while distinct v2 IDs coexist and only a reconnect with the same ID replaces the old connection with code 1012. [Multiple browser routing](docs/concepts/multiple-browser-routing.md) is canonical for the detailed contract and test matrix.
 
 ## 3. Architecture
 
@@ -319,7 +319,7 @@ viewport without moving `scrollY` or substituting document-top content.
   two-profile Chromium E2E, and branded-Chrome background-target measurements before
   exposing each stage.
 
-[Video recording design](docs/video-recording.md) is canonical for the API, debugger
+[Video recording design](docs/concepts/video-recording.md) is canonical for the API, debugger
 ownership, capture pipeline, dimensions, result/error contract, and rollout record.
 
 ## 8. Versioning

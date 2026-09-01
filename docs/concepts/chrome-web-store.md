@@ -116,7 +116,7 @@ Confirm the ZIP checksum against `release/SHA256SUMS`. Chrome Web Store requires
 ## Developer account and public URLs
 
 1. Keep the registered Chrome Web Store publisher account, email, trader declaration, and publisher name current. Trader contact information is verified and displayed publicly; reassess the declaration if the nature of the publishing activity changes.
-2. Publish [the privacy policy](../PRIVACY.md) at a stable public HTTPS URL. The Store dashboard privacy-policy field must use that public URL, not a local or unpublished path.
+2. Publish [the privacy policy](../../PRIVACY.md) at a stable public HTTPS URL. The Store dashboard privacy-policy field must use that public URL, not a local or unpublished path.
 3. Provide stable public product and support URLs. The support destination must be monitored for review questions, security reports, and user issues.
 4. Keep publisher credentials, OAuth tokens, service-account keys, and signing keys outside the repository and release artifacts.
 
@@ -150,7 +150,7 @@ Include a prominent disclosure in the listing before the feature list:
 
 > Chrome Bridge can read and interact with HTTP and HTTPS pages when instructed by the user's MCP client. Page information and operation results are sent to the WebSocket endpoint configured by the user, which defaults to the Chrome Bridge server on the same machine. The Chrome Bridge project does not operate a server that receives this data.
 
-Keep listing claims aligned with the current release. Do not claim Store badges, rankings, remote operation, or support for pages and browsers outside [the specification](../SPEC.md).
+Keep listing claims aligned with the current release. Do not claim Store badges, rankings, remote operation, or support for pages and browsers outside [the specification](../../SPEC.md).
 
 ## Listing assets
 
@@ -175,7 +175,7 @@ The 1400×560 marquee image is optional. Capture screenshots from branded Chrome
 
 ## Privacy declarations
 
-The dashboard declarations, listing disclosure, and [privacy policy](../PRIVACY.md) must describe the same behavior. Declare every current dashboard category that covers:
+The dashboard declarations, listing disclosure, and [privacy policy](../../PRIVACY.md) must describe the same behavior. Declare every current dashboard category that covers:
 
 - browsing activity, URLs, and tab metadata;
 - website content and accessibility snapshots;

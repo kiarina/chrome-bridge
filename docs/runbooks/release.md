@@ -20,7 +20,7 @@ version is already published performs only a status read and skips Store mutatio
 
 ## Canonical file selection
 
-[`apps/extension/extension-files.json`](../apps/extension/extension-files.json) is canonical for extension runtime and notice files. The E2E harness, static validation, and release build use the same allowlist. Do not include source TypeScript, tests, `node_modules`, Playwright output, or Chrome profile data in the release ZIP.
+[`apps/extension/extension-files.json`](../../apps/extension/extension-files.json) is canonical for extension runtime and notice files. The E2E harness, static validation, and release build use the same allowlist. Do not include source TypeScript, tests, `node_modules`, Playwright output, or Chrome profile data in the release ZIP.
 
 The Python distributions are `chrome-bridge-mcp` and `chrome-bridge-sdk`; each packages
 only its `src` package and MIT license, and each sdist excludes tests. The SDK depends on
@@ -57,11 +57,11 @@ sha256sum -c SHA256SUMS           # Linux
 
 Maintain one user-facing changelog for each independently distributed component:
 
-- [`apps/extension/CHANGELOG.md`](../apps/extension/CHANGELOG.md) for Chrome Web Store
+- [`apps/extension/CHANGELOG.md`](../../apps/extension/CHANGELOG.md) for Chrome Web Store
   and extension ZIP changes.
-- [`packages/mcp/CHANGELOG.md`](../packages/mcp/CHANGELOG.md) for the
+- [`packages/mcp/CHANGELOG.md`](../../packages/mcp/CHANGELOG.md) for the
   `chrome-bridge-mcp` distribution.
-- [`packages/sdk/CHANGELOG.md`](../packages/sdk/CHANGELOG.md) for the
+- [`packages/sdk/CHANGELOG.md`](../../packages/sdk/CHANGELOG.md) for the
   `chrome-bridge-sdk` distribution.
 
 Each changelog is canonical for the user-visible changes to that component. Keep
@@ -171,7 +171,7 @@ Complete the following before publication:
    Release.
 5. Confirm the `chrome-web-store` GitHub environment contains the Workload Identity
    provider and service account variables documented in the
-   [Chrome Web Store guide](chrome-web-store.md), with no long-lived Google key.
+   [Chrome Web Store guide](../concepts/chrome-web-store.md), with no long-lived Google key.
 6. Publish `PRIVACY.md` and support information at stable HTTPS URLs, keep the Store
    listing and permission/data declarations aligned with the release, and inspect any
    API warning or rejected status in the Developer Dashboard before retrying.

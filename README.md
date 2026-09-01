@@ -140,7 +140,7 @@ uv add chrome-bridge-sdk
 3. Connect the MCP client to `http://127.0.0.1:8765/mcp`.
 
 For source setup and Load unpacked development, see the
-[development guide](docs/development.md).
+[development guide](docs/runbooks/development.md).
 For repeatable testing of the exact release ZIP, run
 `uv run python scripts/prepare_unpacked_extension.py` and select the generated,
 gitignored `unpacked-extension/` directory in Chrome once.
@@ -195,14 +195,14 @@ uv run python scripts/validate_release.py
 uv run python scripts/check_release_reproducible.py
 ```
 
-The verified extension ZIP is also the Chrome Web Store submission artifact; do not create a separate Store build. See the [Chrome Web Store submission guide](docs/chrome-web-store.md) for the Unlisted-first rollout, listing assets, privacy declarations, permission justifications, reviewer instructions, and update automation. The public [privacy policy](PRIVACY.md) describes extension data handling.
+The verified extension ZIP is also the Chrome Web Store submission artifact; do not create a separate Store build. See the [Chrome Web Store submission guide](docs/concepts/chrome-web-store.md) for the Unlisted-first rollout, listing assets, privacy declarations, permission justifications, reviewer instructions, and update automation. The public [privacy policy](PRIVACY.md) describes extension data handling.
 
 The one-time Public visibility migration and API authentication bootstrap are complete.
 The tag workflow uploads a changed extension ZIP through Chrome Web Store API v2 and enables
 automatic 100% publication after review. Python-only tags detect the already-published
 extension version and skip Store mutation.
 
-See [docs/development.md](docs/development.md) for detailed procedures, [docs/api.md](docs/api.md) for the tool API, [docs/architecture.md](docs/architecture.md) for design, [docs/release.md](docs/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/operations.md](docs/operations.md) is canonical for routine operation, configuration, logging, and incident response. User-visible changes are tracked separately for the [extension](apps/extension/CHANGELOG.md), [MCP server](packages/mcp/CHANGELOG.md), and [Python SDK](packages/sdk/CHANGELOG.md).
+[docs/](docs/README.md) is organized as `concepts/` (design and public contracts), `playbooks/` (work that requires judgment), and `runbooks/` (fixed procedures). See [docs/runbooks/development.md](docs/runbooks/development.md) for detailed procedures, [docs/concepts/api.md](docs/concepts/api.md) for the tool API, [docs/concepts/architecture.md](docs/concepts/architecture.md) for design, [docs/runbooks/release.md](docs/runbooks/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/runbooks/operations.md](docs/runbooks/operations.md) is canonical for routine operation, configuration, logging, and incident response. User-visible changes are tracked separately for the [extension](apps/extension/CHANGELOG.md), [MCP server](packages/mcp/CHANGELOG.md), and [Python SDK](packages/sdk/CHANGELOG.md).
 
 ## License
 

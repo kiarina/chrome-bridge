@@ -1,5 +1,33 @@
 # History
 
+## 2026-09-01
+
+### Documentation structure reorganization
+
+- Split `docs/` into `concepts/`, `playbooks/`, and `runbooks/` to match the structure
+  used by the other repositories. `architecture.md`, `api.md`,
+  `multiple-browser-routing.md`, `browser-dialogs.md`, `video-recording.md`,
+  `isolated-chrome-e2e.md`, and `chrome-web-store.md` moved to `concepts/`;
+  `development.md`, `operations.md`, and `release.md` moved to `runbooks/`. Added
+  `docs/README.md` and one `README.md` per subdirectory as the category definitions and
+  file indexes. `docs/assets/` stayed at the `docs/` root.
+- Moved the judgment-bearing part of the development guide — page-operation
+  implementation order, target-tab validation, snapshot/ref validation, and the
+  end-to-end steps for adding a tool — into
+  `docs/playbooks/adding-tools-and-page-operations.md`, leaving `runbooks/development.md`
+  as setup and the validation command set.
+- Replaced `NEXT_TASK.md` with `tasks/`, one file per unfinished task with background,
+  steps, status, and handoff: `ruff-0.16-migration.md`, `playwright-upgrade.md`, and
+  `chrome-web-store-v0.4.0-rollout.md`. No task content was dropped.
+- Rewrote `AGENTS.md` around the same convention: task management rules, the
+  documentation-consistency rule, file-level docs routing under the three category
+  headings, and a task index that points at `tasks/` files.
+- Updated every relative link affected by the moves in `README.md`, `SPEC.md`,
+  `PRIVACY.md`, `packages/mcp/README.md`, and the moved documents themselves. Verified
+  that all relative Markdown links in tracked files resolve, and passed
+  `scripts/validate_static.py`. Earlier `HISTORY.md` entries keep the pre-move paths as
+  the record of what was true at that time.
+
 ## 2026-08-27
 
 ### Initial CodeQL finding remediation
