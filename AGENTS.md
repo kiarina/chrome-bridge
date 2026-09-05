@@ -101,7 +101,9 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 - [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
   — 新規 38 診断の方針決定と `ruff<0.16` 制約の解除
 - [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
-  — Chromium 151 で失敗する 3 件の E2E の原因特定
+  — 1.63.0 / Chromium 153 で残る 1 件（複数 profile の再起動 identity）の原因特定
+- [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
+  — `mcp<2` の解除と、tool error contract を `ToolError` へ対応付ける判断
 
 ### 待機中（前提が揃ったら着手する）
 

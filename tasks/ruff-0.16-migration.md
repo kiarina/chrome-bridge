@@ -21,6 +21,10 @@ The validation command set is `docs/runbooks/development.md`.
 
 Not started. The pin keeps CI green, so this is not blocking a release.
 
+Re-checked on 2026-09-05 against Ruff 0.16.6: still exactly 38 diagnostics, 24 of them
+auto-fixable and one more behind `--unsafe-fixes`. The rule set has not drifted since
+0.16.4, so the review below is still the whole job.
+
 ## Handoff
 
 - The decisions here are policy decisions about exception boundaries and error types, not
