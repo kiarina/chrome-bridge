@@ -2,11 +2,13 @@
 
 ## Status and publication boundary
 
-The current build produces five synchronized 0.4.0 local artifacts plus checksums:
+The current build produces five local artifacts plus checksums. The server and SDK
+always carry the same version; the extension carries its own, which advances only when
+extension runtime content changes, so a Python-only release leaves it behind:
 
 - `chrome-bridge-extension-0.4.0.zip`: Extension runtime for Load unpacked and Store update.
-- `chrome_bridge_mcp-0.4.0-py3-none-any.whl` and `.tar.gz`: server distribution.
-- `chrome_bridge_sdk-0.4.0-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
+- `chrome_bridge_mcp-0.4.1-py3-none-any.whl` and `.tar.gz`: server distribution.
+- `chrome_bridge_sdk-0.4.1-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
 - `SHA256SUMS`: SHA-256 checksums for all five artifacts.
 
 Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and `chrome-bridge-sdk` uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; both projects successfully published v0.4.0 through this boundary.
@@ -16,7 +18,9 @@ bootstrapped on 2026-07-24. The same tag workflow passes the verified extension 
 `scripts/chrome_web_store.py`. A changed extension version is uploaded and submitted
 with `DEFAULT_PUBLISH`, `blockOnWarnings=true`, and 100% deployment, so Store approval
 completes publication without another manual action. A Python-only tag whose extension
-version is already published performs only a status read and skips Store mutation.
+version is already published performs only a status read and skips Store mutation. That
+skip requires a settled Store item: while a submission is `PENDING_REVIEW` or `STAGED`,
+the job fails before uploading anything rather than resubmitting.
 
 ## Canonical file selection
 
@@ -166,9 +170,9 @@ Complete the following before publication:
 2. Use the public `kiarina/chrome-bridge` repository; its owner authorizes tag and GitHub Release creation.
 3. Keep the `chrome-bridge-mcp` trusted publisher aligned with workflow `release-pypi.yml` and GitHub environment `pypi`.
 4. Confirm both PyPI projects still use the same trusted publisher workflow/environment.
-   Push tag `v0.4.0` only after the version commit is on `main`; the workflow publishes
-   both Python wheel/sdist pairs and attaches all five verified artifacts to the GitHub
-   Release.
+   Push the `v<version>` tag only after the version commit is on `main`; the workflow
+   publishes both Python wheel/sdist pairs and attaches all five verified artifacts to
+   the GitHub Release.
 5. Confirm the `chrome-web-store` GitHub environment contains the Workload Identity
    provider and service account variables documented in the
    [Chrome Web Store guide](../concepts/chrome-web-store.md), with no long-lived Google key.

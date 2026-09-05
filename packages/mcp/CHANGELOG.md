@@ -6,6 +6,8 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-05
+
 ### Changed
 
 - Remove the upper bounds on `jsonschema`, `uvicorn`, and `websockets`. They had never
@@ -73,7 +75,8 @@ here. The format is based on
 - Validate protocol envelopes and commands against canonical JSON Schemas, with bounded
   command timeouts and fail-closed Host and Origin checks.
 
-[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/kiarina/chrome-bridge/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/kiarina/chrome-bridge/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/kiarina/chrome-bridge/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kiarina/chrome-bridge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kiarina/chrome-bridge/compare/v0.1.0...v0.2.0
