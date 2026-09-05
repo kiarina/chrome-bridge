@@ -8,7 +8,12 @@ here. The format is based on
 
 ### Changed
 
-- Accept `websockets` 17 alongside 16 for the extension WebSocket transport.
+- Remove the upper bounds on `jsonschema`, `uvicorn`, and `websockets`. They had never
+  excluded a released version and only restricted which other packages this distribution
+  could be installed beside. `websockets` 17 is verified against a live server; later
+  releases are now accepted rather than pre-emptively refused. The `mcp[cli]<2` bound
+  stays because MCP Python SDK 2.x removes `mcp.server.fastmcp` and replaces
+  tool-handler exception text with a generic message.
 
 ## [0.4.0] - 2026-07-25
 

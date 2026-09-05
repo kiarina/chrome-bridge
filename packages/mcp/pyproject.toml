@@ -7,10 +7,14 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
-    "jsonschema>=4.23,<5",
+    "jsonschema>=4.23",
+    # Upper bound with evidence; see "Dependency version bounds" in AGENTS.md.
+    # mcp 2.x removed mcp.server.fastmcp, and 2.1.0 replaces tool-handler exception
+    # text with a generic message, which is the public error contract in
+    # docs/concepts/api.md. Tracked by tasks/mcp-sdk-v2-migration.md.
     "mcp[cli]>=1.27,<2",
-    "uvicorn>=0.35,<1",
-    "websockets>=15,<18",
+    "uvicorn>=0.35",
+    "websockets>=15",
 ]
 
 [project.urls]

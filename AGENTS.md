@@ -52,6 +52,45 @@
 このリポジトリは公開 OSS です。`README.md`、`SPEC.md`、`PRIVACY.md`、`docs/` は英語で
 書き、`AGENTS.md` と `tasks/` は作業者向けの記述として現在の言語を保ってください。
 
+## 依存の version 制約（Dependency version bounds）
+
+公開する Python distribution（`packages/mcp`、`packages/sdk`）の `[project].dependencies`
+には、**実証された根拠のない上限を書きません。** 利用者の環境を不必要に制限し、他の
+package との共存を壊すためです。「次の major が出たら壊れるかもしれない」という予防的な
+上限は根拠になりません。
+
+上限を書いてよいのは、次のどちらかを満たす場合だけです。
+
+- 実際にその version を入れて壊れることを確認した
+- upstream が非互換を明示的に宣言している
+
+上限を残すときは、**阻害する package・制約文字列・確認した現象**を該当の `pyproject.toml`
+にコメントとして書き、下の一覧にも記載してください。解除に判断が要るものは `tasks/` に
+移行タスクを作り、コメントからそのファイルを指してください。
+
+### 現在維持している上限（2026-09-05 時点）
+
+- `packages/mcp`: `mcp[cli]>=1.27,<2`
+  — MCP Python SDK 2.x には `mcp.server.fastmcp` が存在せず、import すると
+  `ModuleNotFoundError` になる（移行案内 <https://py.sdk.modelcontextprotocol.io/v2/migration/>
+  を指す）。rename 自体は機械的だが、2.1.0 は tool handler の想定外例外を
+  `Error executing tool <name>` という汎用メッセージへ置換する。ここで raise している
+  domain 例外のメッセージは `docs/concepts/api.md` が公開 error contract として
+  規定しており、これが壊れる。解除は `tasks/mcp-sdk-v2-migration.md`。
+- `packages/sdk`: `chrome-bridge-mcp>=0.4,<0.5`
+  — 第三者 package への制約ではなく、このリポジトリから同時に release する 2 つの
+  distribution の lockstep。`scripts/validate_static.py` が server と SDK の version 一致を
+  検査するため、片方だけ別 minor に進むことはない。version を上げるときは両方同時に上げる。
+
+上限を撤廃した依存（`jsonschema`、`uvicorn`、`websockets`、`httpx2`）については、
+撤廃時点の実測を `HISTORY.md` に記録しています。
+
+### `dependency-groups` は対象外
+
+`dependency-groups`（`dev`）は distribution metadata に含まれず、利用者の環境へ届きません。
+ここでの上限は CI の toolchain を固定するためのもので、上の規則の対象外です。ただし
+`ruff` のように、上限が実際に version を抑えている場合は解除タスクを `tasks/` に持たせます。
+
 ## docs 以下の参照ガイド
 
 作業内容に応じて、`docs/` 以下の該当ドキュメントを着手前に読んでください。

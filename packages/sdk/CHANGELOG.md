@@ -6,6 +6,13 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Remove the preventive `httpx2` upper bound. It had never excluded a released version
+  and only restricted which other packages this distribution could be installed beside.
+  The `chrome-bridge-mcp` bound stays because the SDK and the server are released
+  together at identical versions.
+
 ## [0.4.0] - 2026-07-25
 
 ### Added

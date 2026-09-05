@@ -67,7 +67,10 @@ same rule differently would be worse than one.
 ## Status
 
 Not started, and not blocked by anything external. The bound `mcp[cli]>=1.27,<2` is
-deliberate until this is done.
+deliberate until this is done. On 2026-09-05 every other preventive upper bound in the
+published distributions was removed; this one and the SDK's lockstep on the server are
+the only survivors, and both are listed with their reasons under "依存の version 制約"
+in `AGENTS.md`. Keep that list in sync when this migration lands.
 
 ## Handoff
 

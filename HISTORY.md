@@ -2,6 +2,52 @@
 
 ## 2026-09-05
 
+### Removal of unfounded dependency upper bounds
+
+- The published distributions carried a next-major cap on every dependency, but that
+  convention was written down nowhere and contradicted the maintenance policy of not
+  restricting user environments without evidence. The decision was to remove every bound
+  that could not be justified by an observed failure or an upstream compatibility
+  statement, and to record the surviving ones.
+- Surveyed all six declared runtime bounds. Four were preventive and were removed:
+  `jsonschema<5`, `uvicorn<1`, `websockets<18` in `packages/mcp`, and `httpx2<3` in
+  `packages/sdk`. **None of the four had ever excluded a released version**: the newest
+  releases on PyPI are jsonschema 4.26.0, uvicorn 0.52.4, websockets 17.1, and
+  httpx2 2.12.0, all already below their caps. Re-resolving after the removal produced a
+  `uv.lock` whose only change was the specifier text; not one package version moved. The
+  caps had therefore never protected anything and only narrowed which other packages the
+  distributions could be installed beside.
+- Two bounds were kept. `mcp[cli]>=1.27,<2` is founded: 2.x has no `mcp.server.fastmcp`,
+  and 2.1.0 replaces tool-handler exception text with `Error executing tool <name>`,
+  which is the published error contract in `docs/concepts/api.md`. `chrome-bridge-mcp>=0.4,<0.5`
+  in the SDK is not a third-party constraint but the lockstep between two distributions
+  released together and checked for identical versions by `scripts/validate_static.py`.
+  Both now carry the reason as a comment in their `pyproject.toml`, and AGENTS.md gained
+  a "依存の version 制約" section holding the policy and the list of surviving bounds.
+- `dependency-groups` were left alone and declared out of scope in the same section:
+  they are absent from distribution metadata and never reach users. Only `ruff<0.16`
+  actually holds a version back there (0.15.22 against 0.16.6 upstream), and it already
+  has its own task.
+- Verified websockets on a live uvicorn process rather than the Starlette test client,
+  which cannot see transport regressions because the package never imports `websockets`
+  itself. Eleven checks passed against websockets 17.1: idle health, bridge attach,
+  `extensionConnected`, `connectedBrowserCount` at one and two browsers, absence of IDs
+  and labels from unauthenticated health, single-connection release, forbidden-origin
+  rejection as HTTP 403 with no browser registered, full release on last disconnect, and
+  a clean reattach afterwards.
+- Passed 178 Python tests, all Python lint/format/compile/static gates, 55 extension
+  tests, extension lint, and a zero-vulnerability npm audit. The isolated Chromium E2E
+  ran on the pinned Playwright 1.61.1 and passed all seven tests in 2.8 minutes,
+  including the multi-profile restart identity that fails on 1.63.0. Two independent release
+  builds were byte-identical and the extension ZIP kept its
+  `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870` digest. The four
+  Python artifacts changed digests, which is the expected consequence of editing
+  dependency metadata; `release/` is gitignored, so there is no committed `SHA256SUMS`
+  baseline and the reproducibility gate is `check_release_reproducible.py` comparing two
+  fresh builds.
+- The relaxed bounds are recorded under `Unreleased` in both changelogs and reach users
+  only with the next release; the v0.4.0 artifacts already on PyPI keep the old caps.
+
 ### Dependency advisory remediation and upstream survey
 
 - Resolved the four high-severity `fast-uri` advisories by taking 3.1.7 through `ajv`,

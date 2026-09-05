@@ -7,8 +7,11 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
+    # Upper bound with evidence; see "Dependency version bounds" in AGENTS.md.
+    # The SDK and the server are released together from this repository and
+    # scripts/validate_static.py requires their versions to be identical.
     "chrome-bridge-mcp>=0.4,<0.5",
-    "httpx2>=2,<3",
+    "httpx2>=2",
 ]
 
 [project.urls]
