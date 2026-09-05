@@ -1,5 +1,41 @@
 # History
 
+## 2026-09-05
+
+### Dependency advisory remediation and upstream survey
+
+- Resolved the four high-severity `fast-uri` advisories by taking 3.1.7 through `ajv`,
+  and the two moderate `qs` advisories Dependabot did not raise by taking 6.16.0 through
+  `express`. Both are development-only and neither is part of the extension ZIP.
+  `npm audit` reports zero vulnerabilities and all six repository alerts are now fixed.
+  Dependabot PR #4 proposed only the `fast-uri` half, so it was closed in favour of the
+  direct commit that carries both.
+- Raised ESLint to 10.10.0 and widened the extension WebSocket transport to
+  `websockets>=15,<18`, resolving 17.1. The package never imports `websockets` directly;
+  it is uvicorn's WebSocket implementation for `/extension`. Unit tests use Starlette's
+  test client and would not have caught a transport regression, so the upgrade was
+  checked against a live uvicorn server: bridge attach, `extensionConnected` and
+  `connectedBrowserCount` reporting, forbidden-origin rejection, and connection release
+  on disconnect all behaved as before. websockets 17.0 requires Python 3.11, which this
+  package already does.
+- Playwright 1.63.0 bundles Chromium 153 rather than the 151 that failed three E2E tests
+  on 2026-08-27. Six of the seven now pass; only the multi-profile restart-identity test
+  fails, on its 180-second timeout, after reaching all four recording-metric stages.
+  Kept the verified 1.61.1 pin and narrowed the tracked investigation to that one test.
+- Ruff 0.16.6 still reports exactly the same 38 diagnostics as 0.16.4, so the `ruff<0.16`
+  constraint and the review it waits on are unchanged.
+- Surveyed the MCP Python SDK, whose 1.x line is now maintenance-only while the pinned
+  bound is `mcp[cli]>=1.27,<2`. `mcp.server.fastmcp` does not exist in 2.x; `MCPServer`
+  keeps `tool(name=...)`, and the transport options move from the constructor to
+  `streamable_http_app()`. The blocking part is that 2.1.0 replaces tool-handler
+  exception text with a generic message, which is the documented tool error contract
+  here, so the migration was recorded as its own task rather than folded into this sweep.
+- Passed 178 Python tests, all Python lint/format/compile/static gates, 55 extension
+  tests, extension lint, and the zero-vulnerability npm audit. The release build
+  reproduced every artifact, including the extension ZIP, byte-identically against the
+  committed `SHA256SUMS`. The isolated Chromium E2E was exercised only through the
+  Playwright 1.63.0 experiment described above, not against the pinned 1.61.1.
+
 ## 2026-09-01
 
 ### Documentation structure reorganization
