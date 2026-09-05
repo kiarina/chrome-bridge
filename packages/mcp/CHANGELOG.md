@@ -6,6 +6,10 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Accept `websockets` 17 alongside 16 for the extension WebSocket transport.
+
 ## [0.4.0] - 2026-07-25
 
 ### Added

@@ -10,7 +10,7 @@ dependencies = [
     "jsonschema>=4.23,<5",
     "mcp[cli]>=1.27,<2",
     "uvicorn>=0.35,<1",
-    "websockets>=15,<17",
+    "websockets>=15,<18",
 ]
 
 [project.urls]
