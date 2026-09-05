@@ -2,6 +2,51 @@
 
 ## 2026-09-05
 
+### v0.4.1 release of the server and SDK
+
+- The two changes waiting in `Unreleased` were the dev-only advisory patches and the
+  removal of the four unfounded dependency upper bounds. Neither touches the public API,
+  the protocol, the error contract, or the extension runtime, and the only user-visible
+  difference is wider dependency metadata, so this was released as a patch: 0.4.0 ->
+  0.4.1 for both `chrome-bridge-mcp` and `chrome-bridge-sdk`. It is the first patch
+  release in the project; 0.1 through 0.4 were all minor bumps carrying features.
+- A bump was mandatory rather than optional. `main` had already diverged from the
+  artifacts on PyPI, so re-publishing 0.4.0 was impossible; PyPI refuses a filename it
+  has already accepted, and the metadata differed in any case.
+- **The lockstep bound needed no change.** `chrome-bridge-sdk` declares
+  `chrome-bridge-mcp>=0.4,<0.5`, which already admits 0.4.1, so a patch bump kept the
+  documented bound and its AGENTS.md entry intact. A 0.5.0 bump would have required
+  editing the bound itself in the same commit, because `<0.5` would have excluded the
+  server version being released beside it and left the published SDK uninstallable.
+  `validate_static.py` only checks that the two versions are identical, not that the
+  bound contains them, so that trap is not caught by the gate that exists.
+- The extension stayed at 0.4.0. Its ZIP rebuilt to the same
+  `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870` digest already
+  published on the Store, so no content-free Store update was created.
+- All gates passed locally before tagging: 170 root Python tests plus 8 SDK tests, ruff
+  check and format over 31 files, compileall, `validate_static.py`, 55 extension tests,
+  extension lint, zero-vulnerability npm audit, and isolated Chromium E2E at 7 passed in
+  2.7 minutes on the pinned Playwright 1.61.1. `validate_release.py` passed its clean-venv
+  install and two-profile E2E, and `check_release_reproducible.py` confirmed two
+  independent builds were byte-identical. CI run `33948411892` was green on all four jobs
+  before the tag was pushed.
+- Release workflow `33948708599` succeeded on all four jobs from tag `v0.4.1` at commit
+  `8f13d5a`. **The Chrome Web Store job took the skip path for the first time**, returning
+  `{"skipped":true,"reason":"extension-version-already-published","version":"0.4.0"}`
+  without any Store mutation. That path had unit coverage but had never run against the
+  live API, because every previous tag carried a new extension version.
+- Verified after publication by installing `chrome-bridge-sdk==0.4.1` from PyPI into a
+  clean 3.12 venv: it resolved `chrome-bridge-mcp==0.4.1` through the lockstep bound and
+  both packages imported. The resolution also picked up the relaxed metadata, landing
+  uvicorn 0.52.4 and websockets 17.1. GitHub Release `Chrome Bridge v0.4.1` carries all
+  five artifacts plus `SHA256SUMS`.
+- Noted while checking preconditions: `submit_release` evaluates `validate_safe_status`
+  before the already-published check, so a Python-only tag pushed while a Store review is
+  still `PENDING_REVIEW` fails that job instead of skipping. It fails closed without
+  uploading, so it cannot cause an accidental resubmission, but it would redden a release
+  whose PyPI publication had already succeeded, because the Store job runs last. The
+  release runbook now states this precondition.
+
 ### Removal of unfounded dependency upper bounds
 
 - The published distributions carried a next-major cap on every dependency, but that

@@ -12,9 +12,8 @@ The Store ledger, automation contract, and published-version record are
 
 ## Steps
 
-- [ ] Do not resubmit while review is pending. The configured `DEFAULT_PUBLISH` path
-      should publish automatically after approval. Use the daily/manual Store status
-      workflow to detect warnings, rejection, takedown, or completion
+- [x] Do not resubmit while review is pending. The configured `DEFAULT_PUBLISH` path
+      published automatically after approval, as designed
 - [ ] After Store approval, enable only the Store copy in one branded-Chrome profile, and
       confirm the canonical Store extension ID reports 0.4.0
 - [ ] Perform one clean navigation to settle the pre-marker title migration case
@@ -26,7 +25,15 @@ The Store ledger, automation contract, and published-version record are
 
 ## Status
 
-Submitted and pending review. Nothing to do until the Store reports approval.
+**Approved and published; the review blocker is gone.** The daily Store status workflow
+reported `publishedState=PUBLISHED` with `submittedState=null`, `warned=false`, and
+`takenDown=false` (run `33936466830`, 2026-09-05). The release workflow for `v0.4.1`
+independently confirmed it: the Store job skipped with
+`reason=extension-version-already-published` for version 0.4.0, which the API only
+returns when 0.4.0 is on a published distribution channel.
+
+The remaining steps above are the branded-Chrome verification and the record updates.
+They need the user's Chrome and have not been done.
 
 ## Handoff
 

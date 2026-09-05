@@ -143,11 +143,12 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
   — 1.63.0 / Chromium 153 で残る 1 件（複数 profile の再起動 identity）の原因特定
 - [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
   — `mcp<2` の解除と、tool error contract を `ToolError` へ対応付ける判断
+- [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
+  — 審査は通過し `PUBLISHED`。残るのは branded Chrome での確認と記録の更新
 
 ### 待機中（前提が揃ったら着手する）
 
-- [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
-  — Store 審査の完了待ち。審査中は再提出しない
+（なし）
 
 ## コミットするとき
 
