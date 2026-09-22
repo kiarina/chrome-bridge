@@ -1,5 +1,21 @@
 # History
 
+## 2026-09-23
+
+### Dependabot advisory remediation
+
+- Bumped the development-scope transitive `hono` lockfile entry in
+  `apps/extension/package-lock.json` from 4.13.1 to 4.13.8, closing the two open
+  Dependabot advisories (both `< 4.13.5`, moderate). `hono` arrives through
+  `@modelcontextprotocol/sdk` and `@hono/node-server`, which require `^4.11.4` and
+  `^4`, so no declared version in `package.json` changed and no override was needed.
+- `fast-uri` and `qs`, which `npm audit` had also flagged, were already resolved by the
+  v0.4.1 dependency work; only `hono` remained. `npm audit` now reports zero
+  vulnerabilities.
+- The extension ZIP does not ship `hono`, so this is not a user-visible change and no
+  component changelog entry was added. Verified with a clean `npm ci`, the full
+  extension suite (55 passed), and `npm run lint`.
+
 ## 2026-09-05
 
 ### v0.4.1 release of the server and SDK
