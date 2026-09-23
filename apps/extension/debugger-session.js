@@ -1,5 +1,31 @@
 const DEFAULT_PROTOCOL_VERSION = "1.3";
 const DEFAULT_LAYOUT_SETTLE_MS = 250;
+// With RenderDocument (Chromium 153), a Page.captureScreenshot that is in flight
+// across a cross-document commit can stay unanswered until the target detaches.
+// Frames are best effort, so an unanswered capture is dropped rather than holding
+// the session's exclusive slot, and every later operation, forever.
+export const DEFAULT_CAPTURE_TIMEOUT_MS = 2_000;
+
+export class CaptureTimeoutError extends Error {
+  constructor(timeoutMs) {
+    super(`Chrome did not answer a screenshot capture within ${timeoutMs} ms`);
+    this.name = "CaptureTimeoutError";
+  }
+}
+
+export function boundCapture(capture, timeoutMs = DEFAULT_CAPTURE_TIMEOUT_MS) {
+  const pending = Promise.resolve(capture);
+  // An abandoned command settles only when Chrome detaches the target.
+  pending.catch(() => {});
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new CaptureTimeoutError(timeoutMs)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([pending, timeout]).finally(() => clearTimeout(timer));
+}
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -18,6 +44,7 @@ export async function openDebuggerSession(
     debuggerApi = chrome.debugger,
     protocolVersion = DEFAULT_PROTOCOL_VERSION,
     layoutSettleMs = DEFAULT_LAYOUT_SETTLE_MS,
+    captureTimeoutMs = DEFAULT_CAPTURE_TIMEOUT_MS,
     wait = delay,
   } = {},
 ) {
@@ -132,8 +159,17 @@ export async function openDebuggerSession(
       if (closed || detached || active || criticalPending > 0) {
         return { captured: false };
       }
-      const value = await runExclusive("capture", operation);
-      return { captured: true, value };
+      try {
+        const value = await runExclusive("capture", (currentDebuggee) =>
+          boundCapture(operation(currentDebuggee), captureTimeoutMs),
+        );
+        return { captured: true, value };
+      } catch (error) {
+        if (error instanceof CaptureTimeoutError) {
+          return { captured: false, timedOut: true };
+        }
+        throw error;
+      }
     },
     async close() {
       if (closed) return;

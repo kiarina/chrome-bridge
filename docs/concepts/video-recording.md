@@ -155,6 +155,18 @@ measured; they never reorder input or attach another debugger. Any detach, tab c
 target change, protocol failure, or cancellation must stop capture and execute best-effort
 final cleanup without attaching to a different tab or target.
 
+Every frame capture is bounded (`DEFAULT_CAPTURE_TIMEOUT_MS`, 2 seconds, in
+`debugger-session.js`). With Chromium 153's RenderDocument, a `Page.captureScreenshot`
+that is in flight across a cross-document commit can stay unanswered until the target
+detaches; without the bound it holds the session's exclusive slot and blocks every later
+operation and `close()`. A capture that times out is abandoned (its eventual rejection is
+swallowed) and reported as not captured, which the recorder counts as a dropped frame.
+Genuine capture errors still propagate. Other debugger commands keep working while the
+abandoned capture is pending. Measured on 2026-09-23 with Playwright 1.63.0's bundled
+Chromium 153: normal captures took 12-60 ms, and exactly one capture timed out on each of
+cross-document navigation, back, and forward before capture recovered;
+`--disable-features=RenderDocument` made every in-flight capture answer at commit.
+
 Navigation, back/forward, and file upload use the same command-scoped session. Navigation
 may replace loader/renderer state while retaining target identity; upload combines the
 session with file-chooser interception. Isolated lifecycle injection and branded-Chrome

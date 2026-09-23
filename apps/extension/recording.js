@@ -1,4 +1,4 @@
-import { openDebuggerSession } from "./debugger-session.js";
+import { boundCapture, openDebuggerSession } from "./debugger-session.js";
 import { fitWithinMediaBounds } from "./media-sizing.js";
 
 const MESSAGE_TARGET = "chrome-bridge-recording-offscreen";
@@ -302,7 +302,7 @@ async function createTargetRecorder({ tabId, filename, session: suppliedSession 
       session,
       async captureOperationFrame(debuggee) {
         try {
-          const data = await captureFrame(debuggee);
+          const data = await boundCapture(captureFrame(debuggee));
           await sendOffscreen({ type: "frame", id, data });
           return true;
         } catch {

@@ -94,6 +94,47 @@ test("skips capture while critical work is pending", async () => {
   await session.close();
 });
 
+test("drops an unanswered capture without blocking later work", async () => {
+  const fake = fakeDebugger();
+  const session = await openDebuggerSession(7, {
+    debuggerApi: fake.api,
+    layoutSettleMs: 0,
+    captureTimeoutMs: 20,
+  });
+  let rejectAbandoned;
+  const abandoned = new Promise((_, reject) => {
+    rejectAbandoned = reject;
+  });
+  await expect(session.tryCapture(() => abandoned)).resolves.toEqual({
+    captured: false,
+    timedOut: true,
+  });
+  expect(session.busy).toBe(false);
+  await expect(
+    session.run(() => "critical", { emulateFocus: false }),
+  ).resolves.toBe("critical");
+  await expect(session.tryCapture(() => "frame")).resolves.toEqual({
+    captured: true,
+    value: "frame",
+  });
+  rejectAbandoned(new Error("Detached while handling command."));
+  await session.close();
+  expect(fake.calls.at(-1)[0]).toBe("detach");
+});
+
+test("keeps capture failures distinct from unanswered captures", async () => {
+  const fake = fakeDebugger();
+  const session = await openDebuggerSession(7, {
+    debuggerApi: fake.api,
+    layoutSettleMs: 0,
+    captureTimeoutMs: 20,
+  });
+  await expect(
+    session.tryCapture(() => Promise.reject(new Error("capture failed"))),
+  ).rejects.toThrow("capture failed");
+  await session.close();
+});
+
 test("serializes critical operations within one session", async () => {
   const fake = fakeDebugger();
   const session = await openDebuggerSession(7, {

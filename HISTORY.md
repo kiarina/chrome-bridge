@@ -2,6 +2,28 @@
 
 ## 2026-09-23
 
+### Playwright 1.63.0 and bounded frame captures
+
+- Upgraded `@playwright/test` from 1.61.1 to 1.63.0 (bundled Chromium 153.0.8010.12).
+  All seven isolated E2E tests pass (2.9 minutes), along with 57 extension tests, lint,
+  audit (0 vulnerabilities), and the release reproducibility check.
+- The one remaining failure under 1.63.0 was not in the profile restart, as the task had
+  assumed. The test hung about 100 seconds earlier, in the test-only navigation
+  lifecycle probe: a `Page.captureScreenshot` in flight across a cross-document commit
+  was never answered until the target closed (156 s later), and it held the debugger
+  session's exclusive slot, so sampling and `session.close()` waited forever.
+  `--disable-features=RenderDocument` made it pass (2/2) and its absence made it hang
+  (3/3), so Chromium 153's RenderDocument is the trigger. With the probe skipped, the
+  restart phase passed on 1.63.0, with profile A reconnecting about 110 ms after relaunch
+  under the same `browserId`.
+- This is also a production risk: the recorder captures a frame every 100 ms through the
+  same path while `browser_navigate`, back, and forward switch documents. Fixed in the
+  extension rather than the test: `tryCapture` and operation-frame capture are bounded
+  to 2 seconds and a timed-out capture is dropped. The probe now keeps sampling after
+  each navigation until a capture succeeds (10 s limit) and reports a `timeouts` count;
+  no assertion or test timeout was relaxed. Two unit tests cover the dropped capture
+  and genuine capture errors. The 2-second bound is a default, not a measured optimum.
+
 ### Gate for the SDK's server requirement
 
 - `scripts/validate_static.py` checked only that the server and SDK versions are equal.

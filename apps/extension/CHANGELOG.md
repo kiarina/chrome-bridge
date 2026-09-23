@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop a video recording from stalling when Chrome never answers a screenshot capture
+  that was in flight while the page switched documents (seen with Chromium 153's
+  RenderDocument). Each frame capture now gives up after 2 seconds and counts as a
+  dropped frame instead of blocking every later operation on the tab.
+
 ## [0.4.0] - 2026-07-25
 
 ### Added

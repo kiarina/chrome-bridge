@@ -142,8 +142,6 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 - [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
   — 機械的な 29 件は修正済み。残る BLE001 / TRY004 の 9 件は方針の判断待ち
-- [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
-  — 1.63.0 / Chromium 153 で残る 1 件（複数 profile の再起動 identity）の原因特定
 - [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
   — 試行移行と判断材料は揃った。error の対応付けと `/mcp` の Origin 方針が判断待ち
 - [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)

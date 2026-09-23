@@ -141,9 +141,20 @@ async function navigationState(session, tabId, label) {
 
 async function sampleNavigationCapture(session, action) {
   let finished = false;
+  let recoveredAfterAction = false;
   const samples = [];
   const sampling = (async () => {
-    while (!finished) {
+    // A capture in flight across a commit may be dropped by its bounded timeout,
+    // so sampling continues until one capture after the transition succeeds.
+    let recoveryDeadline;
+    while (!finished || !recoveredAfterAction) {
+      const afterAction = finished;
+      if (afterAction) {
+        recoveryDeadline ??= performance.now() + 10_000;
+        if (performance.now() > recoveryDeadline) {
+          throw new Error("Capture did not recover after the navigation");
+        }
+      }
       const startedAt = performance.now();
       try {
         const capture = await session.tryCapture((debuggee) =>
@@ -153,9 +164,11 @@ async function sampleNavigationCapture(session, action) {
             fromSurface: true,
           }),
         );
+        if (afterAction && capture.captured) recoveredAfterAction = true;
         samples.push({
           captured: capture.captured,
           durationMs: performance.now() - startedAt,
+          timedOut: capture.timedOut === true,
         });
       } catch (error) {
         samples.push({
@@ -178,6 +191,7 @@ async function sampleNavigationCapture(session, action) {
     maxCaptureMs: Math.max(...samples.map((sample) => sample.durationMs)),
     sampleCount: samples.length,
     successes: samples.filter((sample) => sample.captured).length,
+    timeouts: samples.filter((sample) => sample.timedOut).length,
   };
 }
 
