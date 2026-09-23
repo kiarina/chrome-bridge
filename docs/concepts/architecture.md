@@ -47,7 +47,7 @@ minutes only when no lease, operation, or waiter exists. The normal CLI remains 
 - `config.py`: environment configuration and safe defaults
 - `security.py`: ASGI guard for loopback Host/Origin
 - `bridge.py`: extension connections, request correlation, timeouts, and tab controller
-- `app.py`: composition of FastMCP tools, health endpoint, and WebSocket endpoint
+- `app.py`: composition of MCPServer tools, health endpoint, and WebSocket endpoint
 - `__main__.py`: Uvicorn entry point
 
 ## Connection ownership

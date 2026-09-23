@@ -33,7 +33,7 @@ class LoopbackSecurityMiddleware:
             for key, value in scope.get("headers", [])
         }
         if not _host_is_loopback(headers.get("host", "")) or not _origin_is_allowed(
-            headers.get("origin")
+            headers.get("origin"), scope.get("path", "")
         ):
             await self._reject(scope, receive, send, 403, "Forbidden origin")
             return
@@ -57,15 +57,20 @@ class LoopbackSecurityMiddleware:
 
 def _host_is_loopback(host_header: str) -> bool:
     host = host_header.rsplit(":", 1)[0].strip("[]").lower()
-    return host in {"127.0.0.1", "localhost", "::1", "testserver"}
+    return host in {"127.0.0.1", "localhost", "::1"}
 
 
-def _origin_is_allowed(origin: str | None) -> bool:
+# The extension only opens the bridge WebSocket and probes health. Other extensions
+# must not reach /mcp or /api/v1 just by being installed in the same browser.
+_EXTENSION_ORIGIN_PATHS = frozenset({"/extension", "/health"})
+
+
+def _origin_is_allowed(origin: str | None, path: str) -> bool:
     if origin is None:
         return True
     parsed = urlsplit(origin)
     if parsed.scheme == "chrome-extension":
-        return bool(parsed.hostname)
+        return bool(parsed.hostname) and path in _EXTENSION_ORIGIN_PATHS
     return parsed.scheme == "http" and parsed.hostname in {
         "127.0.0.1",
         "localhost",

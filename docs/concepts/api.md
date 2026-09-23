@@ -526,6 +526,12 @@ diagnostic recording was saved, and requires inspecting current page state befor
 
 Tool errors are returned to the client as MCP error results. There is no published stable set of error codes; humans and agents interpret the message. Common causes follow.
 
+The result text is `Error executing tool <name>: <message>`. The message is shown for
+browser/extension errors, relayed extension command errors, the exclusive-session busy
+error, and argument validation errors (`ValueError`), which together are the categories
+below. Any other exception is an internal error: the client sees only
+`Error executing tool <name>` and the server logs the traceback.
+
 | Category | Typical condition | Recovery |
 | --- | --- | --- |
 | browser unavailable | No extension connection, or specified ID is unknown/disconnected | Check extension settings and `browser_instances` |
@@ -538,6 +544,8 @@ Tool errors are returned to the client as MCP error results. There is no publish
 | upload failure | Invalid path, no chooser, or multiple files for a single input | Correct the paths/ref; interception is cleaned up after failure |
 | wait-for timeout | Accessible text did not reach the requested state within 0–10 seconds | Inspect a current snapshot before retrying or changing the condition |
 | download outcome unknown | A post-click download timed out, was canceled, became ambiguous, or lost its target/snapshot | Inspect the current page and Downloads; never retry automatically |
+| busy | A Direct API exclusive session holds Chrome Bridge past the wait timeout | Retry after the session is released |
+| extension too old | The connected extension predates the tool's required version | Update the extension |
 | timeout/disconnect | Command did not finish within the default 15 seconds (or the download-specific deadline), or disconnected during processing | Check connectivity and obtain current state before deciding whether to retry |
 | recorded outcome unknown | Target changed or closed after a recorded operation entered | Inspect current page state and the reported diagnostic recording before deciding whether to retry |
 

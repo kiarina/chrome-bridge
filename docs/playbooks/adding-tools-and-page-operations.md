@@ -63,7 +63,7 @@ At minimum, verify the following with automated tests or fixed fixtures:
 
 1. Update the protocol command and MCP schema in `SPEC.md`.
 2. Add a method with response validation to `BrowserController`.
-3. Call the controller from the FastMCP tool in `app.py`.
+3. Call the controller from the MCP tool in `app.py`.
 4. Add the Chrome API implementation to extension `executeCommand`.
 5. Test success, extension error, disconnect, timeout, extension-version gating, and any operation-specific response contract.
 6. Put the decision pattern in this playbook, fixed procedures in the

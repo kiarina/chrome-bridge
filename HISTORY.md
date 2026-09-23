@@ -2,6 +2,39 @@
 
 ## 2026-09-23
 
+### MCP Python SDK v2
+
+- Moved `packages/mcp` from `mcp[cli]>=1.27,<2` to `mcp[cli]>=2.2` with no upper bound
+  (resolved 2.2.0; adds `mcp-types` and `opentelemetry-api`, drops `httpx-sse` and
+  `pydantic-settings`, none imported here). `FastMCP` became `MCPServer`, and
+  `stateless_http`, `json_response`, and `streamable_http_path` moved to
+  `streamable_http_app()`.
+- Error contract (decision A of the survey): the `tool` wrapper re-raises
+  `ExtensionUnavailableError`, `ExtensionCommandError`, `CoordinatorBusyError`, and
+  `ValueError` as `ToolError`. v2 then renders `Error executing tool <name>: <message>`,
+  byte-identical to v1, so every api.md category and every E2E text check is unchanged.
+  Other exceptions show only `Error executing tool <name>` and are logged. api.md gained
+  "busy" and "extension too old" rows. Rejected: mapping every exception (leaks internal
+  bug text) and a new common base class (touches ~25 `ValueError` sites and 16 tests).
+- Host/Origin: on v1 and v2 alike, the SDK's DNS-rebinding check ran on `/mcp` in
+  addition to `LoopbackSecurityMiddleware` and was stricter than SPEC (it rejected
+  `chrome-extension://`, `Host: localhost` without a port, and portless loopback
+  origins). The SDK check is now disabled and the middleware is the single enforcement
+  point. To avoid widening access, `chrome-extension://` is accepted only on
+  `/extension` and `/health` (the only routes the extension uses), which also closes
+  `/api/v1/*` to other installed extensions. The test-only `testserver` host was removed
+  from the production allow-list; tests now address `127.0.0.1:8765` (Starlette's
+  TestClient hard-codes `ws://testserver` for WebSockets, so tests pass a full URL).
+- `SPEC.md` now states the served MCP revisions (2.2.0: 2024-11-05 through 2025-11-25 via
+  `initialize`, plus stateless 2026-07-28), tied to the SDK floor. The recording demo
+  example moved to `streamable_http_client` and `is_error`/`structured_content`.
+- Verified: 181 Python, 8 SDK, 13 scripts tests; ruff; static and release validation;
+  byte-identical release builds; all seven isolated Chromium E2E tests (2.7 minutes).
+  Not run: a branded-Chrome smoke, which belongs to the next release's smoke.
+- Residual risk: `DirectDispatcher` still reads the SDK's private `_tool_manager`
+  (`list_tools()`, `tool.parameters`, `tool.fn_metadata.arg_model`). It works on 2.2.0
+  but is unsupported API; the Direct API tests fail first if it moves.
+
 ### Ruff 0.16
 
 - Moved the dev toolchain from `ruff<0.16` to `ruff>=0.16,<0.17` (0.16.8). The repository

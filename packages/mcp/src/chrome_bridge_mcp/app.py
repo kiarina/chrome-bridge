@@ -9,7 +9,9 @@ from importlib.metadata import version
 from typing import Any
 from uuid import uuid4
 
-from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.mcpserver import Image, MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
@@ -39,6 +41,12 @@ from .security import LoopbackSecurityMiddleware
 
 SERVER_VERSION = version("chrome-bridge-mcp")
 API_VERSION = 1
+_TOOL_CONTRACT_ERRORS = (
+    ExtensionUnavailableError,
+    ExtensionCommandError,
+    CoordinatorBusyError,
+    ValueError,
+)
 
 
 def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
@@ -51,7 +59,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
     registry = BrowserRegistry(timeout_seconds=settings.command_timeout_seconds)
     controller = BrowserController(registry)
     coordinator = OperationCoordinator(on_activity=mark_activity)
-    mcp = FastMCP(
+    mcp = MCPServer(
         "chrome-bridge",
         instructions=(
             "Control tabs in connected Chrome browsers. Call browser_instances and pass "
@@ -62,19 +70,22 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
             "PageState contains pageState=browser-dialog, inspect it and call "
             "browser_dialog_respond with its exact dialog ref before other page actions."
         ),
-        stateless_http=True,
-        json_response=True,
-        streamable_http_path="/mcp",
     )
 
     def tool(*, name: str) -> Any:
         def decorate(function: Any) -> Any:
             @wraps(function)
             async def coordinated(*args: Any, **kwargs: Any) -> Any:
-                async with coordinator.single_call(
-                    settings.operation_wait_timeout_seconds
-                ):
-                    return await function(*args, **kwargs)
+                try:
+                    async with coordinator.single_call(
+                        settings.operation_wait_timeout_seconds
+                    ):
+                        return await function(*args, **kwargs)
+                except _TOOL_CONTRACT_ERRORS as error:
+                    # The MCP SDK hides unexpected handler exceptions from clients.
+                    # These messages are the public tool error contract
+                    # (docs/concepts/api.md); anything else stays a generic error.
+                    raise ToolError(str(error)) from error
 
             return mcp.tool(name=name)(coordinated)
 
@@ -465,7 +476,16 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
             if connection is not None:
                 await registry.detach(connection, websocket)
 
-    app = mcp.streamable_http_app()
+    app = mcp.streamable_http_app(
+        streamable_http_path="/mcp",
+        json_response=True,
+        stateless_http=True,
+        # LoopbackSecurityMiddleware is the single Host/Origin enforcement point for
+        # every route, including /mcp (SPEC.md).
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=False
+        ),
+    )
     original_lifespan = app.router.lifespan_context
 
     @asynccontextmanager

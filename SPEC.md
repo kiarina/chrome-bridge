@@ -69,7 +69,10 @@ Use protocol v2 for the identity hello. A new server accepts v1 in one legacy sl
 
 ## 3. Architecture
 
-1. The MCP client uses `POST/GET/DELETE /mcp` as Streamable HTTP.
+1. The MCP client uses `POST/GET/DELETE /mcp` as Streamable HTTP. The served MCP
+   protocol revisions are those of the MCP Python SDK floor (`mcp>=2.2`): with 2.2.0,
+   `initialize` negotiates 2024-11-05, 2025-03-26, 2025-06-18, and 2025-11-25, and
+   stateless 2026-07-28 requests are served without `initialize`.
 2. The Chrome extension service worker connects to `/extension` over WebSocket.
 3. The server assigns a UUID to each tool call and converts it into a WebSocket command.
 4. The extension executes Chrome APIs and returns success/error with the same UUID.
@@ -177,7 +180,11 @@ viewport without moving `scrollY` or substituting document-top content.
 ## 5. Security
 
 - The server binds to `127.0.0.1:8765` by default and rejects `0.0.0.0`.
-- `Host` must be loopback. `Origin` may be absent, loopback, or `chrome-extension://` only.
+- `Host` must be loopback. `Origin` may be absent or loopback on every route;
+  `chrome-extension://` is accepted only on `/extension` and `/health`, so another
+  installed extension cannot call `/mcp` or `/api/v1/*`. One middleware enforces this
+  for every route; the MCP SDK's own DNS-rebinding check is disabled so the two cannot
+  disagree.
 - `/health` returns only connection status, connection count, and—when one browser is connected—protocol/extension versions. It never returns browser IDs, labels, tab data, or page data.
 - Tool URLs are restricted to `http:`, `https:`, and `about:blank`.
 - Trust local processes running as the same user. Do not authenticate between local processes.

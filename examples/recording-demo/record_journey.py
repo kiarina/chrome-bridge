@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urljoin
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,14 +34,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def tool_value(result: Any) -> Any:
-    if result.isError:
+    if result.is_error:
         message = "\n".join(
             item.text
             for item in result.content
             if getattr(item, "type", None) == "text"
         )
         raise RuntimeError(message or "MCP tool call failed")
-    structured = result.structuredContent
+    structured = result.structured_content
     if isinstance(structured, dict) and "result" in structured:
         return structured["result"]
     if structured is not None:
@@ -90,7 +90,7 @@ async def record(args: argparse.Namespace) -> None:
     opened_tab = False
     completed = False
 
-    async with streamablehttp_client(args.mcp_url) as (read, write, _):
+    async with streamable_http_client(args.mcp_url) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
             instances = await call(session, "browser_instances", {})

@@ -6,6 +6,22 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Require MCP Python SDK 2.2 or newer (`mcp[cli]>=2.2`, no upper bound). The 1.x line
+  only receives security fixes. Tool error text is unchanged: browser, extension,
+  busy, and argument errors still read `Error executing tool <name>: <message>`; other
+  internal errors now show only `Error executing tool <name>` and are logged by the
+  server.
+- `/mcp` and `/api/v1/*` reject `chrome-extension://` origins; the Chrome Bridge
+  extension only uses `/extension` and `/health`, where they remain accepted. `/mcp`
+  now follows the documented Host/Origin rule exactly (for example `Host: localhost`
+  without a port is accepted) because one middleware enforces it for every route.
+
+### Removed
+
+- The test-only `testserver` host is no longer accepted as loopback.
+
 ## [0.4.1] - 2026-09-05
 
 ### Changed

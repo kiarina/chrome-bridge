@@ -96,7 +96,7 @@ Sources: [Browser MCP server setup](https://docs.browsermcp.io/setup-server),
 apps/
 └── extension/  # Manifest V3 Chrome extension
 packages/
-├── mcp/        # Python FastMCP + Streamable HTTP + WebSocket bridge
+├── mcp/        # Python MCPServer + Streamable HTTP + WebSocket bridge
 └── sdk/        # Direct API Python SDK and managed-server launcher
 ```
 

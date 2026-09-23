@@ -6,10 +6,13 @@ from starlette.websockets import WebSocketDisconnect
 
 from chrome_bridge_mcp import Settings, create_app
 
+# Starlette's TestClient always addresses WebSockets to ws://testserver.
+EXTENSION_URL = "ws://127.0.0.1:8765/extension"
+
 
 def test_health() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
         health = client.get("/health")
         assert health.status_code == 200
         assert health.json()["extensionConnected"] is False
@@ -18,8 +21,8 @@ def test_health() -> None:
 def test_extension_hello_updates_health() -> None:
     app = create_app(Settings())
     with (
-        TestClient(app) as client,
-        client.websocket_connect("/extension") as websocket,
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL) as websocket,
     ):
         websocket.send_json(
             {
@@ -37,7 +40,10 @@ def test_extension_hello_updates_health() -> None:
 
 def test_health_redacts_multiple_browser_identity() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client, client.websocket_connect("/extension") as first:
+    with (
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL) as first,
+    ):
         first.send_json(
             {
                 "type": "hello",
@@ -47,7 +53,7 @@ def test_health_redacts_multiple_browser_identity() -> None:
                 "browserLabel": "Private work profile",
             }
         )
-        with client.websocket_connect("/extension") as second:
+        with client.websocket_connect(EXTENSION_URL) as second:
             second.send_json(
                 {
                     "type": "hello",
@@ -71,8 +77,8 @@ def test_health_redacts_multiple_browser_identity() -> None:
 def test_extension_rejects_malformed_json_with_protocol_close() -> None:
     app = create_app(Settings())
     with (
-        TestClient(app) as client,
-        client.websocket_connect("/extension") as websocket,
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL) as websocket,
     ):
         websocket.send_text("{")
         with pytest.raises(WebSocketDisconnect) as closed:
@@ -83,8 +89,8 @@ def test_extension_rejects_malformed_json_with_protocol_close() -> None:
 def test_extension_rejects_invalid_hello_with_protocol_close() -> None:
     app = create_app(Settings())
     with (
-        TestClient(app) as client,
-        client.websocket_connect("/extension") as websocket,
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL) as websocket,
     ):
         websocket.send_json(
             {
@@ -112,8 +118,8 @@ def test_extension_rejects_invalid_hello_with_protocol_close() -> None:
 def test_extension_rejects_invalid_runtime_lifecycle(message: object) -> None:
     app = create_app(Settings())
     with (
-        TestClient(app) as client,
-        client.websocket_connect("/extension") as websocket,
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL) as websocket,
     ):
         websocket.send_json(
             {
@@ -130,9 +136,87 @@ def test_extension_rejects_invalid_runtime_lifecycle(message: object) -> None:
 
 def test_health_rejects_dns_rebinding_origin() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
         response = client.get("/health", headers={"Origin": "http://localhost.evil"})
         assert response.status_code == 403
+
+
+MCP_HEADERS = {"Accept": "application/json, text/event-stream"}
+TOOLS_LIST = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+EXTENSION_ORIGIN = {"Origin": "chrome-extension://abcdefghijklmnopabcdefghijklmnop"}
+
+
+def test_extension_origin_reaches_only_extension_routes() -> None:
+    app = create_app(Settings())
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        assert client.get("/health", headers=EXTENSION_ORIGIN).status_code == 200
+        assert client.get("/api/v1/meta", headers=EXTENSION_ORIGIN).status_code == 403
+        response = client.post(
+            "/mcp", json=TOOLS_LIST, headers={**MCP_HEADERS, **EXTENSION_ORIGIN}
+        )
+        assert response.status_code == 403
+
+
+def test_extension_origin_can_open_bridge_socket() -> None:
+    app = create_app(Settings())
+    with (
+        TestClient(app, base_url="http://127.0.0.1:8765") as client,
+        client.websocket_connect(EXTENSION_URL, headers=EXTENSION_ORIGIN) as socket,
+    ):
+        socket.send_json(
+            {
+                "type": "hello",
+                "protocolVersion": 2,
+                "extensionVersion": "0.1.0",
+                "browserId": "123e4567-e89b-42d3-a456-426614174000",
+                "browserLabel": "Store profile",
+            }
+        )
+        socket.send_json({"type": "ping"})
+        assert socket.receive_json() == {"type": "pong"}
+        assert client.get("/health").json()["extensionConnected"] is True
+
+
+@pytest.mark.parametrize(
+    ("base_url", "origin", "status"),
+    [
+        ("http://localhost", None, 200),
+        ("http://127.0.0.1:8765", "http://localhost", 200),
+        ("http://testserver", None, 403),
+        ("http://evil.example:8765", None, 403),
+    ],
+)
+def test_mcp_host_and_origin_follow_loopback_middleware(
+    base_url: str, origin: str | None, status: int
+) -> None:
+    app = create_app(Settings())
+    headers = dict(MCP_HEADERS)
+    if origin is not None:
+        headers["Origin"] = origin
+    with TestClient(app, base_url=base_url) as client:
+        response = client.post("/mcp", json=TOOLS_LIST, headers=headers)
+        assert response.status_code == status
+
+
+def test_mcp_tool_error_keeps_domain_message() -> None:
+    app = create_app(Settings())
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        response = client.post(
+            "/mcp",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "browser_tabs", "arguments": {}},
+            },
+            headers=MCP_HEADERS,
+        )
+        result = response.json()["result"]
+        assert result["isError"] is True
+        assert result["content"][0]["text"] == (
+            "Error executing tool browser_tabs: No Chrome extension is connected. "
+            "Open the extension and check its settings."
+        )
 
 
 def test_direct_api_metadata_and_tool_catalog() -> None:

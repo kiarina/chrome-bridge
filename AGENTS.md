@@ -68,15 +68,8 @@ package との共存を壊すためです。「次の major が出たら壊れ�
 にコメントとして書き、下の一覧にも記載してください。解除に判断が要るものは `tasks/` に
 移行タスクを作り、コメントからそのファイルを指してください。
 
-### 現在維持している上限（2026-09-05 時点）
+### 現在維持している上限（2026-09-23 時点）
 
-- `packages/mcp`: `mcp[cli]>=1.27,<2`
-  — MCP Python SDK 2.x には `mcp.server.fastmcp` が存在せず、import すると
-  `ModuleNotFoundError` になる（移行案内 <https://py.sdk.modelcontextprotocol.io/v2/migration/>
-  を指す）。rename 自体は機械的だが、2.1.0 は tool handler の想定外例外を
-  `Error executing tool <name>` という汎用メッセージへ置換する。ここで raise している
-  domain 例外のメッセージは `docs/concepts/api.md` が公開 error contract として
-  規定しており、これが壊れる。解除は `tasks/mcp-sdk-v2-migration.md`。
 - `packages/sdk`: `chrome-bridge-mcp>=0.4,<0.5`
   — 第三者 package への制約ではなく、このリポジトリから同時に release する 2 つの
   distribution の lockstep。`scripts/validate_static.py` が server と SDK の version 一致を
@@ -85,7 +78,7 @@ package との共存を壊すためです。「次の major が出たら壊れ�
   「この制約が release する server version を含むか」も検査する（workspace では常に手元の
   server が解決されるため、test では直し忘れに気づけない）。
 
-上限を撤廃した依存（`jsonschema`、`uvicorn`、`websockets`、`httpx2`）については、
+上限を撤廃した依存（`jsonschema`、`uvicorn`、`websockets`、`httpx2`、2026-09-23 の v2 移行で `mcp`）については、
 撤廃時点の実測を `HISTORY.md` に記録しています。
 
 ### `dependency-groups` は対象外
@@ -140,8 +133,6 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
-  — 試行移行と判断材料は揃った。error の対応付けと `/mcp` の Origin 方針が判断待ち
 - [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
   — 審査は通過し `PUBLISHED`。残るのは branded Chrome での確認と記録の更新
 

@@ -42,7 +42,7 @@ Labels are descriptive and need not be unique. Only `browserId` is used for rout
 4. With two or more connections, omission returns an error instructing the caller to invoke `browser_instances`.
 5. An unknown or disconnected explicit ID returns an error and is never replaced by the only or newest connection.
 
-A process-global `browser_select` tool is rejected. FastMCP runs with `stateless_http=True`; a mutable selection would be
+A process-global `browser_select` tool is rejected. The MCP server runs with `stateless_http=True`; a mutable selection would be
 shared by unrelated MCP clients and concurrent calls could be redirected between selection and execution. Requiring an
 ID on ambiguous calls keeps routing local to the call without introducing MCP session state.
 
@@ -205,7 +205,7 @@ loopback bind plus Host/Origin checks remain mandatory, and remote bind still re
 | Health with multiple profiles | Count only; no ID, label, tab, or page metadata |
 
 Tests should cover registry units with fake sockets, protocol v1/v2 schema fixtures, concurrent calls to different
-connections, FastMCP tool schemas for all optional `browser_id` arguments, health redaction, extension local-storage
+connections, MCP tool schemas for all optional `browser_id` arguments, health redaction, extension local-storage
 identity, reconnect behavior, and a real-Chrome two-profile validation before declaring the implementation complete.
 
 ## Implemented order
