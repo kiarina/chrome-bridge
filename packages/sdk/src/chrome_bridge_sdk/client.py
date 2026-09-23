@@ -9,10 +9,10 @@ import sys
 import threading
 import time
 import weakref
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, TypeVar
 
 import httpx2
 
@@ -27,22 +27,21 @@ from .errors import (
     SessionExpiredError,
 )
 from .models import (
-    BrowserInstance,
     BrowserDialogSnapshot,
+    BrowserInstance,
     ClosedTab,
     ConsoleEntry,
     DownloadFileResult,
     KeyPress,
+    PageState,
     RecordedResult,
     Recording,
     Screenshot,
-    PageState,
     Tab,
     WaitResult,
-    _recorded_result,
     _page_state,
+    _recorded_result,
 )
-
 
 logger = logging.getLogger(__name__)
 _active_session_tasks: weakref.WeakSet[asyncio.Task[Any]] = weakref.WeakSet()

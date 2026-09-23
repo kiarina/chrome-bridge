@@ -9,7 +9,6 @@ from jsonschema import Draft202012Validator
 from packaging.requirements import Requirement
 from packaging.version import Version
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
 SERVER_PACKAGE = ROOT / "packages" / "mcp"

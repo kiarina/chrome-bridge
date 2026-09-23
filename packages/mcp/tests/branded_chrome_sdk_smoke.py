@@ -7,7 +7,6 @@ import re
 
 from chrome_bridge_sdk import ChromeBridge, Snapshot
 
-
 BUTTON_REF = re.compile(r'- button "Update this profile" \[ref=(s\d+e\d+)\]')
 
 

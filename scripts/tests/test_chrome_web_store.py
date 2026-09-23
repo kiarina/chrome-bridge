@@ -15,7 +15,6 @@ from scripts.chrome_web_store import (
     submit_release,
 )
 
-
 PUBLISHER_ID = "publisher-123"
 ITEM_ID = "ogmocgobegbjbecakclahodnhhfmccad"
 

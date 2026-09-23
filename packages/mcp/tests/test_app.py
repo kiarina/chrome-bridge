@@ -17,80 +17,85 @@ def test_health() -> None:
 
 def test_extension_hello_updates_health() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
-        with client.websocket_connect("/extension") as websocket:
-            websocket.send_json(
-                {
-                    "type": "hello",
-                    "protocolVersion": 1,
-                    "extensionVersion": "0.1.0",
-                }
-            )
-            websocket.send_json({"type": "ping"})
-            assert websocket.receive_json() == {"type": "pong"}
-            health = client.get("/health").json()
-            assert health["extensionConnected"] is True
-            assert health["extension"]["extensionVersion"] == "0.1.0"
+    with (
+        TestClient(app) as client,
+        client.websocket_connect("/extension") as websocket,
+    ):
+        websocket.send_json(
+            {
+                "type": "hello",
+                "protocolVersion": 1,
+                "extensionVersion": "0.1.0",
+            }
+        )
+        websocket.send_json({"type": "ping"})
+        assert websocket.receive_json() == {"type": "pong"}
+        health = client.get("/health").json()
+        assert health["extensionConnected"] is True
+        assert health["extension"]["extensionVersion"] == "0.1.0"
 
 
 def test_health_redacts_multiple_browser_identity() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
-        with client.websocket_connect("/extension") as first:
-            first.send_json(
+    with TestClient(app) as client, client.websocket_connect("/extension") as first:
+        first.send_json(
+            {
+                "type": "hello",
+                "protocolVersion": 2,
+                "extensionVersion": "0.1.0",
+                "browserId": "123e4567-e89b-42d3-a456-426614174000",
+                "browserLabel": "Private work profile",
+            }
+        )
+        with client.websocket_connect("/extension") as second:
+            second.send_json(
                 {
                     "type": "hello",
                     "protocolVersion": 2,
                     "extensionVersion": "0.1.0",
-                    "browserId": "123e4567-e89b-42d3-a456-426614174000",
-                    "browserLabel": "Private work profile",
+                    "browserId": "123e4567-e89b-42d3-a456-426614174001",
+                    "browserLabel": "Private personal profile",
                 }
             )
-            with client.websocket_connect("/extension") as second:
-                second.send_json(
-                    {
-                        "type": "hello",
-                        "protocolVersion": 2,
-                        "extensionVersion": "0.1.0",
-                        "browserId": "123e4567-e89b-42d3-a456-426614174001",
-                        "browserLabel": "Private personal profile",
-                    }
-                )
-                second.send_json({"type": "ping"})
-                assert second.receive_json() == {"type": "pong"}
-                health = client.get("/health").json()
-                assert health == {
-                    "status": "ok",
-                    "extensionConnected": True,
-                    "connectedBrowserCount": 2,
-                    "extension": {},
-                }
+            second.send_json({"type": "ping"})
+            assert second.receive_json() == {"type": "pong"}
+            health = client.get("/health").json()
+            assert health == {
+                "status": "ok",
+                "extensionConnected": True,
+                "connectedBrowserCount": 2,
+                "extension": {},
+            }
 
 
 def test_extension_rejects_malformed_json_with_protocol_close() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
-        with client.websocket_connect("/extension") as websocket:
-            websocket.send_text("{")
-            with pytest.raises(WebSocketDisconnect) as closed:
-                websocket.receive_json()
-            assert closed.value.code == 1002
+    with (
+        TestClient(app) as client,
+        client.websocket_connect("/extension") as websocket,
+    ):
+        websocket.send_text("{")
+        with pytest.raises(WebSocketDisconnect) as closed:
+            websocket.receive_json()
+        assert closed.value.code == 1002
 
 
 def test_extension_rejects_invalid_hello_with_protocol_close() -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
-        with client.websocket_connect("/extension") as websocket:
-            websocket.send_json(
-                {
-                    "type": "hello",
-                    "protocolVersion": 2,
-                    "extensionVersion": "0.1.0",
-                }
-            )
-            with pytest.raises(WebSocketDisconnect) as closed:
-                websocket.receive_json()
-            assert closed.value.code == 1002
+    with (
+        TestClient(app) as client,
+        client.websocket_connect("/extension") as websocket,
+    ):
+        websocket.send_json(
+            {
+                "type": "hello",
+                "protocolVersion": 2,
+                "extensionVersion": "0.1.0",
+            }
+        )
+        with pytest.raises(WebSocketDisconnect) as closed:
+            websocket.receive_json()
+        assert closed.value.code == 1002
 
 
 @pytest.mark.parametrize(
@@ -106,19 +111,21 @@ def test_extension_rejects_invalid_hello_with_protocol_close() -> None:
 )
 def test_extension_rejects_invalid_runtime_lifecycle(message: object) -> None:
     app = create_app(Settings())
-    with TestClient(app) as client:
-        with client.websocket_connect("/extension") as websocket:
-            websocket.send_json(
-                {
-                    "type": "hello",
-                    "protocolVersion": 1,
-                    "extensionVersion": "0.1.0",
-                }
-            )
-            websocket.send_json(message)
-            with pytest.raises(WebSocketDisconnect) as closed:
-                websocket.receive_json()
-            assert closed.value.code == 1002
+    with (
+        TestClient(app) as client,
+        client.websocket_connect("/extension") as websocket,
+    ):
+        websocket.send_json(
+            {
+                "type": "hello",
+                "protocolVersion": 1,
+                "extensionVersion": "0.1.0",
+            }
+        )
+        websocket.send_json(message)
+        with pytest.raises(WebSocketDisconnect) as closed:
+            websocket.receive_json()
+        assert closed.value.code == 1002
 
 
 def test_health_rejects_dns_rebinding_origin() -> None:

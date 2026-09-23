@@ -8,7 +8,6 @@ import sys
 
 import websockets
 
-
 CHILD = """
 import asyncio
 import os
@@ -117,7 +116,7 @@ async def test_two_processes_share_managed_server_and_fifo_session() -> None:
     deadline = asyncio.get_running_loop().time() + 5
     while asyncio.get_running_loop().time() < deadline:
         try:
-            reader, writer = await asyncio.open_connection("127.0.0.1", port)
+            _reader, writer = await asyncio.open_connection("127.0.0.1", port)
         except OSError:
             return
         writer.close()

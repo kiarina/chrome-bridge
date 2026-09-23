@@ -141,7 +141,7 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 ### 次に着手・進行中
 
 - [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
-  — 新規 38 診断の方針決定と `ruff<0.16` 制約の解除
+  — 機械的な 29 件は修正済み。残る BLE001 / TRY004 の 9 件は方針の判断待ち
 - [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
   — 1.63.0 / Chromium 153 で残る 1 件（複数 profile の再起動 identity）の原因特定
 - [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)

@@ -13,7 +13,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-
 API_ORIGIN = "https://chromewebstore.googleapis.com"
 COMPONENT_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 ACTIVE_SUBMISSION_STATES = {"PENDING_REVIEW", "STAGED"}

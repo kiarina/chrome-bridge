@@ -10,8 +10,8 @@ import pytest
 
 import chrome_bridge_sdk.client as client_module
 from chrome_bridge_sdk import (
-    BrowserInstance,
     BrowserDialogSnapshot,
+    BrowserInstance,
     ChromeBridge,
     ClosedTab,
     ConsoleEntry,

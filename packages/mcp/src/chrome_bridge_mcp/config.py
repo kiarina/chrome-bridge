@@ -16,7 +16,7 @@ class Settings:
     managed_idle_timeout_seconds: float = 300.0
 
     @classmethod
-    def from_env(cls, *, managed: bool = False) -> "Settings":
+    def from_env(cls, *, managed: bool = False) -> Settings:
         host = os.environ.get("CHROME_BRIDGE_HOST", "127.0.0.1")
         if host not in {"127.0.0.1", "::1", "localhost"}:
             raise ValueError("CHROME_BRIDGE_HOST must be a loopback host")

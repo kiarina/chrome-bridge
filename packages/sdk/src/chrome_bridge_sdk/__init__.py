@@ -13,9 +13,9 @@ from .errors import (
     SessionExpiredError,
 )
 from .models import (
-    BrowserInstance,
     BrowserDialog,
     BrowserDialogSnapshot,
+    BrowserInstance,
     ClosedTab,
     ConsoleEntry,
     Download,
@@ -31,12 +31,12 @@ from .models import (
 )
 
 __all__ = [
+    "BrowserDialog",
+    "BrowserDialogSnapshot",
+    "BrowserInstance",
     "ChromeBridge",
     "ChromeBridgeError",
     "ChromeBridgeSession",
-    "BrowserInstance",
-    "BrowserDialog",
-    "BrowserDialogSnapshot",
     "ClosedTab",
     "ConsoleEntry",
     "Download",

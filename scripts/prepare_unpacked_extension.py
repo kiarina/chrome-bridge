@@ -8,7 +8,6 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
 RELEASE = ROOT / "release"

@@ -37,7 +37,6 @@ from .protocol import (
 )
 from .security import LoopbackSecurityMiddleware
 
-
 SERVER_VERSION = version("chrome-bridge-mcp")
 API_VERSION = 1
 

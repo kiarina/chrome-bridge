@@ -4,9 +4,9 @@ import asyncio
 import secrets
 import time
 from collections import deque
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import AsyncIterator, Callable
 from uuid import uuid4
 
 

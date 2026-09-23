@@ -27,3 +27,8 @@ members = ["packages/mcp", "packages/sdk"]
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["packages/mcp/tests", "scripts/tests"]
+
+[tool.ruff]
+# The workspace root is the project root for Ruff, so the src-layout packages must be
+# listed explicitly; otherwise isort (I001) classifies chrome_bridge_mcp/_sdk as third-party.
+src = [".", "packages/mcp/src", "packages/sdk/src"]
