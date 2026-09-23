@@ -137,6 +137,8 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
+- [SDK の server 上限が release version を含むか検査する](tasks/sdk-server-bound-validation.md)
+  — `validate_static.py` は version 一致しか見ておらず、minor bump で上限を直し忘れても通る
 - [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
   — 新規 38 診断の方針決定と `ruff<0.16` 制約の解除
 - [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
