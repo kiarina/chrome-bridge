@@ -24,8 +24,7 @@ playbook.
 - Entry point, installation, and feature overview: root `README.md`
 - Normative protocol and tool specification: root `SPEC.md`
 - Completed work, measurements, and past decisions: root `HISTORY.md`
-- Open work, blockers, and handoffs: root `tasks/goal/` for finite goals and
-  `tasks/routine/` for ongoing routines (index in `AGENTS.md`)
+- Unfinished work, blockers, and handoffs: root `tasks/` (index in `AGENTS.md`)
 - Public data-handling statement: root `PRIVACY.md`
 - User-visible changes per distributed component: each component's `CHANGELOG.md`
 - Per-task routing to a single file under this directory: the docs guide in `AGENTS.md`
