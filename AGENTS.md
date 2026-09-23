@@ -133,8 +133,7 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
-  — 審査は通過し `PUBLISHED`。残るのは branded Chrome での確認と記録の更新
+（なし）
 
 ### 待機中（前提が揃ったら着手する）
 

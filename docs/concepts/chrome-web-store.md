@@ -9,16 +9,17 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
 ### Current publication
 
 - Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
-- Published version: `0.3.0`
+- Published version: `0.4.0`
 - Visibility: Public
 - Initial v0.1.0 publication: 2026-07-21
 - v0.3.0 update approved and manually published: 2026-07-24
 - Public visibility approved and manually published: 2026-07-24
-- Status at handoff: dashboard reports `公開済み - 一般公開`; the unauthenticated direct
-  listing exposes `Add to Chrome` and version 0.3.0, and Store search returns the exact
-  canonical item
+- v0.4.0 update approved and automatically published (`DEFAULT_PUBLISH`): confirmed by the
+  status workflow on 2026-09-05 (`publishedState=PUBLISHED`)
+- Branded-Chrome check: 2026-09-23, the installed Store copy reports 0.4.0 (see
+  "v0.4 update submission")
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
-- Current ZIP SHA-256: `32d79d0d93be55ac5dbb9c50fbcc79e7e5f680347304486e7ecd0ee8da2b0d04`
+- Current ZIP SHA-256: `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870`
 
 The dashboard showed the expected warning that broad host permissions can lengthen
 review, then accepted the submission. It exposed neither the automatic-publishing
@@ -71,8 +72,18 @@ Release workflow `30121554355` uploaded the verified 0.4.0 ZIP with SHA-256
 `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870` through the
 keyless Chrome Web Store API v2 path on 2026-07-25. The API reported
 `uploadState=SUCCEEDED`, `submissionState=PENDING_REVIEW`, `publishType=DEFAULT_PUBLISH`,
-and a 100% deployment target. Approval will publish automatically; do not make a second
-submission while this review remains pending.
+and a 100% deployment target. Approval published it automatically; the daily status
+workflow reported `publishedState=PUBLISHED` on 2026-09-05 (run `33936466830`).
+
+On 2026-09-23, branded Chrome 153.0.8010.53 had the Store copy enabled in one profile
+with the unpacked copy disabled there. The only connected instance reported extension
+0.4.0 over protocol v2, and its stable `browserId` is stored in that Store item's
+extension storage. A dedicated inactive loopback tab was created as the target, navigated
+twice (title prefix applied once, snapshot title undecorated), raised an `alert` that was
+answered in the background, and immediately served a PNG screenshot through the debugger;
+the post-alert DOM update was visible. The active tab never changed, only the test tab was
+closed, and no tab kept a stale `◉`/`●` prefix, so no pre-marker title remained to
+migrate.
 
 ### Public visibility publication
 

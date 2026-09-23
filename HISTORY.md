@@ -2,6 +2,26 @@
 
 ## 2026-09-23
 
+### Chrome Web Store v0.4.0 verified in branded Chrome
+
+- The Store copy (`ogmocgobegbjbecakclahodnhhfmccad`) was already the only enabled Chrome
+  Bridge in one profile of branded Chrome 153.0.8010.53, so nothing had to be toggled.
+  The one connected instance reported 0.4.0 over protocol v2, and its `browserId` was
+  found only in that Store item's extension storage, tying the connection to the Store
+  copy rather than the unpacked one enabled in another profile.
+- Through the SDK against the current `main` server (MCP SDK v2), a dedicated inactive
+  loopback tab was auto-targeted, navigated twice with a single title prefix, raised an
+  `alert` answered in the background, and immediately returned a PNG screenshot; the
+  post-alert DOM change was in the next snapshot. Active tab unchanged, only the test tab
+  closed, and no tab was left with a stale prefix, so the pre-marker title case did not
+  occur.
+- Recorded the published version, status, and the submitted ZIP checksum in
+  `docs/concepts/chrome-web-store.md` and the README.
+- Note for the next extension release: `main` already carries runtime changes (bounded
+  frame capture) while the manifest still says 0.4.0, so a local build no longer matches
+  the Store ZIP checksum. Bump the extension version with those changes; the release
+  workflow skips Store mutation for an already-published version.
+
 ### MCP Python SDK v2
 
 - Moved `packages/mcp` from `mcp[cli]>=1.27,<2` to `mcp[cli]>=2.2` with no upper bound
