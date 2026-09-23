@@ -12,6 +12,7 @@ import weakref
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from enum import Enum
+from importlib.metadata import version
 from typing import Any, TypeVar
 
 import httpx2
@@ -736,14 +737,20 @@ def _release_session_task(task: asyncio.Task[Any]) -> None:
         _active_session_tasks.discard(task)
 
 
+# The SDK and the server are released in lockstep, so the compatible server series is
+# this SDK's own major.minor.
+_SERVER_SERIES = ".".join(version("chrome-bridge-sdk").split(".")[:2])
+
+
 def _validate_meta(meta: Mapping[str, Any]) -> None:
     if (
         meta.get("service") != "chrome-bridge"
         or meta.get("apiVersion") != 1
-        or not str(meta.get("serverVersion", "")).startswith("0.4.")
+        or not str(meta.get("serverVersion", "")).startswith(f"{_SERVER_SERIES}.")
     ):
         raise IncompatibleServerError(
-            "The running Chrome Bridge server is not compatible with SDK 0.4"
+            "The running Chrome Bridge server is not compatible with SDK "
+            f"{_SERVER_SERIES}"
         )
 
 

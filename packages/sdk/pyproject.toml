@@ -1,6 +1,6 @@
 [project]
 name = "chrome-bridge-sdk"
-version = "0.4.1"
+version = "0.5.0"
 description = "Python SDK for the shared Chrome Bridge service"
 readme = "README.md"
 license = "MIT"
@@ -10,7 +10,7 @@ dependencies = [
     # Upper bound with evidence; see "Dependency version bounds" in AGENTS.md.
     # The SDK and the server are released together from this repository and
     # scripts/validate_static.py requires their versions to be identical.
-    "chrome-bridge-mcp>=0.4,<0.5",
+    "chrome-bridge-mcp>=0.5,<0.6",
     "httpx2>=2",
 ]
 

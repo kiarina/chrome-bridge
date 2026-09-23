@@ -17,6 +17,10 @@ import {
   waitFor,
 } from "./harness.js";
 
+const { version: EXTENSION_VERSION } = JSON.parse(
+  await readFile(new URL("../manifest.json", import.meta.url), "utf8"),
+);
+
 test("stays quietly disconnected until the server starts", async () => {
   const profiles = [];
   let artifact;
@@ -318,7 +322,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     for (const instance of connected) {
       expect(instance).toMatchObject({
         protocolVersion: 2,
-        extensionVersion: "0.4.0",
+        extensionVersion: EXTENSION_VERSION,
         identityStable: true,
       });
       expect(instance.browserId).toMatch(/^[0-9a-f-]{36}$/);

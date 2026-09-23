@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from importlib.metadata import version
 from typing import Any
 
 import httpx2
@@ -31,6 +32,8 @@ from chrome_bridge_sdk import (
     WaitResult,
 )
 
+SERVER_VERSION = version("chrome-bridge-sdk")
+
 
 def response(
     request: httpx2.Request, status: int, body: dict[str, Any]
@@ -45,11 +48,16 @@ def response(
 
 def test_sdk_accepts_only_the_matching_server_minor_series() -> None:
     client_module._validate_meta(
-        {"service": "chrome-bridge", "apiVersion": 1, "serverVersion": "0.4.0"}
+        {"service": "chrome-bridge", "apiVersion": 1, "serverVersion": SERVER_VERSION}
     )
-    with pytest.raises(IncompatibleServerError, match="SDK 0.4"):
+    major, minor = (int(part) for part in SERVER_VERSION.split(".")[:2])
+    with pytest.raises(IncompatibleServerError, match=f"SDK {major}.{minor}"):
         client_module._validate_meta(
-            {"service": "chrome-bridge", "apiVersion": 1, "serverVersion": "0.3.0"}
+            {
+                "service": "chrome-bridge",
+                "apiVersion": 1,
+                "serverVersion": f"{major}.{minor + 1}.0",
+            }
         )
 
 
@@ -65,7 +73,7 @@ def direct_api(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.4.0",
+                    "serverVersion": SERVER_VERSION,
                     "extensionConnected": True,
                 },
             )
@@ -480,7 +488,7 @@ async def test_structured_operation_error(monkeypatch: pytest.MonkeyPatch) -> No
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.4.0",
+                    "serverVersion": SERVER_VERSION,
                     "extensionConnected": True,
                 },
             )
@@ -545,7 +553,7 @@ async def test_call_transport_failure_is_not_retried(
                 {
                     "service": "chrome-bridge",
                     "apiVersion": 1,
-                    "serverVersion": "0.4.0",
+                    "serverVersion": SERVER_VERSION,
                     "extensionConnected": True,
                 },
             )

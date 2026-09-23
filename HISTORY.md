@@ -2,6 +2,22 @@
 
 ## 2026-09-23
 
+### v0.5.0 (server, SDK) and extension 0.4.1 release preparation
+
+- Server and SDK go to 0.5.0 (minor): the MCP SDK 2.2 requirement changes which
+  environments can install them, and `chrome-extension://` origins lose `/api/v1/*`.
+  Normal MCP and Direct API use from local processes is unchanged. The extension goes to
+  0.4.1 (patch) for the bounded frame capture fix.
+- Two more lockstep spots surfaced during the bump. The SDK's runtime `/api/v1/meta`
+  check hard-coded `startswith("0.4.")`, so SDK 0.5.0 would have rejected its own
+  server; it now derives the series from its installed version. The isolated E2E
+  hard-coded `extensionVersion: "0.4.0"` and failed `validate_release.py` after the
+  bump; it now reads the version from `manifest.json`. Neither needs editing on future
+  bumps.
+- Verified before tagging: 181 Python, 8 SDK, 13 scripts, 57 extension tests; ruff;
+  lint; static validation; `validate_release.py` with all seven release-artifact E2E
+  tests; byte-identical release builds.
+
 ### Chrome Web Store v0.4.0 verified in branded Chrome
 
 - The Store copy (`ogmocgobegbjbecakclahodnhhfmccad`) was already the only enabled Chrome

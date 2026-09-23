@@ -6,6 +6,16 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-23
+
+### Changed
+
+- Require the matching `chrome-bridge-mcp` 0.5 series, released together with this SDK.
+  The server moves to MCP Python SDK 2.2 and no longer accepts `chrome-extension://`
+  origins on the Direct API; SDK calls from local processes are unaffected.
+- Derive the compatible server series for the runtime `/api/v1/meta` check from the
+  installed SDK version, so a running 0.4 server is reported as incompatible with SDK 0.5.
+
 ## [0.4.1] - 2026-09-05
 
 ### Changed
