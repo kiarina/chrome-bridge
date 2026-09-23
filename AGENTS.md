@@ -133,7 +133,8 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-（なし）
+- [v0.4.1 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.1-rollout.md)
+  — 2026-09-23 に審査へ提出（`PENDING_REVIEW`）。承認後に branded Chrome で 0.4.1 を確認して記録する
 
 ### 待機中（前提が揃ったら着手する）
 

@@ -2,6 +2,17 @@
 
 ## 2026-09-23
 
+### v0.5.0 and extension 0.4.1 published
+
+- Tag `v0.5.0` (release workflow `35854954896`) passed all four jobs: built and verified
+  artifacts, created the GitHub Release with five artifacts and `SHA256SUMS`, published
+  `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.5.0 to PyPI, and uploaded extension 0.4.1
+  to Chrome Web Store (`uploadState=SUCCEEDED`, `submissionState=PENDING_REVIEW`,
+  `DEFAULT_PUBLISH`, 100%). Approval publishes automatically; follow-up is
+  `tasks/chrome-web-store-v0.4.1-rollout.md`.
+- Clean install from PyPI of `chrome-bridge-sdk==0.5.0` resolved `chrome-bridge-mcp`
+  0.5.0 and `mcp` 2.2.0, and the SDK's derived compatible series is `0.5`.
+
 ### v0.5.0 (server, SDK) and extension 0.4.1 release preparation
 
 - Server and SDK go to 0.5.0 (minor): the MCP SDK 2.2 requirement changes which

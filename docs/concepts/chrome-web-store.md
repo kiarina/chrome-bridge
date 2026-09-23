@@ -18,6 +18,9 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
   status workflow on 2026-09-05 (`publishedState=PUBLISHED`)
 - Branded-Chrome check: 2026-09-23, the installed Store copy reports 0.4.0 (see
   "v0.4 update submission")
+- v0.4.1 update submitted 2026-09-23 by release workflow `35854954896` (tag `v0.5.0`):
+  `PENDING_REVIEW` with `DEFAULT_PUBLISH`, ZIP SHA-256
+  `dda6ce2f2e214747388dfce87ec0b1a55813cafba8d0ac8b92ea931ecbea594d`
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
 - Current ZIP SHA-256: `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870`
 
