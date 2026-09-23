@@ -300,7 +300,7 @@ class ChromeBridgeSession:
                 _result_or_raise(response)
         except asyncio.CancelledError:
             raise
-        except BaseException as error:
+        except BaseException as error:  # noqa: BLE001 -- re-raised as SessionExpiredError
             self._heartbeat_error = error
 
     async def tool_definitions(self) -> list[dict[str, Any]]:

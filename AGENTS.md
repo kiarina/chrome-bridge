@@ -92,7 +92,7 @@ package との共存を壊すためです。「次の major が出たら壊れ�
 
 `dependency-groups`（`dev`）は distribution metadata に含まれず、利用者の環境へ届きません。
 ここでの上限は CI の toolchain を固定するためのもので、上の規則の対象外です。ただし
-`ruff` のように、上限が実際に version を抑えている場合は解除タスクを `tasks/` に持たせます。
+上限が実際に最新 version を抑えている場合は、解除タスクを `tasks/` に持たせます。
 
 ## docs 以下の参照ガイド
 
@@ -140,8 +140,6 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
-  — 機械的な 29 件は修正済み。残る BLE001 / TRY004 の 9 件は方針の判断待ち
 - [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
   — 試行移行と判断材料は揃った。error の対応付けと `/mcp` の Origin 方針が判断待ち
 - [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)

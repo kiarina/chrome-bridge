@@ -10,7 +10,7 @@ dev = [
     "packaging>=24,<27",
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.1,<2",
-    "ruff>=0.12,<0.16",
+    "ruff>=0.16,<0.17",
 ]
 
 [tool.uv]
@@ -32,3 +32,9 @@ testpaths = ["packages/mcp/tests", "scripts/tests"]
 # The workspace root is the project root for Ruff, so the src-layout packages must be
 # listed explicitly; otherwise isort (I001) classifies chrome_bridge_mcp/_sdk as third-party.
 src = [".", "packages/mcp/src", "packages/sdk/src"]
+
+[tool.ruff.lint]
+# TRY004 would turn ValueError into TypeError after isinstance validation. The Direct
+# API maps ValueError to 400 invalid_argument and anything else to 500 internal_error
+# (docs/concepts/api.md), and the release scripts treat malformed JSON as bad values.
+ignore = ["TRY004"]

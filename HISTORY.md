@@ -2,6 +2,22 @@
 
 ## 2026-09-23
 
+### Ruff 0.16
+
+- Moved the dev toolchain from `ruff<0.16` to `ruff>=0.16,<0.17` (0.16.8). The repository
+  had no rule selection, so 0.16's larger default rule set produced 38 diagnostics.
+- 29 were mechanical and fixed earlier the same day (I001, UP035, UP037, RUF022, SIM117,
+  RUF059), after adding `[tool.ruff] src` so the src-layout packages are first-party.
+- BLE001: the four `except Exception` catches in the Direct API handlers stay, with an
+  inline `noqa` naming the reason; they are the boundary that guarantees the
+  `{ok:false, error}` envelope and a 500 `internal_error` required by
+  `docs/concepts/api.md`. The SDK heartbeat's `except BaseException` also stays with a
+  `noqa`, keeping the current behavior of re-raising any failure as
+  `SessionExpiredError(code="session_heartbeat_failed")`.
+- TRY004 is disabled repository-wide, with the reason in `pyproject.toml`: the Direct API
+  maps `ValueError` to 400 `invalid_argument` and everything else to 500, so following
+  the rule on bad input would silently turn client errors into server errors.
+
 ### Playwright 1.63.0 and bounded frame captures
 
 - Upgraded `@playwright/test` from 1.61.1 to 1.63.0 (bundled Chromium 153.0.8010.12).

@@ -352,7 +352,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
                 timeout_seconds=wait_timeout,
             )
             return JSONResponse({"ok": True, "result": lease.as_dict()})
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- Direct API error envelope boundary
             return _api_error(error)
 
     async def api_session_heartbeat(request: Request) -> JSONResponse:
@@ -369,7 +369,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
                     },
                 }
             )
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- Direct API error envelope boundary
             return _api_error(error)
 
     async def api_session_release(request: Request) -> JSONResponse:
@@ -378,7 +378,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
                 request.path_params["session_id"], _session_token(request)
             )
             return JSONResponse({"ok": True, "result": {"released": released}})
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- Direct API error envelope boundary
             return _api_error(error)
 
     async def api_call(request: Request) -> JSONResponse:
@@ -412,7 +412,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
                     "Session ID and bearer token must be provided together"
                 )
             return JSONResponse({"ok": True, "result": result})
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- Direct API error envelope boundary
             outcome_unknown = entered and (
                 isinstance(error, ExtensionUnavailableError)
                 or str(error).startswith("Operation outcome unknown:")
