@@ -145,7 +145,7 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 - [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)
   — 1.63.0 / Chromium 153 で残る 1 件（複数 profile の再起動 identity）の原因特定
 - [MCP Python SDK v2 へ移行する](tasks/mcp-sdk-v2-migration.md)
-  — `mcp<2` の解除と、tool error contract を `ToolError` へ対応付ける判断
+  — 試行移行と判断材料は揃った。error の対応付けと `/mcp` の Origin 方針が判断待ち
 - [v0.4.0 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.0-rollout.md)
   — 審査は通過し `PUBLISHED`。残るのは branded Chrome での確認と記録の更新
 
