@@ -116,6 +116,11 @@ npm --prefix apps/extension version 0.4.0 --no-git-tag-version
 Set root/server/SDK versions to the same value, then run builds, tests, and
 `scripts/validate_static.py`. The extension version is validated separately.
 
+On a minor bump, also move the SDK's `chrome-bridge-mcp>=X.Y,<X.(Y+1)` requirement in
+`packages/sdk/pyproject.toml` to the new minor line. The workspace always resolves the
+local server, so tests cannot notice a stale bound; `scripts/validate_static.py` fails
+when the requirement does not admit the server version being released.
+
 ## Install
 
 After the Store item is approved, Chrome Web Store is the normal extension installation and update channel. Users still install and run `chrome-bridge-mcp` separately. Before Store publication and for artifact validation or emergency fallback, use the fixed-directory Load unpacked procedure below.

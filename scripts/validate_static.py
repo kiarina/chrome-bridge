@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +28,27 @@ def load_json(path: Path) -> dict[str, Any]:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def validate_sdk_server_bound(server: dict[str, Any], sdk: dict[str, Any]) -> None:
+    """Require the SDK's server requirement to admit the server released with it."""
+    server_name = server["project"]["name"]
+    server_version = Version(server["project"]["version"])
+    requirements = [
+        requirement
+        for requirement in map(Requirement, sdk["project"].get("dependencies", []))
+        if requirement.name == server_name
+    ]
+    require(
+        len(requirements) == 1,
+        f"SDK must declare exactly one {server_name} requirement",
+    )
+    specifier = requirements[0].specifier
+    require(
+        specifier.contains(server_version, prereleases=True),
+        f"SDK requirement {server_name}{specifier} must admit the released "
+        f"server version {server_version}",
+    )
 
 
 def validate_png_size(path: Path, expected_size: int) -> None:
@@ -74,6 +97,7 @@ def validate_manifest() -> None:
         len(set(python_versions.values())) == 1,
         f"Python package versions must match: {python_versions}",
     )
+    validate_sdk_server_bound(server, sdk)
     require(
         server["project"]["name"] == "chrome-bridge-mcp",
         "Python distribution must be chrome-bridge-mcp",

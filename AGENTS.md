@@ -81,6 +81,9 @@ package との共存を壊すためです。「次の major が出たら壊れ�
   — 第三者 package への制約ではなく、このリポジトリから同時に release する 2 つの
   distribution の lockstep。`scripts/validate_static.py` が server と SDK の version 一致を
   検査するため、片方だけ別 minor に進むことはない。version を上げるときは両方同時に上げる。
+  minor を上げるときはこの上限も同じ commit で次の minor 系列へ動かす。同じ script が
+  「この制約が release する server version を含むか」も検査する（workspace では常に手元の
+  server が解決されるため、test では直し忘れに気づけない）。
 
 上限を撤廃した依存（`jsonschema`、`uvicorn`、`websockets`、`httpx2`）については、
 撤廃時点の実測を `HISTORY.md` に記録しています。
@@ -137,8 +140,6 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [SDK の server 上限が release version を含むか検査する](tasks/sdk-server-bound-validation.md)
-  — `validate_static.py` は version 一致しか見ておらず、minor bump で上限を直し忘れても通る
 - [Ruff 0.16 へ移行する](tasks/ruff-0.16-migration.md)
   — 新規 38 診断の方針決定と `ruff<0.16` 制約の解除
 - [Playwright を 1.61.1 より先へ上げる](tasks/playwright-upgrade.md)

@@ -95,7 +95,7 @@ ephemeral artifact substitutes only the returned relative filename conversion; t
 production conversion has cross-platform unit coverage and remains unchanged.
 
 `scripts/validate_static.py` checks manifest references, matching extension versions,
-matching server/SDK versions, protocol v1/v2 JSON Schemas, and the command catalog. The
+matching server/SDK versions, an SDK server requirement that admits that version, protocol v1/v2 JSON Schemas, and the command catalog. The
 GitHub Actions [CI workflow](../../.github/workflows/ci.yml) runs the same gates on Python
 3.11/3.12 and Node 20. Release validation builds and clean-installs both Python
 distributions alongside the independently versioned extension ZIP. [Release

@@ -2,6 +2,21 @@
 
 ## 2026-09-23
 
+### Gate for the SDK's server requirement
+
+- `scripts/validate_static.py` checked only that the server and SDK versions are equal.
+  It now also requires the SDK's `chrome-bridge-mcp` requirement (currently `>=0.4,<0.5`)
+  to admit the server version being released. Without it, a minor bump that forgot the
+  bound would pass every gate, because the workspace always resolves the local server,
+  and the published SDK would then resolve an older server or fail to install. v0.4.1
+  avoided this only because it was a patch release.
+- The check parses the requirement with `packaging`, now declared in the `dev` group
+  instead of being relied on transitively. Four unit tests in
+  `scripts/tests/test_validate_static.py` cover the passing case, a forgotten minor bump,
+  a stale lower bound, and a missing requirement.
+- The minor-bump step is written into `docs/runbooks/release.md` and the lockstep entry
+  in `AGENTS.md`. Not user-visible, so no component changelog entry.
+
 ### Dependabot advisory remediation
 
 - Bumped the development-scope transitive `hono` lockfile entry in
