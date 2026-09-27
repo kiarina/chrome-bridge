@@ -10,9 +10,10 @@ Chromium 153 (`apps/extension/CHANGELOG.md`).
 
 ## Steps
 
-- [ ] Wait for review; do not resubmit while it is pending. The daily
-      `Chrome Web Store status` workflow reports the state and fails on rejection
-- [ ] After `publishedState=PUBLISHED` at 0.4.1, confirm the installed Store copy in
+- [x] Wait for review. Approved: the daily `Chrome Web Store status` run of 2026-09-24
+      already reported `publishedState=PUBLISHED` with no pending submission, and the
+      public listing showed version 0.4.1 on 2026-09-28
+- [ ] Confirm the installed Store copy in
       branded Chrome reports 0.4.1 (the SDK's `browser_instances`, as done for 0.4.0)
 - [ ] Update the published version, status, and ZIP checksum
       (`dda6ce2f2e214747388dfce87ec0b1a55813cafba8d0ac8b92ea931ecbea594d`) in

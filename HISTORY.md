@@ -1,5 +1,17 @@
 # History
 
+## 2026-09-28
+
+### Split external waits into `waiting/`
+
+- Task management now has `waiting/` for items blocked on an outside condition (store
+  review, upstream release, a reply, a date), one file each with how and when to check.
+  When a task starts waiting, it ends: its results go here and a `waiting/` file replaces it.
+  When the condition is met, a new task is created. `AGENTS.md` was updated accordingly.
+- The only task, `tasks/chrome-web-store-v0.4.1-rollout.md`, is no longer waiting: the Store
+  status run of 2026-09-24 already reported `PUBLISHED` with no pending submission, and the
+  public listing showed 0.4.1 on 2026-09-28. The branded-Chrome check remains as the task.
+
 ## 2026-09-23
 
 ### v0.5.0 and extension 0.4.1 published
