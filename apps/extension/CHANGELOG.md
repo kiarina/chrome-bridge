@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Keep element refs across snapshots of the same document. An element keeps its ref
+  until it leaves the page or its role or accessible name changes, so several
+  operations can use refs from one snapshot, and clicks, typing, key presses and waits
+  no longer make every ref stale. Refs still become stale on navigation, a target
+  change, or a browser-native dialog. The ref prefix is now the document's ref epoch,
+  not the snapshot's generation.
+
 ### Fixed
 
 - Stop clicks, hovers, typing, uploads, downloads and drags from landing on another

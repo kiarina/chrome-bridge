@@ -863,6 +863,9 @@ function validateSnapshotResult(result, generation) {
   if (
     !result ||
     result.generation !== generation ||
+    !Number.isSafeInteger(result.refEpoch) ||
+    result.refEpoch < 1 ||
+    result.refEpoch > generation ||
     typeof result.url !== "string" ||
     typeof result.title !== "string" ||
     typeof result.snapshot !== "string"
@@ -912,17 +915,28 @@ async function captureSnapshotForTarget(
     await waitForContentRuntimeTab(tabId, deadline);
     await requireUnchangedTarget(tabId);
     await ensureContentRuntime(tabId);
+    // No current refs (a new target, a navigation, a dialog): start a new ref
+    // epoch, so no ref from before is accepted again (a page restored from
+    // the back/forward cache keeps its content runtime).
+    const scope = await getLatestSnapshot();
+    if (!scope || scope.tabId !== tabId) await clearContentSnapshotState(tabId);
     const generation = await nextSnapshotGeneration();
     const response = await sendContentMessage(tabId, {
       type: "chrome-bridge.snapshot.generate",
       generation,
     });
-    const result = validateSnapshotResult(response.result, generation);
+    const { refEpoch, ...result } = validateSnapshotResult(
+      response.result,
+      generation,
+    );
     const currentTab = await chrome.tabs.get(tabId);
     await requireUnchangedTarget(tabId);
     if (currentTab.status === "complete" && currentTab.url === result.url) {
+      // Refs carry the document's epoch, not this snapshot's generation:
+      // they stay current across snapshots until the target or the
+      // document changes.
       await chrome.storage.session.set({
-        [LATEST_SNAPSHOT_KEY]: { tabId, generation },
+        [LATEST_SNAPSHOT_KEY]: { tabId, generation: refEpoch },
       });
       return result;
     }
@@ -1298,7 +1312,6 @@ async function clickTarget(params, session = undefined) {
       await dispatchTrustedClick(debuggee, point);
     });
   }
-  await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tab.id);
   await requireUnchangedTarget(tab.id);
   return captureSnapshotForTarget(tab.id);
@@ -1321,7 +1334,6 @@ async function getCurrentRefTarget(params) {
 }
 
 async function finishSnapshotOperation(tabId) {
-  await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tabId);
   await requireUnchangedTarget(tabId);
   return captureSnapshotForTarget(tabId);
@@ -1632,7 +1644,6 @@ async function pressKeyTarget(params, session = undefined) {
     true,
     session,
   );
-  await clearLatestSnapshotGeneration();
   await waitAfterPageOperation(tab.id);
   await requireUnchangedTarget(tab.id);
   return { pressed: true, key: params.key };
@@ -1794,7 +1805,6 @@ async function waitTarget(params) {
   }
   const tab = await getTargetTab();
   await requireUnchangedTarget(tab.id);
-  await clearLatestSnapshotGeneration();
   await new Promise((resolve) => setTimeout(resolve, params.time * 1_000));
   await requireUnchangedTarget(tab.id);
   return { waited: true, time: params.time };
@@ -1819,8 +1829,6 @@ async function waitForTarget(params) {
   const tab = await waitForContentRuntimeTab(selectedTab.id);
   await requireUnchangedTarget(tab.id);
   await ensureContentRuntime(tab.id);
-  await clearLatestSnapshotGeneration();
-  await clearContentSnapshotState(tab.id);
   await sendContentMessage(tab.id, {
     type: "chrome-bridge.dom.waitForText",
     text: params.text,

@@ -68,7 +68,10 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
             "only when the user needs to see the target tab. Use browser_upload_file with "
             "absolute local paths and the exact ref that opens a file chooser. When a "
             "PageState contains pageState=browser-dialog, inspect it and call "
-            "browser_dialog_respond with its exact dialog ref before other page actions."
+            "browser_dialog_respond with its exact dialog ref before other page actions. "
+            "An element keeps its ref across snapshots of the same document, so refs from "
+            "one snapshot stay usable after other operations; take a new browser_snapshot "
+            "after navigation, a target change, a dialog, or a stale-ref error."
         ),
     )
 

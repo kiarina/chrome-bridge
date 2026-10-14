@@ -1224,22 +1224,46 @@
 
   // src/snapshot.ts
   var ARIA_REF_PATTERN = /^s(\d+)e(\d+)$/;
-  var currentSnapshotState = null;
+  var refState = null;
+  function ariaIdentity(element) {
+    return {
+      role: getAriaRole(element) ?? "generic",
+      name: normalizeWhiteSpace(getElementAccessibleName(element, false) || "")
+    };
+  }
   function generateSnapshot(generation) {
     if (!Number.isSafeInteger(generation) || generation < 1)
       throw new Error("Snapshot generation must be a positive integer");
     const tree = generateAriaTree(document.documentElement);
-    const refs = /* @__PURE__ */ new Map();
-    for (const [element, id] of tree.ids)
-      refs.set(element, `s${generation}e${id}`);
-    currentSnapshotState = {
-      generation,
-      root: tree.root,
-      elements: tree.elements,
-      ids: tree.ids
+    const state = refState ??= {
+      epoch: generation,
+      nextId: 1,
+      ids: /* @__PURE__ */ new WeakMap(),
+      entries: /* @__PURE__ */ new Map()
     };
+    for (const [id, entry] of state.entries) {
+      if (!entry.element.deref()?.isConnected) state.entries.delete(id);
+    }
+    const refs = /* @__PURE__ */ new Map();
+    beginAriaCaches();
+    try {
+      for (const element of tree.ids.keys()) {
+        const identity = ariaIdentity(element);
+        let id = state.ids.get(element);
+        const entry = id === void 0 ? void 0 : state.entries.get(id);
+        if (id === void 0 || !entry || entry.role !== identity.role || entry.name !== identity.name) {
+          id = state.nextId++;
+          state.ids.set(element, id);
+          state.entries.set(id, { element: new WeakRef(element), ...identity });
+        }
+        refs.set(element, `s${state.epoch}e${id}`);
+      }
+    } finally {
+      endAriaCaches();
+    }
     return {
       generation,
+      refEpoch: state.epoch,
       url: window.location.href,
       title: document.title,
       snapshot: renderAriaTree(tree.root, { refs })
@@ -1248,19 +1272,30 @@
   function resolveAriaRef(ref) {
     const match = ARIA_REF_PATTERN.exec(ref);
     if (!match) throw new Error(`Invalid aria-ref: ${ref}`);
-    if (!currentSnapshotState)
-      throw new Error("No accessibility snapshot is available");
-    const generation = Number(match[1]);
+    if (!refState) throw new Error("No accessibility snapshot is available");
+    const epoch = Number(match[1]);
     const elementId = Number(match[2]);
-    if (generation !== currentSnapshotState.generation)
-      throw new Error(`Stale aria-ref: ${ref}`);
-    const element = currentSnapshotState.elements.get(elementId);
-    if (!element || !element.isConnected)
-      throw new Error(`Unknown aria-ref: ${ref}`);
+    if (epoch !== refState.epoch) throw new Error(`Stale aria-ref: ${ref}`);
+    const entry = refState.entries.get(elementId);
+    const element = entry?.element.deref();
+    if (!entry || !element || !element.isConnected)
+      throw new Error(`Stale aria-ref: ${ref} (its element is no longer on the page)`);
+    beginAriaCaches();
+    let identity;
+    try {
+      identity = ariaIdentity(element);
+    } finally {
+      endAriaCaches();
+    }
+    if (identity.role !== entry.role || identity.name !== entry.name) {
+      throw new Error(
+        `Stale aria-ref: ${ref} (its element changed from ${entry.role} ${JSON.stringify(entry.name)} to ${identity.role} ${JSON.stringify(identity.name)})`
+      );
+    }
     return element;
   }
   function clearSnapshotState() {
-    currentSnapshotState = null;
+    refState = null;
   }
   function flattenedAriaText(node) {
     const values = [];

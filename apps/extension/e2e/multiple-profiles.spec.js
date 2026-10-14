@@ -409,7 +409,7 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     const beforeWaitFor = successful(await call("browser_snapshot", {
       browser_id: browserA,
     }));
-    const staleAfterWaitFor = buttonRef(beforeWaitFor);
+    const refBeforeWaitFor = buttonRef(beforeWaitFor);
     await pageA.evaluate(() => {
       setTimeout(() => {
         document.querySelector("[role=status]").textContent =
@@ -424,13 +424,13 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     }));
     expect(waitedVisible).toMatchObject({ browserId: browserA });
     expect(waitedVisible.snapshot).toContain("Payment complete");
-    const staleClick = await call("browser_click", {
+    // Waiting leaves the document's refs current.
+    expect(buttonRef(waitedVisible)).toBe(refBeforeWaitFor);
+    successful(await call("browser_hover", {
       browser_id: browserA,
       element: "Update button",
-      ref: staleAfterWaitFor,
-    });
-    expect(staleClick.isError).toBe(true);
-    expect(toolText(staleClick)).toContain("Stale aria-ref");
+      ref: refBeforeWaitFor,
+    }));
     await pageA.evaluate(() => {
       setTimeout(() => {
         document.querySelector("[role=status]").textContent = "Ready again";
@@ -1312,18 +1312,13 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     const freshB = successful(await call("browser_snapshot", { browser_id: browserB }));
     expectStatus(freshB, "Ready");
 
-    const staleB = await call("browser_click", {
-      browser_id: browserB,
-      element: "Update button",
-      ref: refB,
-    });
-    expect(staleB.isError).toBe(true);
-    expect(toolText(staleB)).toMatch(/stale/i);
+    // The same document: the earlier ref is still the button's.
+    expect(buttonRef(freshB)).toBe(refB);
     await expect.poll(() => pageB.title()).toBe("◉ Chrome Bridge E2E");
     const clickedB = successful(await call("browser_click", {
       browser_id: browserB,
       element: "Update button",
-      ref: buttonRef(freshB),
+      ref: refB,
     }));
     expectStatus(clickedB, "Updated B");
 

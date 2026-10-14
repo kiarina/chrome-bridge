@@ -71,24 +71,33 @@ test("renders strict refs, roles, states, composed DOM, and link URLs", async ({
   expect(result.snapshot.match(/Slotted action/g)).toHaveLength(1);
 });
 
-test("rejects stale, missing, malformed, and detached refs", async ({
+test("keeps refs across snapshots of a document; rejects cleared, malformed, detached, and changed refs", async ({
   page,
 }) => {
-  await page.setContent('<button id="first">First</button>');
+  await page.setContent('<button id="first">First</button><button id="second">Second</button>');
   await installHarness(page);
 
-  const firstRef = await page.evaluate(() => {
+  const kept = await page.evaluate(() => {
     const runtime = globalThis.chromeBridgeSnapshotTest;
-    const snapshot = runtime.generateSnapshot(1).snapshot;
-    return snapshot.match(/ref=(s\d+e\d+)/)[1];
+    const first = runtime.generateSnapshot(1);
+    const ref = first.snapshot.match(/button "First" \[ref=(s\d+e\d+)\]/)[1];
+    document.body.insertAdjacentHTML("afterbegin", "<button>New</button>");
+    const second = runtime.generateSnapshot(2);
+    return {
+      ref,
+      epochs: [first.refEpoch, second.refEpoch],
+      generation: second.generation,
+      again: second.snapshot.match(/button "First" \[ref=(s\d+e\d+)\]/)[1],
+      added: second.snapshot.match(/button "New" \[ref=(s\d+e\d+)\]/)[1],
+      resolved: runtime.resolveAriaRef(ref).id,
+    };
   });
-
-  await expect(
-    page.evaluate((ref) => {
-      globalThis.chromeBridgeSnapshotTest.generateSnapshot(2);
-      globalThis.chromeBridgeSnapshotTest.resolveAriaRef(ref);
-    }, firstRef),
-  ).rejects.toThrow("Stale aria-ref");
+  expect(kept.epochs).toEqual([1, 1]);
+  expect(kept.generation).toBe(2);
+  expect(kept.again).toBe(kept.ref);
+  expect(kept.added).toMatch(/^s1e\d+$/);
+  expect(kept.added).not.toBe(kept.ref);
+  expect(kept.resolved).toBe("first");
 
   await expect(
     page.evaluate(() =>
@@ -96,26 +105,63 @@ test("rejects stale, missing, malformed, and detached refs", async ({
     ),
   ).rejects.toThrow("Invalid aria-ref");
 
-  const currentRef = await page.evaluate(() => {
+  // The same node with another name gets a new ref in the next snapshot.
+  const renamed = await page.evaluate((ref) => {
     const runtime = globalThis.chromeBridgeSnapshotTest;
-    const snapshot = runtime.generateSnapshot(3).snapshot;
-    const ref = snapshot.match(/button "First" \[ref=(s\d+e\d+)\]/)[1];
-    document.querySelector("button").remove();
+    const before = runtime.generateSnapshot(3).snapshot;
+    document.querySelector("#second").textContent = "Renamed";
+    const after = runtime.generateSnapshot(4).snapshot;
+    return {
+      before: before.match(/button "Second" \[ref=(s\d+e\d+)\]/)[1],
+      ref: after.match(/button "Renamed" \[ref=(s\d+e\d+)\]/)[1],
+      first: after.match(/button "First" \[ref=(s\d+e\d+)\]/)[1] === ref,
+    };
+  }, kept.ref);
+  expect(renamed.ref).toMatch(/^s1e\d+$/);
+  expect(renamed.ref).not.toBe(renamed.before);
+  expect(renamed.first).toBe(true);
+  const secondBefore = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    document.querySelector("#second").textContent = "Second";
+    const ref = runtime.generateSnapshot(5).snapshot.match(/button "Second" \[ref=(s\d+e\d+)\]/)[1];
+    document.querySelector("#second").textContent = "Changed";
     return ref;
   });
   await expect(
     page.evaluate(
       (ref) => globalThis.chromeBridgeSnapshotTest.resolveAriaRef(ref),
-      currentRef,
+      secondBefore,
     ),
-  ).rejects.toThrow("Unknown aria-ref");
+  ).rejects.toThrow('its element changed from button "Second" to button "Changed"');
+
+  await page.evaluate(() => document.querySelector("#first").remove());
+  await expect(
+    page.evaluate(
+      (ref) => globalThis.chromeBridgeSnapshotTest.resolveAriaRef(ref),
+      kept.ref,
+    ),
+  ).rejects.toThrow("no longer on the page");
+
+  // Cleared (a new target or document): a new epoch, and old refs are stale.
+  const cleared = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    runtime.clearSnapshotState();
+    return runtime.generateSnapshot(6).refEpoch;
+  });
+  expect(cleared).toBe(6);
+  await expect(
+    page.evaluate(
+      (ref) => globalThis.chromeBridgeSnapshotTest.resolveAriaRef(ref),
+      renamed.ref,
+    ),
+  ).rejects.toThrow("Stale aria-ref");
 
   await page.evaluate(() =>
     globalThis.chromeBridgeSnapshotTest.clearSnapshotState(),
   );
   await expect(
     page.evaluate(() =>
-      globalThis.chromeBridgeSnapshotTest.resolveAriaRef("s3e1"),
+      globalThis.chromeBridgeSnapshotTest.resolveAriaRef("s6e1"),
     ),
   ).rejects.toThrow("No accessibility snapshot");
 });
@@ -536,7 +582,7 @@ test("selects exact option values and dispatches input and change", async ({
     page.evaluate(() => {
       const runtime = globalThis.chromeBridgeSnapshotTest;
       const snapshot = runtime.generateSnapshot(22).snapshot;
-      const ref = snapshot.match(/listbox "Colors" \[ref=(s22e\d+)\]/)[1];
+      const ref = snapshot.match(/listbox "Colors" \[ref=(s\d+e\d+)\]/)[1];
       runtime.selectOptions(ref, ["missing"]);
     }),
   ).rejects.toThrow("Unable to find option");

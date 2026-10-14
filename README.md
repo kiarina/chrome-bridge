@@ -75,7 +75,7 @@ This feature comparison is based on public documentation available as of 2026-07
 | Operation target | Lists all windows/tabs and selects a persistent target | The current single tab connected through the extension popup | Tab-ID addressing and cross-tab operations |
 | Background-tab operation | Target selection does not foreground; only explicit activation does | Operates the connected tab | `background` option on some tools (best effort) |
 | Simultaneous routing to multiple Chrome profiles | Stable ID per installation | Not mentioned in public setup documentation | Not mentioned in public README |
-| Element discovery and operation | Accessibility YAML and generation-scoped strict refs | Accessibility snapshot and element specification | Accessibility-like tree, refs, selectors, and coordinates |
+| Element discovery and operation | Accessibility YAML and document-scoped strict refs | Accessibility snapshot and element specification | Accessibility-like tree, refs, selectors, and coordinates |
 | Local file upload | 1–20 files to the chooser opened by a strict ref | Not mentioned in public tool documentation | Not mentioned in public tool documentation |
 | Operation-scoped video recording | Standalone bounded recording plus optional recording around wait, input, upload, and navigation/history operations | Not mentioned in public documentation or changelog | Not listed in the current public tool reference |
 | Screenshot | Target viewport, orientation-aware Full HD bound | Connected tab | Viewport/full page/element, configurable size |

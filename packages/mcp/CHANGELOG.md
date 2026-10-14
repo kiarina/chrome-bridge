@@ -6,6 +6,11 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- The server instructions tell clients that refs stay usable across snapshots of the
+  same document (with an extension that keeps them; see the extension changelog).
+
 ## [0.5.0] - 2026-09-23
 
 ### Changed

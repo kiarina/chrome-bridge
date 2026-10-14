@@ -212,8 +212,9 @@ viewport without moving `scrollY` or substituting document-top content.
 - Page commands use the same routing whether the target tab is foreground or background and never foreground it automatically.
 - The external snapshot/ref format uses YAML and `s<number>e<number>`.
 - Snapshot generations are issued extension-wide and never reused across tab changes, navigation, or snapshot updates.
-- A ref points to an `Element` in the same content runtime until the next snapshot; generation mismatches are rejected as stale.
-- Clear the latest snapshot generation on target selection and top-frame navigation commit, requiring a new snapshot before the next element operation.
+- A ref is `s<epoch>e<id>`. The epoch is the generation of the first snapshot after target selection, top-frame navigation commit, or a browser-native dialog; it changes only then. Within it, an `Element` keeps its id in every snapshot.
+- A ref points to its `Element` while it stays connected and keeps the role and accessible name it had when the id was given; otherwise, and for another epoch, it is rejected as stale before any input.
+- Input to a ref is sent only at a point that hits that `Element` (or an element inside it) right before sending; scrolling it into view is instant.
 
 ## 7. Acceptance criteria
 
@@ -227,16 +228,16 @@ viewport without moving `scrollY` or substituting document-top content.
 - `browser_tab_select` leaves Chrome UI's active tab/window focus unchanged and returns `active` and `targeted` separately.
 - `browser_snapshot` returns YAML and `s<number>e<number>` refs from a background target tab.
 - `browser_click` never falls back to an element other than the ref and returns a post-operation snapshot without foregrounding the background target tab.
-- Refs that are malformed, from an old generation, from another target, from before navigation, or refer to detached Elements are clearly rejected.
+- Refs that are malformed, from another target, from before navigation or a dialog, refer to detached Elements, or whose Element changed role or name are clearly rejected. Refs of the same document stay usable across snapshots and operations.
 - Hover, type, select, and key succeed on a background target without changing the active tab/window focus.
 - Type accepts only editable refs; select strictly resolves `option.value`.
 - Navigate/back/forward return post-operation snapshots on a background target and distinguish no-history from restricted destinations.
 - With no target, tab open targets only its newly created tab and navigate creates an inactive target tab before navigation; neither replaces an existing target.
-- Wait accepts 0–10 seconds and invalidates the latest snapshot when waiting begins.
+- Wait accepts 0–10 seconds; refs of the document stay current.
 - Screenshot returns the background target viewport as orientation-aware Full HD PNG
   image content without changing the active tab.
 - Console logs return at most 100 JSON lines containing only console entries/exceptions from the current target.
-- Drag strictly resolves start/end refs from the same latest snapshot and returns a post-operation snapshot without foregrounding the background target.
+- Drag strictly resolves current start/end refs and returns a post-operation snapshot without foregrounding the background target.
 - Upload intercepts only a file chooser opened by a trusted click on a strict ref, assigns 1–20 validated absolute paths, and returns a snapshot after the input change completes without foregrounding the background target. It rejects refs that open no chooser and multiple files for a single input. Recorded upload borrows the recorder session for interception and takes at most one explicit click milestone frame; every outcome disables interception and releases its change barrier in `finally`.
 - Every protocol v1 envelope and all 22 command parameter objects match the canonical JSON Schema, and invalid messages are rejected as specified.
 - Wait-for matches a case-sensitive literal substring in normalized accessible name/text from the top-frame ARIA tree, clears old refs at entry, and returns a fresh snapshot after visible/hidden succeeds within 0–10 seconds.
@@ -272,7 +273,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - Snapshot/click/type/navigation/screenshot succeed when the target tab is in the background.
 - Manual user tab switching does not alter target routing.
 - Page-operation tools never operate on a tab other than the target.
-- Refs from old snapshots, other tabs, or before navigation are rejected as stale.
+- Refs from other tabs, from before navigation, or of Elements that left the page or changed are rejected as stale; refs of the same document survive new snapshots.
 - Click/hover/type/select return URL, title, and ARIA snapshot afterward.
 - The virtual cursor is visible during click, hover, and drag.
 - An inactive target's title and popup state transition through Target/Operating while Chrome UI's active tab remains unchanged, without injecting a page badge.

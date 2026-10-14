@@ -80,9 +80,9 @@ Chrome's `Tab.active` (the tab visible to the user) and the target tab to which 
 - Closing the target tab clears the target and never selects an existing replacement automatically.
 - The target is shared state owned by the extension connection, not session state per MCP client.
 
-To survive service-worker suspend/resume, save `targetTabId`, the extension-wide generation counter, and the target's latest snapshot generation in `chrome.storage.session`. Generation issuance is serialized in the service worker. State need not survive a browser restart; if the stored tab does not exist, clear it at startup. Each `browser_tabs` result returns `targeted` separately from Chrome's `active`.
+To survive service-worker suspend/resume, save `targetTabId`, the extension-wide generation counter, and the target's current ref epoch in `chrome.storage.session` (key `latestSnapshot`). Generation issuance is serialized in the service worker. State need not survive a browser restart; if the stored tab does not exist, clear it at startup. Each `browser_tabs` result returns `targeted` separately from Chrome's `active`.
 
-Clear the latest snapshot generation on target selection and when `chrome.webNavigation.onCommitted` reports top-frame navigation on the target. Run an element operation only when the ref generation matches the target's latest snapshot generation and resolves in the content runtime's Map. Ordinary navigation retains the target tab ID.
+Clear the ref epoch on target selection, when a browser-native dialog opens, and when `chrome.webNavigation.onCommitted` reports top-frame navigation on the target. A snapshot taken with no epoch for the target first clears the content runtime's ref state, so a page restored from the back/forward cache does not accept its old refs again. Run an element operation only when the ref epoch matches the target's and the content runtime resolves the ref. Ordinary navigation retains the target tab ID.
 
 The agent UI tracks target ownership as `off`, `target`, or `operating`. It stores `operatingTabId` and a unique operation token in `chrome.storage.session`; only a command that has begun execution from the page-operation queue becomes operating. In `finally`, only a matching token clears the state, so stale cleanup cannot erase newer state. At startup, the content runtime queries the background for state and restores the title prefix after navigation. This uses internal extension messages and does not change the extension protocol or MCP results.
 
@@ -116,19 +116,19 @@ Extension source lives in `apps/extension/src`, version-pinned Playwright-derive
 
 ARIA snapshot tree generation, role/name/state calculation, and YAML rendering are based on Playwright 1.51.1 source published under Apache-2.0. The extension's third-party notice records provenance and local changes.
 
-External refs use `s<generation>e<element-id>`, with the background issuing extension-wide generations. Assigning a different generation on every target change, navigation, and snapshot update prevents collisions across tabs/documents without expanding the ref string.
+External refs use `s<epoch>e<element-id>`, with the background issuing extension-wide generations. The epoch is the generation of the first snapshot after the ref state was cleared, so refs never collide across tabs/documents, and they stay the same across snapshots of one document.
 
-The content runtime retains the following for each snapshot:
+The content runtime retains the following for its document until the ref state is cleared:
 
 ```text
-SnapshotState
-├── generation: integer
-├── root: AriaNode
-├── elements: Map<integer, Element>
-└── ids: Map<Element, integer>
+RefState
+├── epoch: integer
+├── nextId: integer
+├── ids: WeakMap<Element, integer>
+└── entries: Map<integer, { element: WeakRef<Element>, role, name }>
 ```
 
-Ref operations validate the generation and strictly resolve an `Element` from `elements`. Scrolling, coordinate acquisition, and DOM operations stay in the same content runtime wherever possible, avoiding mismatches from re-querying selectors after DOM changes. There is no fallback that guesses similar selectors.
+Each snapshot gives an `Element` already in `ids` the same id when its role and accessible name are unchanged, and a new id otherwise; entries of disconnected Elements are dropped. Identity is the `Element` object itself, so nothing is guessed from paths or values. Ref operations validate the epoch and strictly resolve the `Element` from `entries`, rejecting it as stale when it is disconnected or its current role or accessible name differs from the recorded one. Scrolling, coordinate acquisition, and DOM operations stay in the same content runtime wherever possible, avoiding mismatches from re-querying selectors after DOM changes. There is no fallback that guesses similar selectors.
 
 Scrolling a ref into view is instant (`behavior: "instant"`), because `"auto"` follows the page's CSS `scroll-behavior` and a smooth scroll moves the element after its point is taken. After the virtual cursor settles and right before trusted input is sent, the content runtime checks that the point still hits the ref's element (or an element inside it). If it does not, the point is measured once more; if it still does not, the operation fails before any input, so input never lands on another element than the ref.
 
@@ -145,13 +145,13 @@ dialog is open, and never expose debugger monitor start/end actions. See
 
 Hover follows the same strict Element resolution, scrolling, hit-test, and virtual-cursor path as click, then sends only CDP `mouseMoved`. Type follows the same path, verifies that the Element is editable, focuses it with a trusted click, and sends `Input.insertText`; `submit=true` then sends an Enter chord. Select does not use the debugger: it validates every `option.value` on the saved `HTMLSelectElement`, changes selected state, and fires bubbling `input` and `change` events. Press key converts a `+`-delimited modifier chord or single key into keyDown/keyUp.
 
-Click, hover, type, and select clear the latest snapshot after the operation, wait up to three seconds for one second of DOM stability, and return a new snapshot. Press key also clears the latest snapshot and waits for stability, but returns only a completion message, so the next element operation requires a new `browser_snapshot`.
+Click, hover, type, and select wait up to three seconds for one second of DOM stability after the operation and return a new snapshot, in which unchanged Elements keep their refs. Press key also waits for stability but returns only a completion message; refs of the document stay current.
 
-Navigate accepts only HTTP(S) URLs, using `chrome.tabs.reload` for the current URL and `chrome.tabs.update` otherwise. Back/forward use `chrome.tabs.goBack` / `goForward`. Before issuing any operation, register listeners for top-frame commits, History API and fragment updates, navigation errors, and tab close, then clear the latest snapshot. After navigation begins, wait for target-tab load completion and the content runtime before generating a new snapshot.
+Navigate accepts only HTTP(S) URLs, using `chrome.tabs.reload` for the current URL and `chrome.tabs.update` otherwise. Back/forward use `chrome.tabs.goBack` / `goForward`. Before issuing any operation, register listeners for top-frame commits, History API and fragment updates, navigation errors, and tab close, then clear the ref epoch. After navigation begins, wait for target-tab load completion and the content runtime before generating a new snapshot.
 
-If the Chrome tabs API reports no history, return a clear error without entering the navigation wait. If the history destination is restricted, such as `about:blank`, retain the target and return content-unavailable; later back/forward or HTTP(S) navigation can recover. Wait sleeps for 0–10 seconds inside the page-operation queue and clears the latest snapshot at start. It waits for elapsed time, not DOM stability; call `browser_snapshot` to inspect the current DOM afterward.
+If the Chrome tabs API reports no history, return a clear error without entering the navigation wait. If the history destination is restricted, such as `about:blank`, retain the target and return content-unavailable; later back/forward or HTTP(S) navigation can recover. Wait sleeps for 0–10 seconds inside the page-operation queue. It waits for elapsed time, not DOM stability; call `browser_snapshot` to inspect the current DOM afterward.
 
-Wait-for clears the latest generation, then observes a case-sensitive literal substring
+Wait-for observes a case-sensitive literal substring
 in whitespace-normalized accessible names/text from the top-frame ARIA tree. A
 MutationObserver plus a 100 ms check covers DOM and CSS-only state changes. Visible or
 hidden success produces a fresh snapshot; target changes, tab close, navigation, and
@@ -171,7 +171,7 @@ capture beyond the viewport, so a scrolled target stays at its current visual vi
 
 Console logs have no persistent global collector. Only during a tool call, attach to the same page `targetId` and call `Runtime.enable`; receive for 100 ms the buffered `Runtime.consoleAPICalled` and `Runtime.exceptionThrown` events Chrome replays for the current document, strictly filter by source target ID, and cap at 100. This contract returns current-document entries retained by Chrome Runtime and does not guarantee independent history across calls. Screenshot and console both detach in `finally` and never auto-activate the target.
 
-Drag resolves start/end Elements from the same latest snapshot inside the content runtime. Only the start is scrolled to center; the start requires a clickable hit-test and the end a visible point in the viewport. Attach to page `targetId` with focus emulation, send move/press at start, five movement steps to end, and release. Attempt release even if movement fails, then detach through common `finally`. Ordinary HTML5 drag produces native drag/drop events from this mouse sequence, so do not layer synthetic DOM events or `Input.dispatchDragEvent`. On completion, move the cursor to the end and return a new snapshot after DOM stabilization.
+Drag resolves current start/end refs inside the content runtime. Only the start is scrolled to center; the start requires a clickable hit-test and the end a visible point in the viewport. Attach to page `targetId` with focus emulation, send move/press at start, five movement steps to end, and release. Attempt release even if movement fails, then detach through common `finally`. Ordinary HTML5 drag produces native drag/drop events from this mouse sequence, so do not layer synthetic DOM events or `Input.dispatchDragEvent`. On completion, move the cursor to the end and return a new snapshot after DOM stabilization.
 
 The virtual cursor aligns the arrow tip with viewport coordinates, and the content runtime returns distance-dependent `settleMs`. The background waits for arrival before sending CDP input; click/type/select synchronize a press ripple, while drag synchronizes 180–500 ms interpolated movement and pressed state. The cursor remains at its last position while targeted. For screenshots, hide only the status host for two animation frames, capture the page including the cursor, and restore status in `finally`.
 
@@ -209,7 +209,7 @@ sequenceDiagram
     M->>S: browser_click(element, ref)
     S->>B: page.click(element, ref)
     B->>C: resolve ref on targetTabId
-    C->>C: generation check + Element lookup
+    C->>C: epoch check + Element lookup + role/name check
     C->>C: scroll + hit-test + virtual cursor
     C-->>B: viewport coordinates
     B->>B: attach by targetId + focus emulation

@@ -71,9 +71,18 @@ A snapshot result has the following form:
 }
 ```
 
-`snapshot` is a YAML accessibility tree. Operable elements have refs in the form `s<generation>e<element-id>`. For element operations, pass the human-readable description shown in the snapshot as `element` and its ref as `ref`. Only the ref identifies the element; `element` is never used as a selector or fallback search.
+`snapshot` is a YAML accessibility tree. Operable elements have refs in the form `s<epoch>e<element-id>`. For element operations, pass the human-readable description shown in the snapshot as `element` and its ref as `ref`. Only the ref identifies the element; `element` is never used as a selector or fallback search.
 
-A ref is scoped to its source browser, target tab, document, and latest snapshot generation. After obtaining a new snapshot, performing an element operation, changing the target, navigating, calling `browser_wait`, `browser_wait_for`, or `browser_press_key`, do not reuse old refs; obtain a new snapshot.
+A ref is scoped to its source browser, target tab, and document, and lasts as long as its element. An element keeps its ref in every snapshot of the same document, so refs from one snapshot remain usable after other element operations, waits, and key presses, and several operations can use refs from one snapshot. `<epoch>` is the generation of the first snapshot after the target was selected or the document changed; it is not the snapshot's own `generation`.
+
+A ref is rejected as stale, and nothing is sent, when:
+
+- the target changed, the target tab was closed, or the top frame navigated (including back/forward, even from the back/forward cache);
+- a browser-native dialog opened;
+- its element is no longer on the page;
+- its element's role or accessible name changed since the ref was given (a framework reusing the node for other content). The next snapshot gives the element a new ref.
+
+Take a new `browser_snapshot` after a stale-ref error.
 
 ### Common result types
 
@@ -235,7 +244,7 @@ Clicks the element identified by a snapshot ref using trusted mouse input, witho
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `element` | string | yes | Non-empty human-readable element description |
-| `ref` | string | yes | Ref from the latest snapshot |
+| `ref` | string | yes | Ref current for the document (see Strict refs) |
 | `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the post-operation snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
 
@@ -258,7 +267,7 @@ Clicks and focuses the editable element identified by a snapshot ref, then types
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `element` | string | yes | Non-empty human-readable element description |
-| `ref` | string | yes | Editable-element ref from the latest snapshot |
+| `ref` | string | yes | Editable-element ref current for the document (see Strict refs) |
 | `text` | string | yes | Text to enter; may be empty |
 | `submit` | boolean | yes | Whether to send Enter after typing |
 | `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the snapshot and 500 ms post-roll |
@@ -273,7 +282,7 @@ Selects the specified `option.value` values in the `<select>` identified by a sn
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `element` | string | yes | Non-empty human-readable element description |
-| `ref` | string | yes | `<select>` ref from the latest snapshot |
+| `ref` | string | yes | `<select>` ref current for the document (see Strict refs) |
 | `values` | string[] | yes | One or more exact `option.value` values |
 | `video_filename` | string | no | Record with 500 ms initial-state pre-roll through the snapshot and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
@@ -283,7 +292,7 @@ Every value is validated before any change. **Returns:** A `Snapshot` after disp
 
 ### `browser_drag`
 
-Drags between two refs in the same latest snapshot.
+Drags between two current refs of the document.
 
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -305,7 +314,7 @@ Trusted-clicks a snapshot ref and assigns local files to the chooser opened by t
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `element` | string | yes | Human-readable description of the element that opens the chooser |
-| `ref` | string | yes | Ref from the latest snapshot |
+| `ref` | string | yes | Ref current for the document (see Strict refs) |
 | `paths` | string[] | yes | File paths on the machine running the server and Chrome |
 | `video_filename` | string | no | Record with 500 ms initial-state pre-roll, one click milestone, and 500 ms post-roll |
 | `browser_id` | string | no | Browser to route to |
@@ -325,7 +334,7 @@ debugger session.
 | Argument | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `element` | string | yes | — | Human-readable description of the download control |
-| `ref` | string | yes | — | Ref from the latest snapshot |
+| `ref` | string | yes | — | Ref current for the document (see Strict refs) |
 | `timeout` | number | no | `10` | One deadline from trusted click through completion, from 0.1 through 60 seconds |
 | `browser_id` | string | no | `null` | Browser to route to |
 
@@ -430,7 +439,7 @@ fresh snapshot.
 
 Matching is case-sensitive against whitespace-normalized names and text from the same
 ARIA tree used by snapshots. It is an observation condition, not an element selector;
-subsequent actions still require strict refs. The old generation is cleared at entry.
+subsequent actions still require strict refs. Refs of the document stay current.
 Success returns a `Snapshot`, or `{operation, recording}` when recorded. Target change,
 tab close, top-frame navigation, and timeout return errors without a new snapshot.
 
@@ -538,8 +547,8 @@ below. Any other exception is an internal error: the client sees only
 | ambiguous browser | `browser_id` omitted with two or more connections | Pass a `browserId` from `browser_instances` explicitly |
 | target unavailable | No target selected or target tab closed | Use `browser_tab_open`/`browser_navigate` to create a target, or call `browser_tab_select` after `browser_tabs` |
 | content unavailable | Restricted page such as `chrome://` or `about:blank` | Target an HTTP(S) tab or recover with navigate/back |
-| stale/invalid ref | Old generation, another target, pre-navigation, or malformed ref | Capture a new `browser_snapshot` |
-| element mismatch | Detached, covered, non-editable, non-select, or missing option | Choose an appropriate ref/value from the latest snapshot |
+| stale/invalid ref | Another target, pre-navigation, an opened dialog, an element that left the page or changed role/name, or a malformed ref | Capture a new `browser_snapshot` |
+| element mismatch | Covered, moved away from its click point, non-editable, non-select, or missing option | Choose an appropriate ref/value from a current snapshot |
 | navigation failure | No history, load failure, or restricted destination | Check the URL/history and navigate to HTTP(S) if needed |
 | upload failure | Invalid path, no chooser, or multiple files for a single input | Correct the paths/ref; interception is cleaned up after failure |
 | wait-for timeout | Accessible text did not reach the requested state within 0–10 seconds | Inspect a current snapshot before retrying or changing the condition |
