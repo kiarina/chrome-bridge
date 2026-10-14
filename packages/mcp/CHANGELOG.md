@@ -6,6 +6,8 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-15
+
 ### Changed
 
 - The server instructions tell clients that refs stay usable across snapshots of the

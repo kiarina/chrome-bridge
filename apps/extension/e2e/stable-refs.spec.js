@@ -75,13 +75,15 @@ test("clicks land on the ref on a smoothly scrolling page", async () => {
       ref: refFor(page, /button "Submit answers"[^\n]*\[ref=([^\]]+)\]/),
     }));
     expect(page.snapshot).toContain(`Result: ${expected.join(",")}`);
+  } catch (error) {
+    console.log("last calls", JSON.stringify(transcript.slice(-8)));
+    throw error;
   } finally {
     await client?.close().catch(() => {});
     await profile?.close().catch(() => {});
     await artifact?.close().catch(() => {});
     await fixture?.close().catch(() => {});
     await server?.close().catch(() => {});
-    if (transcript.length) console.log(JSON.stringify(transcript.slice(-6)).slice(0, 4000));
   }
 });
 
@@ -158,6 +160,9 @@ test("refs from one snapshot last until the document or the target changes", asy
     stale = await call("browser_click", { element: "Q1 option 1", ref: optionRef(fresh, 1, 1) });
     expect(stale.isError).toBe(true);
     expect(toolText(stale)).toContain("Stale aria-ref");
+  } catch (error) {
+    console.log("last calls", JSON.stringify(transcript.slice(-8)));
+    throw error;
   } finally {
     await client?.close().catch(() => {});
     await profile?.close().catch(() => {});

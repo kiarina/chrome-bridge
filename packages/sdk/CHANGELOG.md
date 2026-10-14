@@ -6,6 +6,14 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-15
+
+### Changed
+
+- Released together with `chrome-bridge-mcp` 0.5.1 (the server's instructions now say
+  that refs stay usable across snapshots of the same document, which Chrome Bridge
+  extension 0.5.0 does). The SDK's own behavior is unchanged.
+
 ## [0.5.0] - 2026-09-23
 
 ### Changed
