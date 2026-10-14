@@ -151,15 +151,15 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [v0.4.1 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.1-rollout.md)
-  — 審査は通り、Store の公開版は 0.4.1（2026-09-28 確認）。branded Chrome で 0.4.1 を確認して記録する
-
-- [同じ文書の中で要素の ref を変えない](tasks/stable-element-refs.md)
-  — 操作のたびに ref が古くなり、モデルの手数とトークンがかさむ（2026-10-15）。同じ要素なら同じ ref にする設計を kiarina と決めてから実装する。「クリックできない」の切り分けも
+- [隔離した Chromium の E2E の揺らぎを減らす](tasks/e2e-flakes.md)
+  — 録画付きの移動の失敗（前から）と、ビルド直後の click の時間切れ（2026-10-15）
+- [操作の後に返すページを、変わったところだけにするか決める](tasks/post-action-result-size.md)
+  — 相談待ち。ref が保たれるようになり、毎回のページ全体（約 3,000 トークン）が司令塔のトークンの大半
 
 ### 待ち（`waiting/`）
 
-（なし）
+- [Chrome Web Store の 0.5.0 の審査を待つ](waiting/chrome-web-store-v0.5.0-review.md)
+  — 2026-10-15 提出、通れば自動公開。確かめる目安 2026-10-18
 
 ## コミットするとき
 

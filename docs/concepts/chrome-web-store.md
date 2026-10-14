@@ -9,7 +9,7 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
 ### Current publication
 
 - Store item ID: `ogmocgobegbjbecakclahodnhhfmccad`
-- Published version: `0.4.0`
+- Published version: `0.4.1`
 - Visibility: Public
 - Initial v0.1.0 publication: 2026-07-21
 - v0.3.0 update approved and manually published: 2026-07-24
@@ -20,9 +20,13 @@ The initial Store release should be **Unlisted**, with deferred publishing when 
   "v0.4 update submission")
 - v0.4.1 update submitted 2026-09-23 by release workflow `35854954896` (tag `v0.5.0`):
   `PENDING_REVIEW` with `DEFAULT_PUBLISH`, ZIP SHA-256
-  `dda6ce2f2e214747388dfce87ec0b1a55813cafba8d0ac8b92ea931ecbea594d`
+  `dda6ce2f2e214747388dfce87ec0b1a55813cafba8d0ac8b92ea931ecbea594d`; approved and
+  automatically published (status run 2026-09-24); branded-Chrome check 2026-10-15, the
+  installed Store copy reports 0.4.1
+- v0.5.0 update submitted 2026-10-15 by release workflow `38654165075` (tag `v0.5.1`):
+  `PENDING_REVIEW` with `DEFAULT_PUBLISH`, 100%
 - Listing: [Chrome Bridge on Chrome Web Store](https://chromewebstore.google.com/detail/chrome-bridge/ogmocgobegbjbecakclahodnhhfmccad)
-- Current ZIP SHA-256: `0bcab42bf9a207a647937f29fea6ea4fd18e5fce6f8cf4ac1af23c2860e85870`
+- Current ZIP SHA-256 (0.5.0, submitted): `90ac8e271c6ae0324ad3c055b7700bb1e06b0c569fb128eb0c753e9cb51c1483`
 
 The dashboard showed the expected warning that broad host permissions can lengthen
 review, then accepted the submission. It exposed neither the automatic-publishing

@@ -1,5 +1,39 @@
 # History
 
+## 2026-10-15
+
+### Stable element refs and ref input that stays on its element; v0.5.1 and extension 0.5.0
+
+- Found while an orchestrator drove the Direct API on the "ぎふりょく診断" form
+  (gifuquest.blazeworks.jp): clicks sometimes landed on the option below, and the submit
+  button was reported "not clickable". Cause: the page's `scroll-behavior: smooth`, which
+  `scrollIntoView({behavior: "auto"})` follows, so the point was taken mid-scroll. A
+  fixture reproduced it (10 clicks gave `1,2,-,4,-,-,3,4,-,-` instead of
+  `1,2,3,4,1,2,3,4,1,2`, all reported successful). Fixed by instant scrolling and a hit
+  check right before input (measured once more, otherwise refused with nothing sent).
+- Refs now last as long as their element within a document (ref epoch per document; ids
+  kept per `Element`; stale when detached or its role or name changed; names computed as
+  if visible so hover-only buttons keep their refs). New epoch on target change,
+  navigation (also back/forward cache) and dialogs. Measured with an orchestrator on the
+  diagnosis form: gpt-5.6-luna 50 calls / 3.49M input tokens → 19 / 0.67M; Claude Haiku
+  4.5 went from never reaching the result to 17 calls / about 0.36M. gpt-6.1-sol and
+  Claude Opus 5.5 had already finished in 23 calls with the old refs.
+- Decided with kiarina: no fingerprint matching for replaced nodes (step 2). On
+  Playwright's React TodoMVC demo every row that stayed on screen kept its refs through
+  toggle, filters, delete and clear completed; only a row React rebuilt after a filter got
+  a new ref, and its checkbox shared role and name with the others, so a match would have
+  been ambiguous anyway.
+- Released: tag `v0.5.1` (release workflow `38654165075`) passed all four jobs; PyPI has
+  `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.5.1 (only the server's instructions text
+  changed); extension 0.5.0 uploaded to Chrome Web Store (`uploadState=SUCCEEDED`,
+  `submissionState=PENDING_REVIEW`, `DEFAULT_PUBLISH`, 100%). Follow-up:
+  `waiting/chrome-web-store-v0.5.0-review.md`.
+- Closed `tasks/chrome-web-store-v0.4.1-rollout.md`: the branded Chrome's Store copy
+  reports 0.4.1 (`browser_instances`, 2026-10-15).
+- CI on the release commit failed on `npm audit`: a new critical advisory for
+  `proxy-addr` (dev dependency through `@modelcontextprotocol/sdk` → `express`, not in the
+  extension ZIP); updated to 2.0.8 in `bf36b64`.
+
 ## 2026-09-28
 
 ### Split external waits into `waiting/`
