@@ -154,6 +154,9 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 - [v0.4.1 の Chrome Web Store 公開を確認する](tasks/chrome-web-store-v0.4.1-rollout.md)
   — 審査は通り、Store の公開版は 0.4.1（2026-09-28 確認）。branded Chrome で 0.4.1 を確認して記録する
 
+- [同じ文書の中で要素の ref を変えない](tasks/stable-element-refs.md)
+  — 操作のたびに ref が古くなり、モデルの手数とトークンがかさむ（2026-10-15）。同じ要素なら同じ ref にする設計を kiarina と決めてから実装する。「クリックできない」の切り分けも
+
 ### 待ち（`waiting/`）
 
 （なし）
