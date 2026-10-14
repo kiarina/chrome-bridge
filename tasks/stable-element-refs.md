@@ -89,10 +89,22 @@ from paths or values, as long as the node survives.
   | gpt-5.6-luna | 50 calls, 3.49M input, 236,000 | 19 calls, 0.67M input, 236,000, ~90 s |
   | Claude Haiku 4.5 | no result (stale refs from parallel clicks) | 17 calls, 9 requests, ~0.36M input, 186,005, ~65 s |
 
+- React check (2026-10-15) on Playwright's React TodoMVC demo
+  (https://demo.playwright.dev/todomvc), tracking each todo row's refs by its text through
+  toggle, filter Active, filter All, delete (hover then ×) and clear completed: every
+  row that stayed on screen kept all its refs; refs went stale only for rows that left the
+  page, which is correct. The only node React rebuilt was a row coming back after a
+  filter, which got a new ref. Step 2 would not have matched it anyway: the three row
+  checkboxes share role and name ("Toggle Todo"), so the match is ambiguous.
+- Found there and fixed (`0fbb498`): the × button is shown only on hover, and its name
+  read as "" while hidden, so its ref was refused as changed. Names are now computed as
+  if visible.
+
 ## Remaining
 
-- Decide with kiarina: step 2 (replaced nodes keep their ref), and whether actions
-  return only what changed instead of the whole snapshot.
+- Decide with kiarina: step 2 (replaced nodes keep their ref; the React check suggests
+  little gain and a real risk of ambiguous matches), and whether actions return only
+  what changed instead of the whole snapshot.
 - Release: the extension changes the public ref contract (minor bump of the extension;
   the server only changed its instructions text). Follow `docs/runbooks/release.md`.
 - `e2e/multiple-profiles.spec.js` has pre-existing flakes: recorded navigate/go_back
