@@ -12,6 +12,7 @@ import {
   prepareDragTargets,
   prepareTypeTarget,
   pressVirtualCursor,
+  refAtPoint,
   removeVirtualCursor,
   setVirtualCursorPressed,
   waitForStableDOM,
@@ -143,6 +144,20 @@ if (!(globalThis as Record<string, unknown>)[RUNTIME_MARKER]) {
             message.durationMs,
           );
           sendResponse({ ok: true, result });
+        } catch (error) {
+          sendResponse({
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return false;
+      }
+      if (message?.type === "chrome-bridge.point.verify") {
+        try {
+          sendResponse({
+            ok: true,
+            result: refAtPoint(message.ref || "", Number(message.x), Number(message.y)),
+          });
         } catch (error) {
           sendResponse({
             ok: false,

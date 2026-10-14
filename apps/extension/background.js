@@ -1289,14 +1289,11 @@ async function clickTarget(params, session = undefined) {
     );
   } else {
     await runWithDebugger(tab.id, async (debuggee) => {
-      const response = await sendContentMessage(tab.id, {
-        type: "chrome-bridge.click.prepare",
-        ref: params.ref,
-      });
-      const point = validateClickPoint(response.result);
-      await requireUnchangedTarget(tab.id);
-      await requireCurrentAriaRef(tab.id, params.ref);
-      await waitMilliseconds(point.settleMs);
+      const point = await prepareRefPoint(
+        tab,
+        "chrome-bridge.click.prepare",
+        params.ref,
+      );
       await showCursorPress(tab.id);
       await dispatchTrustedClick(debuggee, point);
     });
@@ -1330,13 +1327,32 @@ async function finishSnapshotOperation(tabId) {
   return captureSnapshotForTarget(tabId);
 }
 
+// The point to send a ref's input to, checked to hit that element after the
+// cursor settled: a page that moved in between (a smooth scroll, a layout
+// shift) is measured again once, and is otherwise refused before any input,
+// so input never lands on another element than the ref.
 async function prepareRefPoint(tab, type, ref) {
-  const response = await sendContentMessage(tab.id, { type, ref });
-  const point = validateClickPoint(response.result);
-  await requireUnchangedTarget(tab.id);
-  await requireCurrentAriaRef(tab.id, ref);
-  await waitMilliseconds(point.settleMs);
-  return point;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await sendContentMessage(tab.id, { type, ref });
+    const point = validateClickPoint(response.result);
+    await requireUnchangedTarget(tab.id);
+    await requireCurrentAriaRef(tab.id, ref);
+    await waitMilliseconds(point.settleMs);
+    if (await refAtPoint(tab.id, ref, point)) return point;
+  }
+  throw new Error(
+    `Element for aria-ref moved away from its click point: ${ref}. Nothing was sent; take a new snapshot`,
+  );
+}
+
+async function refAtPoint(tabId, ref, point) {
+  const response = await sendContentMessage(tabId, {
+    type: "chrome-bridge.point.verify",
+    ref,
+    x: point.x,
+    y: point.y,
+  });
+  return response.result === true;
 }
 
 async function hoverTarget(params, session = undefined) {
@@ -1355,14 +1371,11 @@ async function hoverTarget(params, session = undefined) {
     );
   } else {
     await runWithDebugger(tab.id, async (debuggee) => {
-      const response = await sendContentMessage(tab.id, {
-        type: "chrome-bridge.hover.prepare",
-        ref: params.ref,
-      });
-      const point = validateClickPoint(response.result);
-      await requireUnchangedTarget(tab.id);
-      await requireCurrentAriaRef(tab.id, params.ref);
-      await waitMilliseconds(point.settleMs);
+      const point = await prepareRefPoint(
+        tab,
+        "chrome-bridge.hover.prepare",
+        params.ref,
+      );
       await dispatchMouseMove(debuggee, point);
     });
   }
@@ -1400,6 +1413,7 @@ async function dragTarget(
     await requireCurrentAriaRef(tab.id, params.startRef);
     await requireCurrentAriaRef(tab.id, params.endRef);
     await waitMilliseconds(points.start.settleMs);
+    await requireDragStart(tab.id, params.startRef, points.start);
     await runWithDebugger(
       tab.id,
       (debuggee) =>
@@ -1424,10 +1438,25 @@ async function dragTarget(
       await requireUnchangedTarget(tab.id);
       await requireCurrentAriaRef(tab.id, params.startRef);
       await requireCurrentAriaRef(tab.id, params.endRef);
-      await dispatchTrustedDrag(debuggee, tab.id, points.start, points.end);
+      await waitMilliseconds(points.start.settleMs);
+      await requireDragStart(tab.id, params.startRef, points.start);
+      await dispatchTrustedDrag(
+        debuggee,
+        tab.id,
+        { ...points.start, settleMs: 0 },
+        points.end,
+      );
     });
   }
   return finishSnapshotOperation(tab.id);
+}
+
+async function requireDragStart(tabId, ref, point) {
+  if (!(await refAtPoint(tabId, ref, point))) {
+    throw new Error(
+      `Start element for aria-ref moved away from its point: ${ref}. Nothing was sent; take a new snapshot`,
+    );
+  }
 }
 
 async function typeTarget(params, session = undefined) {
@@ -1457,14 +1486,11 @@ async function typeTarget(params, session = undefined) {
     );
   } else {
     await runWithDebugger(tab.id, async (debuggee) => {
-      const response = await sendContentMessage(tab.id, {
-        type: "chrome-bridge.type.prepare",
-        ref: params.ref,
-      });
-      const point = validateClickPoint(response.result);
-      await requireUnchangedTarget(tab.id);
-      await requireCurrentAriaRef(tab.id, params.ref);
-      await waitMilliseconds(point.settleMs);
+      const point = await prepareRefPoint(
+        tab,
+        "chrome-bridge.type.prepare",
+        params.ref,
+      );
       await showCursorPress(tab.id);
       await dispatchTrustedClick(debuggee, point);
       await dispatchText(debuggee, params.text);
@@ -1532,17 +1558,9 @@ async function uploadFilesTarget(
     : undefined;
 
   await runWithDebugger(tab.id, async (debuggee) => {
-    let point = preparedPoint;
-    if (!point) {
-      const response = await sendContentMessage(tab.id, {
-        type: "chrome-bridge.click.prepare",
-        ref: params.ref,
-      });
-      point = validateClickPoint(response.result);
-      await requireUnchangedTarget(tab.id);
-      await requireCurrentAriaRef(tab.id, params.ref);
-      await waitMilliseconds(point.settleMs);
-    }
+    const point =
+      preparedPoint ??
+      (await prepareRefPoint(tab, "chrome-bridge.click.prepare", params.ref));
 
     const chooser = fileChooserOpened(debuggee);
     let changeBarrier;

@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop clicks, hovers, typing, uploads, downloads and drags from landing on another
+  element on pages that scroll smoothly (CSS `scroll-behavior: smooth`). Scrolling the
+  element into view no longer animates, and the point is checked to hit the ref right
+  before input is sent; a page that moved is measured once more, and otherwise the
+  operation fails with nothing sent.
+
 ## [0.4.1] - 2026-09-23
 
 ### Fixed

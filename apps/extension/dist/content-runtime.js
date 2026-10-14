@@ -1356,7 +1356,9 @@
     startElement.scrollIntoView({
       block: "center",
       inline: "center",
-      behavior: "auto"
+      // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+      // scroll moves the element after its point is taken.
+      behavior: "instant"
     });
     const startPoint = clickablePoint(startElement);
     if (!startPoint) {
@@ -1422,7 +1424,9 @@
     element.scrollIntoView({
       block: "center",
       inline: "center",
-      behavior: "auto"
+      // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+      // scroll moves the element after its point is taken.
+      behavior: "instant"
     });
     const point = clickablePoint(element);
     if (!point) throw new Error(`Element for aria-ref is not clickable: ${ref}`);
@@ -1448,7 +1452,9 @@
     element.scrollIntoView({
       block: "center",
       inline: "center",
-      behavior: "auto"
+      // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+      // scroll moves the element after its point is taken.
+      behavior: "instant"
     });
     const point = clickablePoint(element);
     if (!point) throw new Error(`Element for aria-ref is not clickable: ${ref}`);
@@ -1503,6 +1509,11 @@
       scheduleIdle();
       timeoutTimer = window.setTimeout(() => finish(false), timeoutMs);
     });
+  }
+  function refAtPoint(ref, x, y) {
+    const element = resolveAriaRef(ref);
+    const hit = deepElementFromPoint(x, y);
+    return hit === element || hit !== null && element.contains(hit);
   }
   function clickablePoint(element) {
     for (const rect of element.getClientRects()) {
@@ -1923,6 +1934,20 @@
               message.durationMs
             );
             sendResponse({ ok: true, result });
+          } catch (error) {
+            sendResponse({
+              ok: false,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+          return false;
+        }
+        if (message?.type === "chrome-bridge.point.verify") {
+          try {
+            sendResponse({
+              ok: true,
+              result: refAtPoint(message.ref || "", Number(message.x), Number(message.y))
+            });
           } catch (error) {
             sendResponse({
               ok: false,

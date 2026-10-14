@@ -130,6 +130,8 @@ SnapshotState
 
 Ref operations validate the generation and strictly resolve an `Element` from `elements`. Scrolling, coordinate acquisition, and DOM operations stay in the same content runtime wherever possible, avoiding mismatches from re-querying selectors after DOM changes. There is no fallback that guesses similar selectors.
 
+Scrolling a ref into view is instant (`behavior: "instant"`), because `"auto"` follows the page's CSS `scroll-behavior` and a smooth scroll moves the element after its point is taken. After the virtual cursor settles and right before trusted input is sent, the content runtime checks that the point still hits the ref's element (or an element inside it). If it does not, the point is measured once more; if it still does not, the operation fails before any input, so input never lands on another element than the ref.
+
 Do not use `chrome.debugger.attach({tabId}, "1.3")`, because it made the target tab active in this test environment. Obtain the page `targetId` corresponding to the target tab from `chrome.debugger.getTargets()` and attach directly to `{targetId}`. Enabling renderer `Emulation.setFocusEmulationEnabled` only during input allows CDP input without changing Chrome UI's active tab/window focus. Disable focus emulation and detach afterward. If no page target is available, return an error; never fall back to a foregrounding `{tabId}` attachment.
 
 Before an operation that can open a browser-native dialog, enable the Page domain and

@@ -160,6 +160,34 @@ export async function startFixtureServer() {
       }, delay);
       return;
     }
+    if (request.url === "/form") {
+      // A long form on a page that scrolls smoothly (CSS scroll-behavior), the
+      // shape of a quiz: ten radio groups and a submit button below the fold.
+      const questions = Array.from({ length: 10 }, (_, q) => `
+<fieldset style="margin: 0 0 96px"><legend>Question ${q + 1}</legend>
+${[1, 2, 3, 4].map((o) => `<label style="display:block"><input type="radio" name="q${q + 1}" value="${o}"> Q${q + 1} option ${o}</label>`).join("")}
+</fieldset>`).join("");
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(`<!doctype html>
+<html style="scroll-behavior: smooth"><head><title>Chrome Bridge form</title></head>
+<body><main>
+<h1>Smooth form</h1>
+<label>Name <input aria-label="Name"></label>
+${questions}
+<button id="submit">Submit answers</button>
+<p role="status">Result: none</p>
+</main>
+<script>
+document.querySelector("#submit").addEventListener("click", () => {
+  const answers = [];
+  for (let q = 1; q <= 10; q++) {
+    answers.push((document.querySelector('input[name="q' + q + '"]:checked') || {}).value || "-");
+  }
+  document.querySelector("[role=status]").textContent = "Result: " + answers.join(",");
+});
+</script></body></html>`);
+      return;
+    }
     let fixturePath;
     switch (request.url) {
       case "/a":

@@ -47,7 +47,9 @@ export function prepareDragTargets(
   startElement.scrollIntoView({
     block: "center",
     inline: "center",
-    behavior: "auto",
+    // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+    // scroll moves the element after its point is taken.
+    behavior: "instant",
   });
   const startPoint = clickablePoint(startElement);
   if (!startPoint) {
@@ -139,7 +141,9 @@ export function prepareSelectOptions(
   element.scrollIntoView({
     block: "center",
     inline: "center",
-    behavior: "auto",
+    // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+    // scroll moves the element after its point is taken.
+    behavior: "instant",
   });
   const point = clickablePoint(element);
   if (!point) throw new Error(`Element for aria-ref is not clickable: ${ref}`);
@@ -170,7 +174,9 @@ function preparePoint(element: Element, ref: string): ClickPoint {
   element.scrollIntoView({
     block: "center",
     inline: "center",
-    behavior: "auto",
+    // "instant": "auto" follows the page's CSS scroll-behavior, and a smooth
+    // scroll moves the element after its point is taken.
+    behavior: "instant",
   });
 
   const point = clickablePoint(element);
@@ -236,6 +242,17 @@ export function waitForStableDOM(
     scheduleIdle();
     timeoutTimer = window.setTimeout(() => finish(false), timeoutMs);
   });
+}
+
+/**
+ * Whether the element of `ref` (or one inside it) is what a click at the point
+ * would hit now: checked right before the click is sent, so a page that moved
+ * after the point was taken is not clicked somewhere else.
+ */
+export function refAtPoint(ref: string, x: number, y: number): boolean {
+  const element = resolveAriaRef(ref);
+  const hit = deepElementFromPoint(x, y);
+  return hit === element || (hit !== null && element.contains(hit));
 }
 
 function clickablePoint(element: Element): ClickPoint | null {
