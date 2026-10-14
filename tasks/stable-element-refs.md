@@ -22,6 +22,10 @@ form on https://gifuquest.blazeworks.jp/diagnosis: a name field, 10 radio questi
 - Both sometimes got `Element for aria-ref is not clickable` for the "診断する" button
   (`button`, at the bottom of the form, background target tab) and for one radio. They
   worked around it with Tab, Space and PageDown
+- Stronger models were not slowed down by it: gpt-6.1-sol and Claude Opus 5.5 each
+  finished in 23 tool calls without an error (1.07M input tokens, about 2 minutes),
+  reading the page once and then using the refs each click returned. Opus reported that
+  a first click sometimes landed on the option of the question below, and re-clicked
 
 The content runtime already holds the `Element` objects (`elements: Map<integer, Element>`,
 `ids: Map<Element, integer>`). It can tell "the same element" exactly, without guessing
@@ -45,9 +49,11 @@ from paths or values, as long as the node survives.
      Leave out values and checked state: they change while the element stays the same.
    - Reuse an id only when exactly one candidate matches. Otherwise assign a new id and
      never guess. Clicking a different element than intended is the failure to avoid.
-3. **"Not clickable"**: find out why the button and the radio above were rejected
-   (covered, off screen in a background tab, or the hit test). Reproduce it on that page
-   or a fixture.
+3. **"Not clickable" and clicks landing below**: find out why the button and the radio
+   above were rejected (covered, off screen in a background tab, or the hit test), and
+   whether a click on a radio can land on the element below it (a scroll or layout shift
+   between taking the point and dispatching the click). A click on another element than
+   the ref is the worst failure here. Reproduce both on that page or a fixture.
 
 ## Done when
 
@@ -56,7 +62,8 @@ from paths or values, as long as the node survives.
   stale on navigation and target change; stale when a node is detached or reused for
   other content (role or name changed); no reuse on ambiguous matches (if step 2 is done).
 - The diagnosis form can be answered with refs from one snapshot.
-- The "not clickable" cause is fixed, or recorded with why it is correct.
+- The "not clickable" cause is fixed, or recorded with why it is correct; a click never
+  lands on another element than its ref.
 
 ## Handoff
 
