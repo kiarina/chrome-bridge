@@ -65,6 +65,43 @@ from paths or values, as long as the node survives.
 - The "not clickable" cause is fixed, or recorded with why it is correct; a click never
   lands on another element than its ref.
 
+## Progress (2026-10-15)
+
+- Step 3 done (`1c674bb`). Cause: the page has `html { scroll-behavior: smooth }`, and
+  `scrollIntoView({behavior: "auto"})` follows it, so the point was taken mid-scroll;
+  the click then hit whatever had moved there (the option below), or the element was
+  still off screen ("not clickable"). Scrolling is now instant, and the point is checked
+  to hit the ref right before input is sent (measured once more, otherwise refused with
+  nothing sent). The `/form` fixture and `e2e/stable-refs.spec.js` reproduce it: before
+  the fix, 10 clicks with fresh refs gave `1,2,-,4,-,-,3,4,-,-` instead of
+  `1,2,3,4,1,2,3,4,1,2`, all reported as successful.
+- Step 1 done (`aba16d4`): ref epoch per document, ids kept per `Element`, stale when
+  detached or role/name changed; refs survive clicks, typing, keys, waits; a new epoch on
+  target change, navigation (also back/forward cache) and dialogs. SPEC, api.md,
+  architecture.md, the MCP instructions and both changelogs updated. Unit tests 57 pass;
+  E2E `stable-refs` 2 pass, `browser-dialogs` and the probes pass.
+- Live check on the real diagnosis page in an isolated Chromium: refs from one snapshot
+  answered all 10 questions and submitted (16 calls, no error).
+- Orchestrator runs (the Spirits Garden prototype pointed at a server with this build):
+
+  | model | before | after |
+  | --- | --- | --- |
+  | gpt-5.6-luna | 50 calls, 3.49M input, 236,000 | 19 calls, 0.67M input, 236,000, ~90 s |
+  | Claude Haiku 4.5 | no result (stale refs from parallel clicks) | 17 calls, 9 requests, ~0.36M input, 186,005, ~65 s |
+
+## Remaining
+
+- Decide with kiarina: step 2 (replaced nodes keep their ref), and whether actions
+  return only what changed instead of the whole snapshot.
+- Release: the extension changes the public ref contract (minor bump of the extension;
+  the server only changed its instructions text). Follow `docs/runbooks/release.md`.
+- `e2e/multiple-profiles.spec.js` has pre-existing flakes: recorded navigate/go_back
+  sometimes fail with `Not attached to an active page` / `Unable to capture screenshot`
+  (2 of 3 runs on the code before this task), and the target-changed upload check
+  (around "Operation outcome unknown") depends on a 750 ms race; with the extra point
+  check it once saw the target change before the click instead ("waiting to run",
+  nothing sent).
+
 ## Handoff
 
 - This changes the public ref contract (SPEC "strict refs"). Agree on the design with
