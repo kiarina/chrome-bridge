@@ -166,6 +166,27 @@ test("keeps refs across snapshots of a document; rejects cleared, malformed, det
   ).rejects.toThrow("No accessibility snapshot");
 });
 
+test("keeps the ref of an element that is hidden for a while (shown on hover)", async ({
+  page,
+}) => {
+  await page.setContent('<ul><li>Row <button id="del" aria-label="Delete">×</button></li></ul>');
+  await installHarness(page);
+
+  const result = await page.evaluate(() => {
+    const runtime = globalThis.chromeBridgeSnapshotTest;
+    const ref = runtime.generateSnapshot(1).snapshot.match(/button "Delete" \[ref=(s\d+e\d+)\]/)[1];
+    const button = document.querySelector("#del");
+    button.style.display = "none";
+    const resolvedWhileHidden = runtime.resolveAriaRef(ref).id;
+    runtime.generateSnapshot(2);
+    button.style.display = "";
+    const again = runtime.generateSnapshot(3).snapshot.match(/button "Delete" \[ref=(s\d+e\d+)\]/)[1];
+    return { ref, resolvedWhileHidden, again };
+  });
+  expect(result.resolvedWhileHidden).toBe("del");
+  expect(result.again).toBe(result.ref);
+});
+
 test("resolves only the referenced duplicate element and shows an isolated arrow cursor", async ({
   page,
 }) => {

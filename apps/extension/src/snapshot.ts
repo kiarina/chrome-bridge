@@ -38,10 +38,13 @@ type RefState = {
 const ARIA_REF_PATTERN = /^s(\d+)e(\d+)$/;
 let refState: RefState | null = null;
 
+// Computed as if visible: an element that is hidden for now (a button shown
+// only on hover) is still the same element, and its name must not read as
+// another one. Whether it can be clicked is checked at its point.
 function ariaIdentity(element: Element): { role: string; name: string } {
   return {
     role: getAriaRole(element) ?? "generic",
-    name: normalizeWhiteSpace(getElementAccessibleName(element, false) || ""),
+    name: normalizeWhiteSpace(getElementAccessibleName(element, true) || ""),
   };
 }
 

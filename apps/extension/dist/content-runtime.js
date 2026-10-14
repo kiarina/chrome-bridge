@@ -1228,7 +1228,7 @@
   function ariaIdentity(element) {
     return {
       role: getAriaRole(element) ?? "generic",
-      name: normalizeWhiteSpace(getElementAccessibleName(element, false) || "")
+      name: normalizeWhiteSpace(getElementAccessibleName(element, true) || "")
     };
   }
   function generateSnapshot(generation) {
