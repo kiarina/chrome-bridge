@@ -6,10 +6,12 @@ server's (`chrome-bridge-mcp`).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-15
+
 ### Added
 
 - The Chrome Bridge server in Dart for apps that embed it: the extension endpoint, the
-  Direct API, MCP and `/health`, with the same contract as `chrome-bridge-mcp` 0.5.1, and
+  Direct API, MCP and `/health`, with the same contract as `chrome-bridge-mcp` 0.5.2, and
   in-process calls and exclusive sessions. A taken port is reported (`PortInUseError`,
   naming the server that holds it) instead of starting elsewhere.
 - An extension answer that arrives after its command timed out (within 120 seconds) is

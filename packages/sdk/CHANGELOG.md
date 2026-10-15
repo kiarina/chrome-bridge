@@ -6,6 +6,14 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-15
+
+### Changed
+
+- Released together with `chrome-bridge-mcp` 0.5.2 (a late extension answer no longer
+  closes the extension's connection; `/api/v1/meta` reports `implementation`). The SDK's
+  own behavior is unchanged.
+
 ## [0.5.1] - 2026-10-15
 
 ### Changed

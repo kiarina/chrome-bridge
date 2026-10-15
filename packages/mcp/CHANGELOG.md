@@ -6,6 +6,8 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-15
+
 ### Changed
 
 - An extension answer that arrives after its command timed out (within 120 seconds) is

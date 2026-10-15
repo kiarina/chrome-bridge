@@ -2,7 +2,7 @@ name: chrome_bridge_mcp
 description: >-
   Chrome Bridge server in Dart: the extension endpoint, the Direct API and MCP, for
   apps that embed it. The same contract as the Python server (chrome-bridge-mcp).
-version: 0.5.1
+version: 0.5.2
 publish_to: none
 repository: https://github.com/kiarina/chrome-bridge
 

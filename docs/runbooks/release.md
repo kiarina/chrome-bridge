@@ -7,8 +7,8 @@ always carry the same version; the extension carries its own, which advances onl
 extension runtime content changes, so a Python-only release leaves it behind:
 
 - `chrome-bridge-extension-0.5.0.zip`: Extension runtime for Load unpacked and Store update.
-- `chrome_bridge_mcp-0.5.1-py3-none-any.whl` and `.tar.gz`: server distribution.
-- `chrome_bridge_sdk-0.5.1-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
+- `chrome_bridge_mcp-0.5.2-py3-none-any.whl` and `.tar.gz`: server distribution.
+- `chrome_bridge_sdk-0.5.2-py3-none-any.whl` and `.tar.gz`: Direct API SDK.
 - `SHA256SUMS`: SHA-256 checksums for all five artifacts.
 
 Build, clean install, and artifact-based isolated Chromium E2E are automated. The project is licensed under MIT; the extension ZIP and Python distribution include the project license. The extension ZIP also includes `THIRD_PARTY_NOTICES.md` and the full Apache-2.0 text for Playwright-derived portions. The same verified extension ZIP is used for GitHub Releases, manual Load unpacked installation, and Chrome Web Store submission. The public source repository is `kiarina/chrome-bridge`, and its owner controls tags and releases. PyPI trusted publishing for both `chrome-bridge-mcp` and `chrome-bridge-sdk` uses `.github/workflows/release-pypi.yml` and the `pypi` GitHub environment; both projects successfully published v0.4.0 through this boundary.
@@ -142,7 +142,7 @@ source checkout, use an equivalent fixed directory as shown below.
 ```bash
 mkdir -p /path/to/chrome-bridge-extension
 unzip chrome-bridge-extension-0.5.0.zip -d /path/to/chrome-bridge-extension
-uv tool install ./chrome_bridge_mcp-0.5.1-py3-none-any.whl
+uv tool install ./chrome_bridge_mcp-0.5.2-py3-none-any.whl
 chrome-bridge-mcp
 ```
 
@@ -150,7 +150,7 @@ Applications install both local wheels together, or install the published SDK wh
 declares the server dependency:
 
 ```bash
-uv add ./chrome_bridge_mcp-0.5.1-py3-none-any.whl ./chrome_bridge_sdk-0.5.1-py3-none-any.whl
+uv add ./chrome_bridge_mcp-0.5.2-py3-none-any.whl ./chrome_bridge_sdk-0.5.2-py3-none-any.whl
 ```
 
 Enable Developer mode at Chrome's `chrome://extensions` and Load unpacked from the fixed directory. Connect the MCP client to `http://127.0.0.1:8765/mcp`. Check server and extension connection counts with `curl http://127.0.0.1:8765/health`. See the [Operations guide](operations.md) for everyday operation and incident response.
