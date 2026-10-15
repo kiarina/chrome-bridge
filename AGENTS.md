@@ -153,6 +153,8 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 - [タブを切り替えて戻っても、そのタブの ref を使えるようにする](tasks/refs-across-target-switches.md)
   — 今は target を切り替えるたびに ref が消え、戻るたびに撮り直しになる。ページを移ったときだけ消す形にする
+- [1 つの Chrome の別々のタブを、複数のクライアントが同時に使えるようにする](tasks/concurrent-tab-clients.md)
+  — 相談待ち。今は target がブラウザに 1 つで全体を 1 列に並べている（CDP の制約ではなく設計）。使い道が出たら設計を決める
 - [隔離した Chromium の E2E の揺らぎを減らす](tasks/e2e-flakes.md)
   — 録画付きの移動の失敗（前から）と、ビルド直後の click の時間切れ（2026-10-15）
 - [操作の後に返すページを、変わったところだけにするか決める](tasks/post-action-result-size.md)
