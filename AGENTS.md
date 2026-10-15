@@ -151,6 +151,8 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
+- [アプリに組み込める Dart のサーバーを足す](tasks/dart-server.md)
+  — Spirits Garden の body（Dart）が Python なしで Chrome を使えるように。最初は拡張機能との接続・順番待ち・Direct API まで、同じ E2E を両方に通す
 - [隔離した Chromium の E2E の揺らぎを減らす](tasks/e2e-flakes.md)
   — 録画付きの移動の失敗（前から）と、ビルド直後の click の時間切れ（2026-10-15）
 - [操作の後に返すページを、変わったところだけにするか決める](tasks/post-action-result-size.md)
