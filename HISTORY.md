@@ -2,6 +2,12 @@
 
 ## 2026-10-15
 
+### Extension 0.5.0 published
+
+- Chrome Web Store approved 0.5.0 the day it was submitted (status run `38666472480`,
+  `publishedState=PUBLISHED`). kiarina updated the three PCs; the branded Chrome on the
+  Mac reports 0.5.0 (`browser_instances`). Closed `waiting/chrome-web-store-v0.5.0-review.md`.
+
 ### Dart server for apps that embed Chrome Bridge
 
 - Why (decided with kiarina): Chrome Bridge was built for Spirits Garden, whose body was
