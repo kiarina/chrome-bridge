@@ -6,6 +6,14 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-15
+
+### Changed
+
+- Released together with `chrome-bridge-mcp` 0.6.0 and extension 0.6.0 (each tab keeps
+  its element refs across target switches). Requires `chrome-bridge-mcp>=0.6,<0.7`; the
+  SDK's own behavior is unchanged.
+
 ## [0.5.2] - 2026-10-15
 
 ### Changed

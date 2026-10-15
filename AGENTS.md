@@ -86,9 +86,9 @@ package との共存を壊すためです。「次の major が出たら壊れ�
 にコメントとして書き、下の一覧にも記載してください。解除に判断が要るものは `tasks/` に
 移行タスクを作り、コメントからそのファイルを指してください。
 
-### 現在維持している上限（2026-09-23 時点）
+### 現在維持している上限（2026-10-15 時点）
 
-- `packages/sdk`: `chrome-bridge-mcp>=0.5,<0.6`
+- `packages/sdk`: `chrome-bridge-mcp>=0.6,<0.7`
   — 第三者 package への制約ではなく、このリポジトリから同時に release する 2 つの
   distribution の lockstep。`scripts/validate_static.py` が server と SDK の version 一致を
   検査するため、片方だけ別 minor に進むことはない。version を上げるときは両方同時に上げる。

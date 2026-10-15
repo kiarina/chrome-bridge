@@ -6,6 +6,13 @@ here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-15
+
+### Changed
+
+- Released together with extension 0.6.0, which keeps each tab's element refs when
+  another tab is selected as the target. The server's own behavior is unchanged.
+
 ## [0.5.2] - 2026-10-15
 
 ### Changed

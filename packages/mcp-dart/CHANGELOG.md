@@ -6,6 +6,13 @@ server's (`chrome-bridge-mcp`).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-15
+
+### Changed
+
+- Version follows `chrome-bridge-mcp` 0.6.0 (released with extension 0.6.0). No change
+  in behavior.
+
 ## [0.5.2] - 2026-10-15
 
 ### Added
