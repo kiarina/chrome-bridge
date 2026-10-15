@@ -2,6 +2,33 @@
 
 ## 2026-10-15
 
+### Dart server for apps that embed Chrome Bridge
+
+- Why (decided with kiarina): Chrome Bridge was built for Spirits Garden, whose body was
+  going to run in Python. The body now runs in Dart, and a released app cannot ask people
+  to install Python and uv. Compared with shipping the Python server as one executable
+  (PyInstaller-style), an in-process Dart server avoids a child process, signing a bundled
+  binary, and antivirus false positives on Windows.
+- `packages/mcp-dart` (`chrome_bridge_mcp`): the extension endpoint (v1/v2 hello), the
+  registry, the controller with the same checks, coordination and exclusive sessions, the
+  Direct API, MCP (stateless Streamable HTTP with JSON responses, as the Python server
+  runs it), `/health`, the Host/Origin checks, in-process `call`/`session`, and
+  `PortInUseError` naming the occupant. No Dart SDK (client for an outside server) for now.
+- Port policy (kiarina): an embedding app always uses its own server; a taken port is
+  reported, never worked around (the extension connects to one port).
+- Kept the same: `scripts/export_dart_contract.py` copies the schemas, MCP tools and
+  handshake, and Direct API tools from the Python server (checked by `validate_static.py`);
+  `scripts/check_server_conformance.py` runs 87 steps through both with a fake extension
+  (equal); the isolated E2E runs against either (`CHROME_BRIDGE_E2E_SERVER=dart`). CI has a
+  "Dart server" job and runs the E2E against Dart too; all green on `69d3509`.
+- `/api/v1/meta` gained `implementation` (`python`/`dart`) in both servers.
+- Embedded in the Spirits Garden prototype's body: with no Python server running, the
+  Store extension 0.4.1 connected to the app's own server on Mac and Windows and a Google
+  search → official site → diagnosis → screenshot → close flow passed (14 and 13 steps).
+- Found while comparing: when the extension answers after the command timed out, both
+  servers close the extension connection ("Unknown response id"). Left for a decision
+  (`tasks/dart-server-followups.md`).
+
 ### Stable element refs and ref input that stays on its element; v0.5.1 and extension 0.5.0
 
 - Found while an orchestrator drove the Direct API on the "ぎふりょく診断" form
