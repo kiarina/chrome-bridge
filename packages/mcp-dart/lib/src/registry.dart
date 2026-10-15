@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'errors.dart';
 import 'ids.dart';
 import 'protocol.dart';
 
 typedef Json = Map<String, dynamic>;
+
+/// How long the ID of a command that timed out is remembered: an answer the
+/// extension sends that late is ignored instead of breaking the connection.
+const lateAnswerWindow = Duration(seconds: 120);
 
 /// The extension's end of one WebSocket.
 abstract interface class ExtensionSocket {
@@ -33,6 +38,7 @@ class BrowserConnection {
   final bool identityStable;
   final Duration _timeout;
   final _pending = <String, Completer<Object?>>{};
+  final _timedOut = <String, DateTime>{};
 
   Json asJson() => {
     'browserId': browserId,
@@ -71,13 +77,22 @@ class BrowserConnection {
       socket.sendJson(message);
       return await completer.future.timeout(
         timeout ?? _timeout,
-        onTimeout: () => throw ExtensionCommandError(
-          'Chrome extension timed out while running $command',
-        ),
+        onTimeout: () {
+          _rememberTimedOut(id);
+          throw ExtensionCommandError(
+            'Chrome extension timed out while running $command',
+          );
+        },
       );
     } finally {
       _pending.remove(id);
     }
+  }
+
+  void _rememberTimedOut(String id) {
+    final now = DateTime.now();
+    _timedOut.removeWhere((_, at) => now.difference(at) > lateAnswerWindow);
+    _timedOut[id] = now;
   }
 
   /// Handles a message from the extension: a reply to send back (`pong`), or
@@ -89,6 +104,15 @@ class BrowserConnection {
     if (id is! String) return null;
     final completer = _pending[id];
     if (completer == null || completer.isCompleted) {
+      if (_timedOut.remove(id) != null) {
+        // The command already failed as timed out; the late answer changes
+        // nothing, and the connection stays usable.
+        developer.log(
+          'Ignored a late extension answer to $id',
+          name: 'chrome_bridge_mcp',
+        );
+        return null;
+      }
       throw ProtocolValidationError('Unknown response id: $id');
     }
     if (message['ok'] == true) {

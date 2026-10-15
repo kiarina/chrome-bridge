@@ -1412,6 +1412,24 @@ async def test_disconnect_fails_only_its_pending_commands() -> None:
     assert await task_b == [{"id": 8}]
 
 
+async def test_late_answer_to_a_timed_out_command_is_ignored_once() -> None:
+    registry = BridgeHub(timeout_seconds=0.01)
+    socket = FakeSocket()
+    connection = await registry.attach(socket, v2_hello(BROWSER_A))
+    with pytest.raises(ExtensionCommandError, match="timed out"):
+        await connection.request("tabs.list", {})
+    late = {"id": socket.sent[0]["id"], "ok": True, "result": []}
+    # The command already failed: its late answer is dropped, the connection stays.
+    assert connection.receive(late) is None
+    # Only once: the same ID again is a protocol error, as is any ID never sent.
+    with pytest.raises(ProtocolValidationError, match="Unknown response id"):
+        connection.receive(late)
+    task = asyncio.create_task(connection.request("tabs.list", {}))
+    await asyncio.sleep(0)
+    connection.receive({"id": socket.sent[1]["id"], "ok": True, "result": [{"id": 1}]})
+    assert await task == [{"id": 1}]
+
+
 async def test_response_id_is_never_correlated_across_connections() -> None:
     registry = BridgeHub(timeout_seconds=1)
     socket_a = FakeSocket()

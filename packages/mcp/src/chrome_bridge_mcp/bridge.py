@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import logging
 import math
 import re
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Protocol
@@ -15,6 +17,12 @@ from .protocol import (
     validate_extension_runtime_message,
     validate_server_message,
 )
+
+logger = logging.getLogger(__name__)
+
+# How long the ID of a command that timed out is remembered: an answer the extension
+# sends that late is ignored instead of breaking the connection.
+LATE_ANSWER_WINDOW_SECONDS = 120.0
 
 
 class ExtensionSocket(Protocol):
@@ -51,6 +59,7 @@ class BrowserConnection:
         self.identity_stable = identity_stable
         self._timeout_seconds = timeout_seconds
         self._pending: dict[str, asyncio.Future[Any]] = {}
+        self._timed_out: dict[str, float] = {}
         self._send_lock = asyncio.Lock()
 
     def as_dict(self) -> dict[str, Any]:
@@ -98,11 +107,19 @@ class BrowserConnection:
                 ),
             )
         except TimeoutError as error:
+            self._remember_timed_out(request_id)
             raise ExtensionCommandError(
                 f"Chrome extension timed out while running {command}"
             ) from error
         finally:
             self._pending.pop(request_id, None)
+
+    def _remember_timed_out(self, request_id: str) -> None:
+        now = time.monotonic()
+        for stale, at in list(self._timed_out.items()):
+            if now - at > LATE_ANSWER_WINDOW_SECONDS:
+                del self._timed_out[stale]
+        self._timed_out[request_id] = now
 
     def receive(self, message: Mapping[str, Any]) -> dict[str, Any] | None:
         validate_extension_runtime_message(message)
@@ -115,6 +132,11 @@ class BrowserConnection:
             return None
         future = self._pending.get(request_id)
         if future is None or future.done():
+            if self._timed_out.pop(request_id, None) is not None:
+                # The command already failed as timed out; the late answer changes
+                # nothing, and the connection stays usable.
+                logger.info("Ignored a late extension answer to %s", request_id)
+                return None
             raise ProtocolValidationError(f"Unknown response id: {request_id}")
         if message.get("ok") is True:
             future.set_result(message.get("result"))

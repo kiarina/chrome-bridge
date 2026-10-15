@@ -6,6 +6,12 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- An extension answer that arrives after its command timed out (within 120 seconds) is
+  logged and ignored; the extension stays connected. It used to be treated as an unknown
+  response ID, which closed the connection and failed every other pending command.
+
 ### Added
 
 - `/api/v1/meta` includes `implementation` (`"python"`), so a client can tell this server

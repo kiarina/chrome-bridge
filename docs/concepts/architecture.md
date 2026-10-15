@@ -91,6 +91,8 @@ The server validates outgoing requests and pongs; the extension validates hellos
 
 Invalid command parameters that can be correlated by ID become extension error responses. Messages whose IDs cannot be trusted, malformed JSON, hello/runtime lifecycle violations, and invalid or unknown response IDs can be uncorrelatable or corrupt state, so the connection closes with code 1002. A server-side detach fails pending futures only for that connection.
 
+The exception is a late answer: when a command times out, the server remembers its ID for 120 seconds. If the extension answers it within that window, the answer is logged and ignored once, and the connection stays usable; the command has already failed as timed out, so nothing changes for the caller. Any other unknown ID still closes the connection.
+
 ## Target tab ownership
 
 Chrome's `Tab.active` (the tab visible to the user) and the target tab to which the extension sends page commands are separate state. Page-operation tools do not accept `tab_id`; they route to the single `targetTabId` retained by the extension.

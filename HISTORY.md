@@ -2,6 +2,19 @@
 
 ## 2026-10-15
 
+### Dart server follow-ups decided
+
+- A late extension answer (after its command timed out) no longer closes the connection,
+  in both servers: the timed-out ID is remembered for 120 seconds and its answer is
+  logged and ignored once; any other unknown ID still closes it. Before, one slow page
+  operation failed every pending command and forced a reconnect with backoff.
+  `scripts/check_server_conformance.py` now checks that the next call works (88 steps,
+  equal).
+- The Dart package stays on git (pinned commit), not pub.dev: Spirits Garden is its only
+  user and its API is still changing. Publish when another app needs it or a build cannot
+  fetch from GitHub (`packages/mcp-dart/README.md`).
+- Closed `tasks/dart-server-followups.md`.
+
 ### Extension 0.5.0 published
 
 - Chrome Web Store approved 0.5.0 the day it was submitted (status run `38666472480`,

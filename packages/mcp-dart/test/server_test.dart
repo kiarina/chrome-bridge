@@ -192,6 +192,64 @@ void main() {
   );
 
   test(
+    'a late answer to a timed-out command is ignored; the extension stays connected',
+    () async {
+      final quick = await ChromeBridgeServer.start(
+        const ChromeBridgeSettings(
+          port: 0,
+          commandTimeout: Duration(milliseconds: 200),
+        ),
+      );
+      addTearDown(quick.close);
+      final socket = await WebSocket.connect(
+        'ws://127.0.0.1:${quick.port}/extension',
+        headers: {'origin': 'chrome-extension://abcdefghijklmnop'},
+      );
+      socket.add(
+        jsonEncode({
+          'type': 'hello',
+          'protocolVersion': 2,
+          'extensionVersion': '0.5.0',
+          'browserId': browserId,
+          'browserLabel': 'Work',
+        }),
+      );
+      var first = true;
+      socket.listen((data) async {
+        final m = jsonDecode(data as String) as Map;
+        if (m['id'] == null) return;
+        if (first) {
+          first = false;
+          await Future<void>.delayed(
+            const Duration(milliseconds: 400),
+          ); // too late
+        }
+        socket.add(jsonEncode({'id': m['id'], 'ok': true, 'result': snapshot}));
+      });
+      for (var i = 0; i < 50 && !quick.extensionConnected; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      await expectLater(
+        quick.call('browser_snapshot', {}),
+        throwsA(
+          isA<ExtensionCommandError>().having(
+            (e) => e.message,
+            'message',
+            contains('timed out'),
+          ),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(quick.extensionConnected, true);
+      expect(
+        await quick.call('browser_snapshot', {}),
+        containsPair('generation', 3),
+      );
+      await socket.close();
+    },
+  );
+
+  test(
     'a hello that breaks the protocol closes the socket with 1002',
     () async {
       final socket = await WebSocket.connect(

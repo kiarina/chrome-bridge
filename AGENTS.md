@@ -151,8 +151,6 @@ docs 参照ガイドと同じく、ファイルの追加・削除のたびにこ
 
 ### 次に着手・進行中
 
-- [Dart のサーバーの残りを決める](tasks/dart-server-followups.md)
-  — 相談待ち。遅れて届いた返事で拡張機能の接続を切るか、Dart の package を pub.dev に出すか
 - [隔離した Chromium の E2E の揺らぎを減らす](tasks/e2e-flakes.md)
   — 録画付きの移動の失敗（前から）と、ビルド直後の click の時間切れ（2026-10-15）
 - [操作の後に返すページを、変わったところだけにするか決める](tasks/post-action-result-size.md)

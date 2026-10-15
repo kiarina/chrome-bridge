@@ -49,4 +49,19 @@ Python server does, and prints one `{"event": "ready", ...}` line once it listen
 - A behavior change lands in both servers in the same change, with both changelogs. The
   version follows the Python server's.
 
+## Distribution
+
+The package is not on pub.dev (`publish_to: none`). Apps depend on it through git with a
+pinned commit:
+
+```yaml
+chrome_bridge_mcp:
+  git:
+    url: https://github.com/kiarina/chrome-bridge.git
+    path: packages/mcp-dart
+    ref: <commit>
+```
+
+Publish it when another app needs it, or when a build cannot fetch from GitHub.
+
 See [Architecture](../../docs/concepts/architecture.md) "Two server implementations".

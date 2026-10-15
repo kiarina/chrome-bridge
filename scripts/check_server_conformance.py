@@ -428,11 +428,12 @@ async def scenario(url: str) -> list[Any]:
                 ["WS", "foreign origin", "rejected", rejected.response.status_code]
             )
 
-        # The extension answers after the command timed out: the server drops
-        # the connection (an unknown response id is a protocol error).
+        # The extension answers after the command timed out: the late answer is
+        # ignored and the connection stays usable.
         await call("browser_wait", {"time": 2})
         await asyncio.sleep(1.5)
         await get("/health")
+        await call("browser_tabs", {})
         extension.cancel()
     return out
 
