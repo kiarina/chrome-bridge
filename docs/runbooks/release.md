@@ -122,6 +122,11 @@ local server, so tests cannot notice a stale bound; `scripts/validate_static.py`
 when the requirement does not admit the server version being released. The SDK's runtime
 server check derives the compatible series from its own version and needs no edit.
 
+A minor bump also breaks downstream applications that pin the SDK to the previous minor
+(`chrome-bridge-sdk>=X.Y,<X.(Y+1)`): their SDK refuses a running server of the new minor
+with `IncompatibleServerError`, though it still works when it starts its own managed
+server. Release those applications with the new bound right after the PyPI release.
+
 ## Install
 
 After the Store item is approved, Chrome Web Store is the normal extension installation and update channel. Users still install and run `chrome-bridge-mcp` separately. Before Store publication and for artifact validation or emergency fallback, use the fixed-directory Load unpacked procedure below.
@@ -176,7 +181,8 @@ Complete the following before publication:
 2. Use the public `kiarina/chrome-bridge` repository; its owner authorizes tag and GitHub Release creation.
 3. Keep the `chrome-bridge-mcp` trusted publisher aligned with workflow `release-pypi.yml` and GitHub environment `pypi`.
 4. Confirm both PyPI projects still use the same trusted publisher workflow/environment.
-   Push the `v<version>` tag only after the version commit is on `main`; the workflow
+   Push the `v<version>` tag only after the version commit is on `main`, as an annotated
+   tag (`git tag -a v<version> -m "v<version>"`, like the existing tags); the workflow
    publishes both Python wheel/sdist pairs and attaches all five verified artifacts to
    the GitHub Release.
 5. Confirm the `chrome-web-store` GitHub environment contains the Workload Identity
