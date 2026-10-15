@@ -25,7 +25,7 @@ automatically.
   approval and publication; ask kiarina to update the extension on the PCs
 - Confirm the branded Chrome's Store copy reports 0.6.0 (`extensionVersion` from
   `browser_instances`), record it in `HISTORY.md`, and delete this file
-- Tell the agent repository's task that its chrome-bridge index line ("タブを変えた…で古くなる")
-  can be updated
+- In the agent repository's `AGENTS.md`, change the chrome-bridge index line's
+  "0.6.0（2026-10-15 にストアへ提出）" to say it was published
 - If rejected, read the reason in the dashboard and open a new task. Never re-upload only
   because a call did not return a response
