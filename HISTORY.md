@@ -2,6 +2,21 @@
 
 ## 2026-10-15
 
+### v0.6.0 released (extension 0.6.0, server and SDK)
+
+- Each tab keeps its element refs across target switches: the background stores one
+  `refEpoch:<tabId>` key per tab, target selection clears nothing, and a tab's epoch ends
+  on its dialog, its navigation (also in the background) and its close. E2E
+  `stable-refs.spec.js` covers refusal while another tab is the target, reuse back on the
+  tab with no new snapshot, and staleness after a background navigation. Full E2E 9/9
+  with the Python and the Dart server; `validate_release.py` 9/9; reproducible build.
+- Tag `v0.6.0` (release workflow `38746399299`) passed all four jobs: PyPI has
+  `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.6.0 (no server change; versions follow
+  the extension's minor), the Dart package follows (0.6.0), and the Store has 0.6.0 in
+  `PENDING_REVIEW` (`waiting/chrome-web-store-v0.6.0-review.md`).
+- Upgraded the `uv tool` installs on the macOS and Windows development machines to 0.6.0.
+  Closed `tasks/refs-across-target-switches.md`.
+
 ### v0.5.2 published (server and SDK)
 
 - Tag `v0.5.2` (release workflow `38670723688`) passed all four jobs: PyPI has
