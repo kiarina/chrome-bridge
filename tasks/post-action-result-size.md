@@ -17,6 +17,16 @@ input (gpt-5.6-luna: 19 calls, about 0.67M tokens).
 - With changes only, a model can lose the overall picture (after a dialog or a
   navigation): those would still return the whole page
 
+## Decided (2026-10-15, kiarina)
+
+- Solve it first where the model sees results: the Spirits Garden brain shows page
+  results as diffs (Dart) or keeps only the latest page (Python, `unique_key`). The
+  contract here stays: actions return the whole page.
+- Here, later and only if MCP clients that cannot control presentation need it: an
+  optional argument on page actions (for example `result: "full" | "changes"`), default
+  `full` so nothing changes for existing clients. The content runtime is the accurate
+  place to compute it (it knows element identity); both servers would pass it through.
+
 ## State
 
-Waiting for kiarina's decision. Once decided, write the design and tests here.
+Not now. Revisit when an MCP client user needs smaller results.
