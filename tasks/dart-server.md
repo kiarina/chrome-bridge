@@ -32,9 +32,14 @@ Code and others).
   - An in-process API for the embedding app, and the Direct API over HTTP
     (`/api/v1/meta`, `tools`, `sessions`, `call`) so other local clients can share it
 - Later, if wanted: the MCP Streamable HTTP endpoint
-- Port policy for an embedding app: if something already answers `/api/v1/meta` on the
-  port (a Python server the developer runs), use it through the Direct API; otherwise
-  start the embedded server. One server per Chrome: the extension connects to one port
+- Port policy for an embedding app: always use the embedded server, one code path. If
+  the port is taken, do not start and do not fall back to the other server: say so in the
+  app's settings and in every tool error, naming the occupant from its `/api/v1/meta`
+  when it answers (for example "port 8765 is used by Chrome Bridge server (Python
+  0.5.1); stop it to let this app use Chrome"). Decided with kiarina on 2026-10-15:
+  reusing whatever answers would make behavior depend silently on the machine (two code
+  paths, and an older server behaves differently). Another port does not help: the
+  extension connects only to the one port in its settings, so one server per Chrome
 - Out of scope: changing the extension or the protocol
 
 ## Keeping the two servers the same
@@ -55,7 +60,7 @@ Code and others).
   against the Dart server
 - The Spirits Garden prototype's body (`prototypes/spirits/app/lib/body/browser.dart`)
   embeds it on Mac and Windows and drives the everyday Chrome with no Python installed,
-  falling back to a running Python server on the same port
+  and reports a taken port (settings and tool errors) instead of starting
 - `docs/` describe the two servers, what each serves, and how to keep them in step;
   `README.md` says which to use
 
