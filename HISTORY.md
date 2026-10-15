@@ -2,6 +2,14 @@
 
 ## 2026-10-15
 
+### v0.5.2 published (server and SDK)
+
+- Tag `v0.5.2` (release workflow `38670723688`) passed all four jobs: PyPI has
+  `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.5.2 (a late extension answer no longer
+  closes the connection; `/api/v1/meta` reports `implementation`). The Store step skipped
+  (`extension-version-already-published`, 0.5.0). The Dart package's version follows (0.5.2).
+- Upgraded the `uv tool` installs on the Mac and G-GEAR to 0.5.2.
+
 ### Dart server follow-ups decided
 
 - A late extension answer (after its command timed out) no longer closes the connection,
