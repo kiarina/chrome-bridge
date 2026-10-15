@@ -55,17 +55,29 @@ export async function reserveLoopbackPort() {
   return port;
 }
 
-export async function startServer({ port } = {}) {
+// The server under test: the Python server (default), or the Dart one with
+// CHROME_BRIDGE_E2E_SERVER=dart. Both print the same readiness record.
+function serverCommand() {
+  if (process.env.CHROME_BRIDGE_E2E_SERVER === "dart") {
+    return { command: "dart", args: ["run", "packages/mcp-dart/bin/chrome_bridge_mcp.dart"] };
+  }
   const installedPython = process.env.CHROME_BRIDGE_E2E_PYTHON;
-  const command = installedPython || "uv";
-  const args = installedPython
-    ? ["-u", path.join(repoDir, "packages/mcp/tests/e2e_server.py")]
-    : ["run", "python", "-u", "packages/mcp/tests/e2e_server.py"];
+  return {
+    command: installedPython || "uv",
+    args: installedPython
+      ? ["-u", path.join(repoDir, "packages/mcp/tests/e2e_server.py")]
+      : ["run", "python", "-u", "packages/mcp/tests/e2e_server.py"],
+  };
+}
+
+export async function startServer({ port } = {}) {
+  const { command, args } = serverCommand();
   const child = spawn(command, args, {
     cwd: repoDir,
     env: {
       ...process.env,
-      ...(port === undefined ? {} : { CHROME_BRIDGE_E2E_PORT: String(port) }),
+      // Never the production port: a free one unless the test reserved one.
+      CHROME_BRIDGE_E2E_PORT: String(port ?? 0),
       PYTHONNOUSERSITE: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -96,7 +108,7 @@ export async function startServer({ port } = {}) {
   });
   let endpoints;
   try {
-    endpoints = await withTimeout(readiness, 15_000, "E2E server readiness");
+    endpoints = await withTimeout(readiness, 30_000, "E2E server readiness");
   } catch (error) {
     lines.close();
     if (child.exitCode === null) {

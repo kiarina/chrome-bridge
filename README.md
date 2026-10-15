@@ -97,6 +97,7 @@ apps/
 └── extension/  # Manifest V3 Chrome extension
 packages/
 ├── mcp/        # Python MCPServer + Streamable HTTP + WebSocket bridge
+├── mcp-dart/   # The same server in Dart, for apps that embed it
 └── sdk/        # Direct API Python SDK and managed-server launcher
 ```
 
@@ -116,6 +117,10 @@ async with chrome.session() as session:
     await session.browser_tab_select(tab_id=tabs[0].id)
     snapshot = await session.browser_snapshot()
 ```
+
+Dart apps can embed the server instead ([packages/mcp-dart](packages/mcp-dart/README.md)):
+the same contract in the app's own process, with no Python to install. MCP clients and
+the Python SDK work with either server.
 
 `session()` reuses a compatible server or starts a shared managed server automatically.
 There are no public `open`, `close`, or `restart` methods; an SDK-started server exits
@@ -202,7 +207,7 @@ The tag workflow uploads a changed extension ZIP through Chrome Web Store API v2
 automatic 100% publication after review. Python-only tags detect the already-published
 extension version and skip Store mutation.
 
-[docs/](docs/README.md) is organized as `concepts/` (design and public contracts), `playbooks/` (work that requires judgment), and `runbooks/` (fixed procedures). See [docs/runbooks/development.md](docs/runbooks/development.md) for detailed procedures, [docs/concepts/api.md](docs/concepts/api.md) for the tool API, [docs/concepts/architecture.md](docs/concepts/architecture.md) for design, [docs/runbooks/release.md](docs/runbooks/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/runbooks/operations.md](docs/runbooks/operations.md) is canonical for routine operation, configuration, logging, and incident response. User-visible changes are tracked separately for the [extension](apps/extension/CHANGELOG.md), [MCP server](packages/mcp/CHANGELOG.md), and [Python SDK](packages/sdk/CHANGELOG.md).
+[docs/](docs/README.md) is organized as `concepts/` (design and public contracts), `playbooks/` (work that requires judgment), and `runbooks/` (fixed procedures). See [docs/runbooks/development.md](docs/runbooks/development.md) for detailed procedures, [docs/concepts/api.md](docs/concepts/api.md) for the tool API, [docs/concepts/architecture.md](docs/concepts/architecture.md) for design, [docs/runbooks/release.md](docs/runbooks/release.md) for distribution, and [SPEC.md](SPEC.md) for the normative specification. [docs/runbooks/operations.md](docs/runbooks/operations.md) is canonical for routine operation, configuration, logging, and incident response. User-visible changes are tracked separately for the [extension](apps/extension/CHANGELOG.md), [MCP server](packages/mcp/CHANGELOG.md), [Dart server](packages/mcp-dart/CHANGELOG.md), and [Python SDK](packages/sdk/CHANGELOG.md).
 
 ## License
 

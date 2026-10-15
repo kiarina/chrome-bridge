@@ -64,6 +64,37 @@ Code and others).
 - `docs/` describe the two servers, what each serves, and how to keep them in step;
   `README.md` says which to use
 
+## Progress (2026-10-15)
+
+- Name and place decided with kiarina: `packages/mcp-dart`, package `chrome_bridge_mcp`
+  (it serves MCP too, like `packages/mcp`). No `sdk-dart` for now: an embedding app holds
+  its own server, so a Dart client for an outside server has no use yet.
+- The first version also serves MCP (stateless Streamable HTTP with JSON responses, as
+  the Python server runs it), so the existing E2E and MCP clients work with it.
+- Done: `packages/mcp-dart` (extension endpoint with v1/v2 hello, registry, controller
+  with the same checks, coordinator and sessions, Direct API, MCP, `/health`,
+  Host/Origin checks, in-process `call`/`session`, `PortInUseError` naming the occupant,
+  CLI `bin/chrome_bridge_mcp.dart`); `scripts/export_dart_contract.py` (contract copy,
+  checked by `validate_static.py`); `scripts/check_server_conformance.py` (87 steps, the
+  same answers); `/api/v1/meta` `implementation` in both servers; the E2E harness picks
+  the server with `CHROME_BRIDGE_E2E_SERVER=dart`; CI job "Dart server" and the E2E run
+  against Dart; docs (README, architecture "Two server implementations", development,
+  api.md, adding-tools playbook).
+- Results: Dart unit tests 10 pass; conformance 87 steps equal; isolated E2E against the
+  Dart server: `stable-refs` and `browser-dialogs` pass, `multiple-profiles` passed once
+  and once hit the known detach race (`tasks/e2e-flakes.md`).
+- Found while comparing: when the extension answers after the command timed out, the
+  Python server closes the extension connection ("Unknown response id"); the Dart
+  server does the same. Kept as is (both), but worth a decision: see Remaining.
+
+## Remaining
+
+- Embed it in the Spirits Garden prototype's body (`prototypes/spirits/app/lib/body/browser.dart`)
+  on Mac and Windows: replace the Direct API client with the in-process server and
+  session, show `PortInUseError` in the settings and tool errors
+- Decide whether a late extension answer should drop the connection (both servers do)
+- Release: the Dart package is `publish_to: none`; decide pub.dev or git/path use
+
 ## Handoff
 
 - Read `docs/concepts/architecture.md` (transport, coordination, security) and

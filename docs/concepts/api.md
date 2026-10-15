@@ -631,6 +631,10 @@ same asyncio task raises `NestedSessionError`, including when it uses another
 `ChromeBridge` instance. A different task is allowed to request a session and waits in
 the server FIFO like another process.
 
+`GET /api/v1/meta` returns `service` (`"chrome-bridge"`), `apiVersion`, `serverVersion`,
+`implementation` (`"python"` or `"dart"`), `instanceId`, `mode`, `extensionConnected`, and
+`connectedBrowserCount`.
+
 Direct API endpoints are `GET /api/v1/meta`, `GET /api/v1/tools`,
 `POST /api/v1/sessions`, session heartbeat/release endpoints, and
 `POST /api/v1/call`. Explicit calls send both `Authorization: Bearer <token>` and

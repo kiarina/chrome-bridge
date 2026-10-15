@@ -63,7 +63,10 @@ At minimum, verify the following with automated tests or fixed fixtures:
 
 1. Update the protocol command and MCP schema in `SPEC.md`.
 2. Add a method with response validation to `BrowserController`.
-3. Call the controller from the MCP tool in `app.py`.
+3. Call the controller from the MCP tool in `app.py`, then do the same in the Dart
+   server (`packages/mcp-dart`: `controller.dart`, `tools.dart`), regenerate its
+   contract (`scripts/export_dart_contract.py`), and extend
+   `scripts/check_server_conformance.py` so both servers are compared on the new tool.
 4. Add the Chrome API implementation to extension `executeCommand`.
 5. Test success, extension error, disconnect, timeout, extension-version gating, and any operation-specific response contract.
 6. Put the decision pattern in this playbook, fixed procedures in the

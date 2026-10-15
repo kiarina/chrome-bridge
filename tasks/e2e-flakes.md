@@ -13,6 +13,11 @@
   passed. Which click is unknown; a failing run now prints the last calls with durations
   (`last calls`)
 
+- The externally detached upload check (`multiple-profiles`, around "Debugger is not
+  attached to the target") is the same kind of 750 ms race: once the extension reported
+  "Detached while handling command." instead (seen with the Dart server; the message
+  comes from the extension, not the server)
+
 ## Next
 
 - From `last calls` and the server/worker logs of a failing run, find the timed-out click

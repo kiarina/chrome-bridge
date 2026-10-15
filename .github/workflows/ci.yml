@@ -61,11 +61,41 @@ jobs:
       - name: Check generated protocol bundle
         run: git diff --exit-code -- apps/extension/dist/protocol.js
 
-  isolated-e2e:
-    name: Isolated Chrome E2E
-    needs: [python, extension]
+  dart:
+    name: Dart server
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: 3.13.2
+      - run: uv sync --all-groups --locked
+      - run: dart pub get
+        working-directory: packages/mcp-dart
+      - run: dart analyze --fatal-infos
+        working-directory: packages/mcp-dart
+      # The generated contract is left as the export script writes it.
+      - run: dart format --output=none --set-exit-if-changed lib/chrome_bridge_mcp.dart lib/src/*.dart bin test
+        working-directory: packages/mcp-dart
+      - run: dart test
+        working-directory: packages/mcp-dart
+      - run: uv run python scripts/export_dart_contract.py --check
+      - name: Compare the Python and the Dart server
+        run: uv run python scripts/check_server_conformance.py
+
+  isolated-e2e:
+    name: Isolated Chrome E2E
+    needs: [python, extension, dart]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -87,6 +117,16 @@ jobs:
         working-directory: apps/extension
       - run: npm run test:e2e
         working-directory: apps/extension
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: 3.13.2
+      - run: dart pub get
+        working-directory: packages/mcp-dart
+      - name: Isolated Chrome E2E against the Dart server
+        run: npx playwright test --config=playwright.e2e.config.js
+        working-directory: apps/extension
+        env:
+          CHROME_BRIDGE_E2E_SERVER: dart
       - run: uv run python scripts/build_release.py
       - run: uv run python scripts/validate_release.py
       - run: uv run python scripts/check_release_reproducible.py

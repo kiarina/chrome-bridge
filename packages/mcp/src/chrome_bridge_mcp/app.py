@@ -328,6 +328,7 @@ def create_app(settings: Settings, request_shutdown: Any | None = None) -> Any:
                 "service": "chrome-bridge",
                 "apiVersion": API_VERSION,
                 "serverVersion": SERVER_VERSION,
+                "implementation": "python",
                 "instanceId": instance_id,
                 "mode": "managed" if settings.managed else "persistent",
                 "extensionConnected": registry.connected,

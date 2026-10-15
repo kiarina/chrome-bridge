@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import os
 import socket
@@ -20,7 +21,8 @@ async def run() -> None:
     listener.listen()
     listener.setblocking(False)
     port = listener.getsockname()[1]
-    settings = Settings(port=port)
+    # The timeouts come from the environment as for the real server.
+    settings = dataclasses.replace(Settings.from_env(), port=port)
     server = uvicorn.Server(
         uvicorn.Config(
             create_app(settings),

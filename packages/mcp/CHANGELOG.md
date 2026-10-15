@@ -6,6 +6,11 @@ here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- `/api/v1/meta` includes `implementation` (`"python"`), so a client can tell this server
+  from the Dart one (`packages/mcp-dart`) that answers the same contract.
+
 ## [0.5.1] - 2026-10-15
 
 ### Changed

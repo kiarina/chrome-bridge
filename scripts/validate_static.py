@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -13,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "apps" / "extension"
 SERVER_PACKAGE = ROOT / "packages" / "mcp"
 SDK_PACKAGE = ROOT / "packages" / "sdk"
+DART_PACKAGE = ROOT / "packages" / "mcp-dart"
 STORE_ITEM_ID = "ogmocgobegbjbecakclahodnhhfmccad"
 STORE_PUBLISHER_ID = "2e079875-55db-4c84-ba1f-0a083549945a"
 
@@ -259,10 +263,40 @@ def validate_store_automation() -> None:
     )
 
 
+def validate_dart_server() -> None:
+    """The Dart server releases with the Python one and carries its contract."""
+    python_version = tomllib.loads(
+        (SERVER_PACKAGE / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
+    pubspec = (DART_PACKAGE / "pubspec.yaml").read_text(encoding="utf-8")
+    match = re.search(r"^version: (\S+)$", pubspec, re.MULTILINE)
+    require(match is not None, "packages/mcp-dart/pubspec.yaml must declare a version")
+    assert match is not None
+    require(
+        match.group(1) == python_version,
+        f"Dart server version {match.group(1)} must match chrome-bridge-mcp {python_version}",
+    )
+    version_dart = (DART_PACKAGE / "lib" / "src" / "version.dart").read_text(
+        encoding="utf-8"
+    )
+    require(
+        f"const serverVersion = '{python_version}';" in version_dart,
+        "packages/mcp-dart/lib/src/version.dart must carry the released version",
+    )
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "export_dart_contract.py"), "--check"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    require(result.returncode == 0, (result.stderr or result.stdout).strip())
+
+
 def main() -> None:
     validate_manifest()
     validate_protocol_schemas()
     validate_store_automation()
+    validate_dart_server()
     print("Static manifest, protocol, and release validation passed.")
 
 

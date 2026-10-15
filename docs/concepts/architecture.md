@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    A["MCP client"] -->|"Loopback Streamable HTTP"| S["Python MCP server"]
+    A["MCP client"] -->|"Loopback Streamable HTTP"| S["Python or Dart server"]
     D["Python SDK"] -->|"Direct API v1"| S
     S -->|"Command + UUID"| W["Loopback WebSocket"]
     W --> E["Manifest V3 service worker"]
@@ -49,6 +49,29 @@ minutes only when no lease, operation, or waiter exists. The normal CLI remains 
 - `bridge.py`: extension connections, request correlation, timeouts, and tab controller
 - `app.py`: composition of MCPServer tools, health endpoint, and WebSocket endpoint
 - `__main__.py`: Uvicorn entry point
+
+## Two server implementations
+
+The server exists in Python (`packages/mcp`, distributed as `chrome-bridge-mcp`) and in
+Dart (`packages/mcp-dart`, for apps that embed it; Spirits Garden's body runs in Dart and
+must not require Python). Both serve the same contract: the extension protocol, the
+Direct API, MCP (stateless Streamable HTTP with JSON responses), `/health`, the
+loopback Host/Origin checks, coordination and exclusive sessions, and the same
+messages and error codes. `/api/v1/meta` adds `implementation` (`python` or `dart`).
+
+The Python server is the source of the contract. `scripts/export_dart_contract.py`
+copies the protocol schemas, the MCP tool list and handshake, and the Direct API tool
+definitions into `packages/mcp-dart/lib/src/generated/contract.g.dart`;
+`scripts/validate_static.py` fails when the copy is stale. Behavior is kept equal by
+`scripts/check_server_conformance.py` (one scenario through both servers with a fake
+extension: MCP, Direct API, sessions, security, protocol errors) and by running the
+isolated Chromium E2E against each server (`CHROME_BRIDGE_E2E_SERVER=dart`). A
+behavior change lands in both servers in the same change.
+
+An embedding app always uses its own server. If the port is taken it does not start and
+does not fall back to whatever answers there: it reports the occupant (from its
+`/api/v1/meta`) so the person can stop it. Another port would not help, because the
+extension connects only to the port in its own settings: one server per Chrome.
 
 ## Connection ownership
 

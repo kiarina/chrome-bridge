@@ -61,11 +61,23 @@ uv run python scripts/validate_static.py
 git diff --check
 ```
 
+The Dart server (`packages/mcp-dart`, Dart 3.9 or newer):
+
+```bash
+(cd packages/mcp-dart && dart pub get && dart analyze --fatal-infos && dart test)
+uv run python scripts/export_dart_contract.py         # after changing the Python server's tools or schemas
+uv run python scripts/check_server_conformance.py     # the Python and the Dart server answer the same
+```
+
+Format the Dart sources with `dart format lib/chrome_bridge_mcp.dart lib/src/*.dart bin test`;
+leave `lib/src/generated/` as the export script writes it.
+
 The isolated extension E2E implements the contract in [Isolated Chrome E2E](../concepts/isolated-chrome-e2e.md). Install bundled Chromium once, then run it explicitly and separately from ordinary unit/DOM tests.
 
 ```bash
 npm --prefix apps/extension exec playwright install --no-shell chromium
 npm --prefix apps/extension run test:e2e
+CHROME_BRIDGE_E2E_SERVER=dart npm --prefix apps/extension run test:e2e   # the same specs against the Dart server
 ```
 
 `test:e2e` has one worker own a production server on a pre-bound random port, a loopback fixture, a temporary extension artifact containing a random URL, and two ephemeral persistent contexts. It never connects to default port 8765 or an everyday Chrome profile and cleans up processes and temporary directories after success or failure. It retains traces, fixture screenshots, server/worker logs, and a bounded MCP transcript only on failure.

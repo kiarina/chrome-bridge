@@ -115,8 +115,8 @@ package との共存を壊すためです。「次の major が出たら壊れ�
 ### 設計・公開契約・調査・確定値（`docs/concepts/`）
 
 - component 境界、transport、shared operation coordination、connection 所有、
-  page operation 設計、security 判断を変更するとき:
-  `docs/concepts/architecture.md`
+  page operation 設計、security 判断を変更するとき、Python と Dart の 2 つのサーバーをそろえるとき:
+  `docs/concepts/architecture.md`（2 つのサーバーは「Two server implementations」。Dart の使い方は `packages/mcp-dart/README.md`）
 - MCP tool の公開引数、戻り値、共通 routing、target/ref lifecycle、error contract、
   利用例を変更するとき: `docs/concepts/api.md`
 - 複数 Chrome profile、browser identity、connection registry、protocol v1/v2 移行、
