@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Keep each tab's element refs when another tab is selected as the target. After
+  selecting tab B and then tab A again, A's refs work with no new snapshot, as long as
+  A's document did not change. A ref is still rejected while its tab is not the target,
+  and after its tab navigated, also while another tab was the target.
+
 ## [0.5.0] - 2026-10-15
 
 ### Changed

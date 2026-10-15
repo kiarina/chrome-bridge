@@ -87,7 +87,7 @@ test("clicks land on the ref on a smoothly scrolling page", async () => {
   }
 });
 
-test("refs from one snapshot last until the document or the target changes", async () => {
+test("refs from one snapshot last until their tab's document changes", async () => {
   const port = await reserveLoopbackPort();
   const server = await startServer({ port });
   const fixture = await startFixtureServer();
@@ -149,13 +149,41 @@ test("refs from one snapshot last until the document or the target changes", asy
     expect(stale.isError).toBe(true);
     expect(toolText(stale)).toContain("Stale aria-ref");
 
-    // Another target, then back: still stale.
     const fresh = successful(await call("browser_snapshot"));
     expect(optionRef(fresh, 1, 1)).not.toBe(optionRef(first, 1, 1));
+
+    // Another target: the form's refs are refused there.
     const other = successful(
       await call("browser_tab_open", { url: `${fixture.baseUrl}/a`, active: false }),
     );
     successful(await call("browser_tab_select", { tab_id: other.id }));
+    const otherPage = successful(await call("browser_snapshot"));
+    stale = await call("browser_click", { element: "Q1 option 1", ref: optionRef(fresh, 1, 1) });
+    expect(stale.isError).toBe(true);
+    expect(toolText(stale)).toContain("Stale aria-ref");
+
+    // Back on the form: its refs work again with no new snapshot.
+    successful(await call("browser_tab_select", { tab_id: formTab.id }));
+    page = successful(await call("browser_click", {
+      element: "Q1 option 1",
+      ref: optionRef(fresh, 1, 1),
+    }));
+    expect(page.snapshot).toMatch(/radio "Q1 option 1"[^\n]*\[checked\]/);
+    expect(optionRef(page, 10, 4)).toBe(optionRef(fresh, 10, 4));
+    // ...and so do the other tab's, back there.
+    successful(await call("browser_tab_select", { tab_id: other.id }));
+    expect(successful(await call("browser_snapshot")).snapshot).toBe(otherPage.snapshot);
+
+    // The form navigates while it is not the target: its refs are stale.
+    await profile.worker.evaluate(async ({ tabId, url }) => {
+      await chrome.tabs.update(tabId, { url });
+      for (let i = 0; i < 100; i++) {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab.status === "complete" && tab.url === url) return;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      throw new Error("background navigation did not complete");
+    }, { tabId: formTab.id, url: `${fixture.baseUrl}/form?again` });
     successful(await call("browser_tab_select", { tab_id: formTab.id }));
     stale = await call("browser_click", { element: "Q1 option 1", ref: optionRef(fresh, 1, 1) });
     expect(stale.isError).toBe(true);

@@ -35,7 +35,7 @@ const TARGET_TAB_KEY = "targetTabId";
 const OPERATING_TAB_KEY = "operatingTabId";
 const OPERATING_TOKEN_KEY = "operatingToken";
 const SNAPSHOT_GENERATION_KEY = "snapshotGeneration";
-const LATEST_SNAPSHOT_KEY = "latestSnapshot";
+const REF_EPOCH_KEY_PREFIX = "refEpoch:";
 const RETAINED_DIALOG_KEY = "retainedDialog";
 const CONTENT_RUNTIME_FILE = "dist/content-runtime.js";
 const NAVIGATION_TIMEOUT_MS = 10_000;
@@ -114,7 +114,7 @@ async function getTargetTabId() {
   } catch {
     await chrome.storage.session.remove([
       TARGET_TAB_KEY,
-      LATEST_SNAPSHOT_KEY,
+      refEpochKey(tabId),
       OPERATING_TAB_KEY,
       OPERATING_TOKEN_KEY,
     ]);
@@ -125,9 +125,9 @@ async function getTargetTabId() {
 async function setTargetTabId(tabId) {
   const previousTabId = await getTargetTabId();
   const tab = await chrome.tabs.get(requireTabId(tabId));
+  // Each tab keeps its refs (and its content runtime its ref state) until its
+  // document changes, so switching away and back needs no new snapshot.
   await chrome.storage.session.set({ [TARGET_TAB_KEY]: tab.id });
-  await clearLatestSnapshotGeneration();
-  await clearContentSnapshotState(tab.id);
   if (previousTabId !== null && previousTabId !== tab.id) {
     await syncAgentUiForTab(previousTabId);
   }
@@ -140,7 +140,6 @@ async function clearTargetTabIfClosed(tabId) {
   if (stored[TARGET_TAB_KEY] === tabId) {
     await chrome.storage.session.remove([
       TARGET_TAB_KEY,
-      LATEST_SNAPSHOT_KEY,
       OPERATING_TAB_KEY,
       OPERATING_TOKEN_KEY,
     ]);
@@ -159,6 +158,7 @@ async function ensureNavigationTarget() {
 }
 
 async function handleTabRemoved(tabId) {
+  await clearRefEpoch(tabId);
   await clearTargetTabIfClosed(tabId);
   if (retainedDialogOperation?.tabId === tabId) {
     const held = retainedDialogOperation;
@@ -232,21 +232,22 @@ async function recoverAgentUiState() {
   if (targetTabId !== null) await syncAgentUiForTab(targetTabId);
 }
 
-async function clearLatestSnapshotGeneration() {
-  await chrome.storage.session.remove(LATEST_SNAPSHOT_KEY);
+// A tab's current ref epoch: the generation of the first snapshot of its
+// document. Refs (`s<epoch>e<id>`) of the tab are current while it is stored;
+// epochs are unique across tabs, so a ref is never current for another tab.
+// One key per tab, so clearing one tab never races with storing another.
+function refEpochKey(tabId) {
+  return `${REF_EPOCH_KEY_PREFIX}${tabId}`;
 }
 
-async function getLatestSnapshot() {
-  const stored = await chrome.storage.session.get(LATEST_SNAPSHOT_KEY);
-  const latest = stored[LATEST_SNAPSHOT_KEY];
-  if (
-    !latest ||
-    !Number.isInteger(latest.tabId) ||
-    !Number.isSafeInteger(latest.generation)
-  ) {
-    return null;
-  }
-  return latest;
+async function clearRefEpoch(tabId) {
+  await chrome.storage.session.remove(refEpochKey(tabId));
+}
+
+async function getRefEpoch(tabId) {
+  const key = refEpochKey(tabId);
+  const epoch = (await chrome.storage.session.get(key))[key];
+  return Number.isSafeInteger(epoch) ? epoch : null;
 }
 
 async function requireCurrentAriaRef(tabId, ref) {
@@ -258,14 +259,13 @@ async function requireCurrentAriaRef(tabId, ref) {
     throw new Error(`Invalid aria-ref: ${ref}`);
   }
 
-  const latest = await getLatestSnapshot();
-  if (!latest) {
+  const epoch = await getRefEpoch(tabId);
+  if (epoch === null) {
     throw new Error(
       `Stale aria-ref: ${ref}. Call browser_snapshot to get current refs.`,
     );
   }
-  const generation = Number(match[1]);
-  if (latest.tabId !== tabId || latest.generation !== generation) {
+  if (epoch !== Number(match[1])) {
     throw new Error(`Stale aria-ref: ${ref}`);
   }
 }
@@ -446,7 +446,7 @@ function normalizedOutcome(promise) {
 }
 
 async function dialogSnapshot(tabId, entry) {
-  await clearLatestSnapshotGeneration();
+  await clearRefEpoch(tabId);
   const generation = await nextSnapshotGeneration();
   const tab = await chrome.tabs.get(tabId);
   const type = entry.params?.type;
@@ -915,11 +915,10 @@ async function captureSnapshotForTarget(
     await waitForContentRuntimeTab(tabId, deadline);
     await requireUnchangedTarget(tabId);
     await ensureContentRuntime(tabId);
-    // No current refs (a new target, a navigation, a dialog): start a new ref
-    // epoch, so no ref from before is accepted again (a page restored from
-    // the back/forward cache keeps its content runtime).
-    const scope = await getLatestSnapshot();
-    if (!scope || scope.tabId !== tabId) await clearContentSnapshotState(tabId);
+    // No current refs for this tab (its first snapshot, a navigation, a
+    // dialog): start a new ref epoch, so no ref from before is accepted again
+    // (a page restored from the back/forward cache keeps its content runtime).
+    if ((await getRefEpoch(tabId)) === null) await clearContentSnapshotState(tabId);
     const generation = await nextSnapshotGeneration();
     const response = await sendContentMessage(tabId, {
       type: "chrome-bridge.snapshot.generate",
@@ -933,14 +932,12 @@ async function captureSnapshotForTarget(
     await requireUnchangedTarget(tabId);
     if (currentTab.status === "complete" && currentTab.url === result.url) {
       // Refs carry the document's epoch, not this snapshot's generation:
-      // they stay current across snapshots until the target or the
-      // document changes.
-      await chrome.storage.session.set({
-        [LATEST_SNAPSHOT_KEY]: { tabId, generation: refEpoch },
-      });
+      // they stay current across snapshots, and across target switches,
+      // until the tab's document changes.
+      await chrome.storage.session.set({ [refEpochKey(tabId)]: refEpoch });
       return result;
     }
-    await clearLatestSnapshotGeneration();
+    await clearRefEpoch(tabId);
   }
   throw new Error(
     "Target tab navigated while capturing its accessibility snapshot",
@@ -1725,7 +1722,7 @@ async function navigateAndCapture(
   timeoutMs = NAVIGATION_TIMEOUT_MS,
 ) {
   await requireUnchangedTarget(tabId);
-  await clearLatestSnapshotGeneration();
+  await clearRefEpoch(tabId);
   const deadline = Date.now() + timeoutMs;
   const navigation = topFrameNavigation(tabId, deadline, timeoutMs);
   try {
@@ -2565,11 +2562,8 @@ chrome.webNavigation.onCommitted.addListener((details) => {
   if (details.frameId !== 0) {
     return;
   }
-  void getTargetTabId().then((targetTabId) => {
-    if (details.tabId === targetTabId) {
-      return clearLatestSnapshotGeneration();
-    }
-  });
+  // Any tab's new document (also in the background) makes its refs stale.
+  void clearRefEpoch(details.tabId);
 });
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (

@@ -73,12 +73,12 @@ A snapshot result has the following form:
 
 `snapshot` is a YAML accessibility tree. Operable elements have refs in the form `s<epoch>e<element-id>`. For element operations, pass the human-readable description shown in the snapshot as `element` and its ref as `ref`. Only the ref identifies the element; `element` is never used as a selector or fallback search.
 
-A ref is scoped to its source browser, target tab, and document, and lasts as long as its element. An element keeps its ref in every snapshot of the same document, so refs from one snapshot remain usable after other element operations, waits, and key presses, and several operations can use refs from one snapshot. `<epoch>` is the generation of the first snapshot after the target was selected or the document changed; it is not the snapshot's own `generation`.
+A ref is scoped to its source browser, tab, and document, and lasts as long as its element. An element keeps its ref in every snapshot of the same document, so refs from one snapshot remain usable after other element operations, waits, and key presses, and several operations can use refs from one snapshot. Each tab keeps its refs while another tab is the target: after selecting tab B and then tab A again, A's refs work with no new snapshot, as long as A's document did not change. A ref is used only while its tab is the target. `<epoch>` is the generation of the first snapshot of the tab's document; it is not the snapshot's own `generation`.
 
 A ref is rejected as stale, and nothing is sent, when:
 
-- the target changed, the target tab was closed, or the top frame navigated (including back/forward, even from the back/forward cache);
-- a browser-native dialog opened;
+- it belongs to a tab that is not the target, its tab was closed, or its tab's top frame navigated, also while another tab was the target (including back/forward, even from the back/forward cache);
+- a browser-native dialog opened on its tab;
 - its element is no longer on the page;
 - its element's role or accessible name changed since the ref was given (a framework reusing the node for other content). The next snapshot gives the element a new ref.
 
@@ -204,7 +204,7 @@ Selects the page-operation target, makes the tab active, and brings its window t
 
 ## Snapshot and element tools
 
-Before using the following tools other than `browser_navigate`, select an HTTP(S) target with `browser_tab_select` or `browser_tab_activate`. `browser_navigate` creates an inactive target tab when needed. Element operations return a new `Snapshot`, invalidating the ref used for the operation.
+Before using the following tools other than `browser_navigate`, select an HTTP(S) target with `browser_tab_select` or `browser_tab_activate`. `browser_navigate` creates an inactive target tab when needed. Element operations return a new `Snapshot`; refs stay current as described in Refs above.
 
 ### `browser_snapshot`
 
@@ -547,7 +547,7 @@ below. Any other exception is an internal error: the client sees only
 | ambiguous browser | `browser_id` omitted with two or more connections | Pass a `browserId` from `browser_instances` explicitly |
 | target unavailable | No target selected or target tab closed | Use `browser_tab_open`/`browser_navigate` to create a target, or call `browser_tab_select` after `browser_tabs` |
 | content unavailable | Restricted page such as `chrome://` or `about:blank` | Target an HTTP(S) tab or recover with navigate/back |
-| stale/invalid ref | Another target, pre-navigation, an opened dialog, an element that left the page or changed role/name, or a malformed ref | Capture a new `browser_snapshot` |
+| stale/invalid ref | Another tab's ref, pre-navigation, an opened dialog, an element that left the page or changed role/name, or a malformed ref | Capture a new `browser_snapshot` |
 | element mismatch | Covered, moved away from its click point, non-editable, non-select, or missing option | Choose an appropriate ref/value from a current snapshot |
 | navigation failure | No history, load failure, or restricted destination | Check the URL/history and navigate to HTTP(S) if needed |
 | upload failure | Invalid path, no chooser, or multiple files for a single input | Correct the paths/ref; interception is cleaned up after failure |

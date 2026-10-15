@@ -212,8 +212,8 @@ viewport without moving `scrollY` or substituting document-top content.
 - Page commands use the same routing whether the target tab is foreground or background and never foreground it automatically.
 - The external snapshot/ref format uses YAML and `s<number>e<number>`.
 - Snapshot generations are issued extension-wide and never reused across tab changes, navigation, or snapshot updates.
-- A ref is `s<epoch>e<id>`. The epoch is the generation of the first snapshot after target selection, top-frame navigation commit, or a browser-native dialog; it changes only then. Within it, an `Element` keeps its id in every snapshot.
-- A ref points to its `Element` while it stays connected and keeps the role and accessible name it had when the id was given; otherwise, and for another epoch, it is rejected as stale before any input.
+- A ref is `s<epoch>e<id>`. The epoch is per tab: the generation of the first snapshot of the tab's document, which a top-frame navigation commit or a browser-native dialog on that tab ends. Target selection does not end it, so a tab's refs are current again when it is selected again. Within it, an `Element` keeps its id in every snapshot.
+- A ref points to its `Element` while it stays connected and keeps the role and accessible name it had when the id was given; otherwise, for another epoch, and while its tab is not the target, it is rejected as stale before any input.
 - Input to a ref is sent only at a point that hits that `Element` (or an element inside it) right before sending; scrolling it into view is instant.
 
 ## 7. Acceptance criteria
@@ -228,7 +228,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - `browser_tab_select` leaves Chrome UI's active tab/window focus unchanged and returns `active` and `targeted` separately.
 - `browser_snapshot` returns YAML and `s<number>e<number>` refs from a background target tab.
 - `browser_click` never falls back to an element other than the ref and returns a post-operation snapshot without foregrounding the background target tab.
-- Refs that are malformed, from another target, from before navigation or a dialog, refer to detached Elements, or whose Element changed role or name are clearly rejected. Refs of the same document stay usable across snapshots and operations.
+- Refs that are malformed, of a tab that is not the target, from before navigation or a dialog, refer to detached Elements, or whose Element changed role or name are clearly rejected. Refs of the same document stay usable across snapshots, operations, and selecting another target and back.
 - Hover, type, select, and key succeed on a background target without changing the active tab/window focus.
 - Type accepts only editable refs; select strictly resolves `option.value`.
 - Navigate/back/forward return post-operation snapshots on a background target and distinguish no-history from restricted destinations.
@@ -273,7 +273,7 @@ viewport without moving `scrollY` or substituting document-top content.
 - Snapshot/click/type/navigation/screenshot succeed when the target tab is in the background.
 - Manual user tab switching does not alter target routing.
 - Page-operation tools never operate on a tab other than the target.
-- Refs from other tabs, from before navigation, or of Elements that left the page or changed are rejected as stale; refs of the same document survive new snapshots.
+- Refs from other tabs, from before navigation, or of Elements that left the page or changed are rejected as stale; refs of the same document survive new snapshots and target switches.
 - Click/hover/type/select return URL, title, and ARIA snapshot afterward.
 - The virtual cursor is visible during click, hover, and drag.
 - An inactive target's title and popup state transition through Target/Operating while Chrome UI's active tab remains unchanged, without injecting a page badge.

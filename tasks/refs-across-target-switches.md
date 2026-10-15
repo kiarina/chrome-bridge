@@ -26,3 +26,21 @@ time it comes back, although A's document did not change. Asked by kiarina on 20
   both servers need no change unless the result shape changes
   (`scripts/check_server_conformance.py` still equal).
 - Released with an extension minor version (the ref contract changes).
+
+## Progress (2026-10-15)
+
+- Implemented in the extension (unreleased, `CHANGELOG.md` Unreleased): the background
+  keeps one `refEpoch:<tabId>` key per tab in `chrome.storage.session`, target selection
+  clears nothing, and a tab's epoch is cleared on its dialog, its navigation (also in the
+  background, `webNavigation.onCommitted`) and its close. Servers unchanged.
+- E2E `stable-refs.spec.js` covers: refused while another tab is the target, working
+  again back on the tab with no new snapshot, stale after a background navigation.
+  Full E2E passed with the Python and the Dart server (9/9 each); `validate_static.py` passed.
+- SPEC, `docs/concepts/api.md`, `docs/concepts/architecture.md` updated.
+
+## Next
+
+- Release as extension 0.6.0 (the ref contract changes; the servers' version follows the
+  release runbook) — waiting for kiarina's go, since it publishes to the Store and PyPI.
+- After the release, update the agent repository's index line for chrome-bridge
+  ("タブを変えた…で古くなる").

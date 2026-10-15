@@ -800,7 +800,6 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     // retain coverage of the extension's external target-loss diagnostic boundary.
     await profileA.worker.evaluate(async ({ tabId }) => {
       await chrome.storage.session.set({ targetTabId: tabId });
-      await chrome.storage.session.remove("latestSnapshot");
     }, { tabId: navigationTargetChangeTab.id });
     const targetChangedNavigationResult = await targetChangedNavigation;
     expect(targetChangedNavigationResult.isError).toBe(true);
@@ -1116,7 +1115,6 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     await new Promise((resolve) => setTimeout(resolve, 250));
     await profileA.worker.evaluate(async ({ tabId }) => {
       await chrome.storage.session.set({ targetTabId: tabId });
-      await chrome.storage.session.remove("latestSnapshot");
     }, { tabId: targetChangeTab.id });
     const targetChangedResult = await interruptedKey;
     expect(targetChangedResult.isError).toBe(true);
@@ -1236,7 +1234,6 @@ test("routes two isolated Chrome profiles and preserves identity across restart"
     await new Promise((resolve) => setTimeout(resolve, 750));
     await profileA.worker.evaluate(async ({ tabId }) => {
       await chrome.storage.session.set({ targetTabId: tabId });
-      await chrome.storage.session.remove("latestSnapshot");
     }, { tabId: uploadTargetChangeTab.id });
     const targetChangedUploadResult = await targetChangedUpload;
     expect(targetChangedUploadResult.isError).toBe(true);

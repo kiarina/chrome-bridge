@@ -8,7 +8,7 @@
   `chrome-bridge-mcp` and `chrome-bridge-sdk` 0.5.2 (a late extension answer no longer
   closes the connection; `/api/v1/meta` reports `implementation`). The Store step skipped
   (`extension-version-already-published`, 0.5.0). The Dart package's version follows (0.5.2).
-- Upgraded the `uv tool` installs on the Mac and G-GEAR to 0.5.2.
+- Upgraded the `uv tool` installs on the macOS and Windows development machines to 0.5.2.
 
 ### Dart server follow-ups decided
 
