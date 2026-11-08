@@ -99,6 +99,13 @@ package との共存を壊すためです。「次の major が出たら壊れ�
 上限を撤廃した依存（`jsonschema`、`uvicorn`、`websockets`、`httpx2`、2026-09-23 の v2 移行で `mcp`）については、
 撤廃時点の実測を `HISTORY.md` に記録しています。
 
+### extension の npm `overrides`（2026-11-09 時点）
+
+- `apps/extension/package.json`: `"overrides": {"minimatch": "11.0.5"}`
+  — eslint 10.14.0 と `@eslint/config-array` 0.23.5 が `minimatch@^10.2.4` を要求するが、GHSA-g3hv-75wg-m249 の修正は
+  11.0.1 から。開発用の lint だけが使う。eslint が使う `Minimatch#match`・`pattern` は 11 でも残り、lint の対象 33 ファイルは
+  override の前後で同じだった。eslint 側が `minimatch` 11 以上を許したら override を外す。
+
 ### `dependency-groups` は対象外
 
 `dependency-groups`（`dev`）は distribution metadata に含まれず、利用者の環境へ届きません。
