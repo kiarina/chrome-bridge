@@ -18,6 +18,12 @@
   "Detached while handling command." instead (seen with the Dart server; the message
   comes from the extension, not the server)
 
+## Seen on 2026-11-09
+
+- Dependency refresh (Playwright 1.65.0, Chromium headless shell 158): `e2e/multiple-profiles.spec.js:264` failed once with
+  the Python server (8 of 9 passed); the immediate rerun passed 9 of 9, and the Dart server passed 9 of 9. The failure message
+  was not kept (the Dart run overwrote `test-results/`)
+
 ## Next
 
 - From `last calls` and the server/worker logs of a failing run, find the timed-out click
